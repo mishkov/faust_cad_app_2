@@ -14,6 +14,8 @@ class CadScreen extends StatefulWidget {
 }
 
 class _CadScreenState extends State<CadScreen> {
+  static const _initialFocusDistance = 200.0;
+
   double _previousGestureScale = 1.0;
 
   var _cameraPosition = CameraConfig(
@@ -21,7 +23,7 @@ class _CadScreenState extends State<CadScreen> {
     yaw: 0.0,
     pitch: -0.5,
     focalLength: 500.0,
-    focusDistance: 200.0,
+    focusDistance: _initialFocusDistance,
   );
 
   @override
@@ -44,10 +46,21 @@ class _CadScreenState extends State<CadScreen> {
                     }
 
                     setState(() {
+                      final yaw =
+                          _cameraPosition.yaw - event.panDelta.dx * 0.005;
+                      final pitch =
+                          _cameraPosition.pitch - event.panDelta.dy * 0.005;
+                      final orientationChanged =
+                          yaw != _cameraPosition.yaw ||
+                          pitch != _cameraPosition.pitch;
                       final rotatedCamera = _cameraPosition.copyWith(
-                        yaw: _cameraPosition.yaw - event.panDelta.dx * 0.005,
-                        pitch:
-                            _cameraPosition.pitch - event.panDelta.dy * 0.005,
+                        yaw: yaw,
+                        pitch: pitch,
+                        // Rotation starts looking along a different ray, so
+                        // discard the depth accumulated by earlier zooms.
+                        focusDistance: orientationChanged
+                            ? _initialFocusDistance
+                            : _cameraPosition.focusDistance,
                       );
                       _cameraPosition = rotatedCamera.zoomTowardCursor(
                         cursor: event.localPosition,

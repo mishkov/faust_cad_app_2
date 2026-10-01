@@ -124,6 +124,173 @@ void main() {
 
     await tester.sendEventToBinding(PointerPanZoomEndEvent(position: position));
   });
+
+  for (final panDelta in [const Offset(20, 0), const Offset(0, 20)]) {
+    final axis = panDelta.dx != 0 ? 'yaw' : 'pitch';
+    testWidgets('$axis change restores zoom after repeated zooming', (
+      tester,
+    ) async {
+      await tester.pumpWidget(const MainApp());
+      final sceneBox = tester.renderObject<RenderBox>(find.byType(CadScene));
+      final position = sceneBox.localToGlobal(
+        sceneBox.size.center(Offset.zero),
+      );
+      final initial = tester
+          .widget<CadScene>(find.byType(CadScene))
+          .cameraConfig;
+
+      await tester.sendEventToBinding(
+        PointerPanZoomStartEvent(position: position),
+      );
+      var scale = 1.0;
+      for (var i = 0; i < 12; i++) {
+        scale *= 5;
+        await tester.sendEventToBinding(
+          PointerPanZoomUpdateEvent(position: position, scale: scale),
+        );
+      }
+      await tester.pump();
+      final accumulated = tester
+          .widget<CadScene>(find.byType(CadScene))
+          .cameraConfig;
+      expect(accumulated.focusDistance, lessThan(1e-6));
+
+      await tester.sendEventToBinding(
+        PointerPanZoomUpdateEvent(
+          position: position,
+          scale: scale,
+          pan: panDelta,
+          panDelta: panDelta,
+        ),
+      );
+      await tester.pump();
+      final rotated = tester
+          .widget<CadScene>(find.byType(CadScene))
+          .cameraConfig;
+      expect(rotated.focusDistance, initial.focusDistance);
+      expect(rotated.position, accumulated.position);
+      expect(rotated.yaw, initial.yaw - panDelta.dx * 0.005);
+      expect(rotated.pitch, initial.pitch - panDelta.dy * 0.005);
+
+      await tester.sendEventToBinding(
+        PointerPanZoomUpdateEvent(
+          position: position,
+          scale: scale * 1.25,
+          pan: panDelta,
+        ),
+      );
+      await tester.pump();
+      final zoomed = tester
+          .widget<CadScene>(find.byType(CadScene))
+          .cameraConfig;
+      expect(zoomed.focusDistance, closeTo(initial.focusDistance / 1.25, 1e-9));
+      expect(
+        zoomed.position.vector.distanceTo(rotated.position.vector),
+        closeTo(initial.focusDistance * (1 - 1 / 1.25), 1e-9),
+      );
+      await tester.sendEventToBinding(
+        PointerPanZoomEndEvent(position: position),
+      );
+    });
+  }
+
+  testWidgets(
+    'combined rotation and zoom preserves incremental gesture scale',
+    (tester) async {
+      await tester.pumpWidget(const MainApp());
+      final sceneBox = tester.renderObject<RenderBox>(find.byType(CadScene));
+      final position = sceneBox.localToGlobal(
+        sceneBox.size.center(Offset.zero),
+      );
+      final initial = tester
+          .widget<CadScene>(find.byType(CadScene))
+          .cameraConfig;
+
+      await tester.sendEventToBinding(
+        PointerPanZoomStartEvent(position: position),
+      );
+      await tester.sendEventToBinding(
+        PointerPanZoomUpdateEvent(position: position, scale: 1.2),
+      );
+      await tester.sendEventToBinding(
+        PointerPanZoomUpdateEvent(
+          position: position,
+          scale: 1.5,
+          pan: const Offset(20, 20),
+          panDelta: const Offset(20, 20),
+        ),
+      );
+      await tester.pump();
+      final rotated = tester
+          .widget<CadScene>(find.byType(CadScene))
+          .cameraConfig;
+      expect(
+        rotated.focusDistance,
+        closeTo(initial.focusDistance / 1.25, 1e-9),
+      );
+
+      await tester.sendEventToBinding(
+        PointerPanZoomUpdateEvent(
+          position: position,
+          scale: 1.8,
+          pan: const Offset(20, 20),
+        ),
+      );
+      await tester.pump();
+      final zoomed = tester
+          .widget<CadScene>(find.byType(CadScene))
+          .cameraConfig;
+      expect(zoomed.focusDistance, closeTo(initial.focusDistance / 1.5, 1e-9));
+      expect(
+        zoomed.position.vector.distanceTo(rotated.position.vector),
+        closeTo(rotated.focusDistance * (1 - 1 / 1.2), 1e-9),
+      );
+      await tester.sendEventToBinding(
+        PointerPanZoomEndEvent(position: position),
+      );
+    },
+  );
+
+  testWidgets(
+    'new zoom gestures preserve depth while orientation is unchanged',
+    (tester) async {
+      await tester.pumpWidget(const MainApp());
+      final sceneBox = tester.renderObject<RenderBox>(find.byType(CadScene));
+      final position = sceneBox.localToGlobal(
+        sceneBox.size.center(Offset.zero),
+      );
+      final initial = tester
+          .widget<CadScene>(find.byType(CadScene))
+          .cameraConfig;
+
+      for (var i = 0; i < 2; i++) {
+        await tester.sendEventToBinding(
+          PointerPanZoomStartEvent(position: position),
+        );
+        await tester.sendEventToBinding(
+          PointerPanZoomUpdateEvent(position: position),
+        );
+        await tester.sendEventToBinding(
+          PointerPanZoomUpdateEvent(position: position, scale: 1.25),
+        );
+        await tester.sendEventToBinding(
+          PointerPanZoomEndEvent(position: position),
+        );
+      }
+      await tester.pump();
+      final zoomed = tester
+          .widget<CadScene>(find.byType(CadScene))
+          .cameraConfig;
+      expect(
+        zoomed.focusDistance,
+        closeTo(initial.focusDistance / (1.25 * 1.25), 1e-9),
+      );
+      expect(
+        zoomed.position.vector.distanceTo(initial.position.vector),
+        closeTo(initial.focusDistance * (1 - 1 / (1.25 * 1.25)), 1e-9),
+      );
+    },
+  );
 }
 
 Offset _project(Vertex point, CameraConfig camera, Size viewport) {
