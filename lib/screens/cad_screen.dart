@@ -4,6 +4,7 @@ import 'package:faust_cad_app_2/cad_scene/cad_primitivies/point3d.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_scene.dart';
 import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
 import 'package:flutter/material.dart';
+import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 class CadScreen extends StatefulWidget {
   const new({super.key});
@@ -16,7 +17,7 @@ class _CadScreenState extends State<CadScreen> {
   double _previousGestureScale = 1.0;
 
   var _cameraPosition = CameraConfig(
-    position: Point3d(0, -50, 100),
+    position: Point3d(Vector3(0, -50, 100)),
     yaw: 0.0,
     pitch: -0.5,
     focalLength: 500.0,
@@ -60,7 +61,10 @@ class _CadScreenState extends State<CadScreen> {
                     cameraConfig: _cameraPosition,
                     cadObjects: [
                       GroundGrid(100, 100),
-                      Cube(centerPosition: Point3d(15, 16, 19), size: 20),
+                      Cube(
+                        centerPosition: Point3d(Vector3(15, 16, 19)),
+                        size: 20,
+                      ),
                     ],
                   ),
                 ),

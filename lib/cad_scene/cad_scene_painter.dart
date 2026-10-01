@@ -1,10 +1,11 @@
 import 'dart:math' as math;
 
 import 'package:faust_cad_app_2/cad_scene/cad_objects/cad_object.dart';
+import 'package:faust_cad_app_2/cad_scene/cad_primitivies/point3d.dart';
 import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/line3d.dart';
-import 'package:faust_cad_app_2/cad_scene/cad_primitivies/point3d.dart';
 import 'package:flutter/material.dart';
+import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 class CadScenePainter extends CustomPainter {
   const new({required this.cameraConfig, required this.cadObjects});
@@ -20,8 +21,12 @@ class CadScenePainter extends CustomPainter {
       for (final primitive in primitives) {
         switch (primitive) {
           case Line3d(begin: Point3d begin, end: Point3d end):
-            final beginPoint = _project(begin, cameraConfig, screen: size);
-            final endPoint = _project(end, cameraConfig, screen: size);
+            final beginPoint = _project(
+              begin.vector,
+              cameraConfig,
+              screen: size,
+            );
+            final endPoint = _project(end.vector, cameraConfig, screen: size);
 
             if (beginPoint == null || endPoint == null) {
               break;
@@ -40,7 +45,7 @@ class CadScenePainter extends CustomPainter {
   }
 
   ({double x, double y})? _project(
-    Point3d point,
+    Vector3 point,
     CameraConfig camera, {
     required Size screen,
   }) {
@@ -55,8 +60,8 @@ class CadScenePainter extends CustomPainter {
     );
   }
 
-  Point3d _toCameraSpace(Point3d point, CameraConfig camera) {
-    var p = point - camera.position;
+  Vector3 _toCameraSpace(Vector3 point, CameraConfig camera) {
+    var p = point - camera.position.vector;
 
     // Inverse camera yaw: rotate around Z
     final cy = math.cos(-camera.yaw);
@@ -73,7 +78,7 @@ class CadScenePainter extends CustomPainter {
     final y2 = y1 * cp - z1 * sp;
     final z2 = y1 * sp + z1 * cp;
 
-    return Point3d(x1, y2, z2);
+    return Vector3(x1, y2, z2);
   }
 
   @override
