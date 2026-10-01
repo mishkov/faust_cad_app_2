@@ -24,10 +24,14 @@ class CadScreen extends StatefulWidget {
 }
 
 class _CadScreenState extends State<CadScreen> {
+  double _previousGestureScale = 1.0;
+
   var _cameraPosition = CameraConfig(
     position: Point3d(0, -50, 100),
     yaw: 0.0,
     pitch: -0.5,
+    focalLength: 500.0,
+    focusDistance: 200.0,
   );
 
   @override
@@ -39,19 +43,34 @@ class _CadScreenState extends State<CadScreen> {
           children: [
             Padding(padding: EdgeInsets.all(8.0), child: Text('Hello World!')),
             Expanded(
-              child: Listener(
-                behavior: HitTestBehavior.opaque,
-                onPointerPanZoomUpdate: (event) {
-                  setState(() {
-                    _cameraPosition = _cameraPosition.copyWith(
-                      yaw: _cameraPosition.yaw + event.panDelta.dx * 0.005,
-                      pitch: _cameraPosition.pitch + event.panDelta.dy * 0.005,
-                    );
-                  });
-                },
-                child: CadScene(
-                  cameraConfig: _cameraPosition,
-                  cadObjects: [GroundGrid(100, 100)],
+              child: LayoutBuilder(
+                builder: (context, constraints) => Listener(
+                  behavior: HitTestBehavior.opaque,
+                  onPointerPanZoomStart: (_) => _previousGestureScale = 1.0,
+                  onPointerPanZoomUpdate: (event) {
+                    final scaleFactor = event.scale / _previousGestureScale;
+                    if (event.scale.isFinite && event.scale > 0) {
+                      _previousGestureScale = event.scale;
+                    }
+
+                    setState(() {
+                      final rotatedCamera = _cameraPosition.copyWith(
+                        yaw: _cameraPosition.yaw + event.panDelta.dx * 0.005,
+                        pitch:
+                            _cameraPosition.pitch + event.panDelta.dy * 0.005,
+                      );
+                      _cameraPosition = rotatedCamera.zoomTowardCursor(
+                        cursor: event.localPosition,
+                        viewport: constraints.biggest,
+                        scaleFactor: scaleFactor,
+                      );
+                    });
+                  },
+                  onPointerPanZoomEnd: (_) => _previousGestureScale = 1.0,
+                  child: CadScene(
+                    cameraConfig: _cameraPosition,
+                    cadObjects: [GroundGrid(100, 100)],
+                  ),
                 ),
               ),
             ),
@@ -98,18 +117,8 @@ class CadScenePainter extends CustomPainter {
       for (final primitive in primitives) {
         switch (primitive) {
           case Line3d(begin: Point3d begin, end: Point3d end):
-            final beginPoint = _project(
-              begin,
-              cameraConfig,
-              focalLength: 500,
-              screen: size,
-            );
-            final endPoint = _project(
-              end,
-              cameraConfig,
-              focalLength: 500,
-              screen: size,
-            );
+            final beginPoint = _project(begin, cameraConfig, screen: size);
+            final endPoint = _project(end, cameraConfig, screen: size);
 
             if (beginPoint == null || endPoint == null) {
               break;
@@ -130,7 +139,6 @@ class CadScenePainter extends CustomPainter {
   ({double x, double y})? _project(
     Point3d point,
     CameraConfig camera, {
-    required double focalLength,
     required Size screen,
   }) {
     final p = _toCameraSpace(point, camera);
@@ -139,8 +147,8 @@ class CadScenePainter extends CustomPainter {
     if (befindCamera) return null;
 
     return (
-      x: screen.width / 2 + p.x / p.y * focalLength,
-      y: screen.height / 2 - p.z / p.y * focalLength,
+      x: screen.width / 2 + p.x / p.y * camera.focalLength,
+      y: screen.height / 2 - p.z / p.y * camera.focalLength,
     );
   }
 
@@ -176,17 +184,76 @@ class CameraConfig with Equatable {
   final Point3d position;
   final double yaw;
   final double pitch;
+  final double focalLength;
 
-  new({required this.position, required this.yaw, required this.pitch});
+  /// Camera-space depth of the point used for cursor zoom.
+  final double focusDistance;
+
+  new({
+    required this.position,
+    required this.yaw,
+    required this.pitch,
+    required this.focalLength,
+    required this.focusDistance,
+  }) : assert(focalLength.isFinite && focalLength > 0),
+       assert(focusDistance.isFinite && focusDistance > 0);
 
   @override
-  List<Object?> get props => [position, yaw, pitch];
+  List<Object?> get props => [position, yaw, pitch, focalLength, focusDistance];
 
-  CameraConfig copyWith({Point3d? position, double? yaw, double? pitch}) {
+  CameraConfig copyWith({
+    Point3d? position,
+    double? yaw,
+    double? pitch,
+    double? focalLength,
+    double? focusDistance,
+  }) {
     return CameraConfig(
       position: position ?? this.position,
       yaw: yaw ?? this.yaw,
       pitch: pitch ?? this.pitch,
+      focalLength: focalLength ?? this.focalLength,
+      focusDistance: focusDistance ?? this.focusDistance,
+    );
+  }
+
+  CameraConfig zoomTowardCursor({
+    required Offset cursor,
+    required Size viewport,
+    required double scaleFactor,
+  }) {
+    if (!scaleFactor.isFinite ||
+        scaleFactor <= 0 ||
+        scaleFactor == 1 ||
+        viewport.isEmpty) {
+      return this;
+    }
+
+    // Reverse the painter's perspective projection to get the cursor ray.
+    final rayX = (cursor.dx - viewport.width / 2) / focalLength;
+    final rayZ = (viewport.height / 2 - cursor.dy) / focalLength;
+    final cp = math.cos(pitch);
+    final sp = math.sin(pitch);
+    final pitchedY = cp - rayZ * sp;
+    final directionZ = sp + rayZ * cp;
+    final cy = math.cos(yaw);
+    final sy = math.sin(yaw);
+    final directionX = rayX * cy - pitchedY * sy;
+    final directionY = rayX * sy + pitchedY * cy;
+
+    // A screen position defines a ray, so use the camera's focus depth to
+    // choose a point on that ray, regardless of which way it points.
+    final distance = focusDistance;
+    // Pinching out increases scale and moves the camera along the cursor ray.
+    final factor = 1 / scaleFactor.clamp(0.2, 5.0);
+    final step = distance * (1 - factor);
+    return copyWith(
+      position: Point3d(
+        position.x + directionX * step,
+        position.y + directionY * step,
+        position.z + directionZ * step,
+      ),
+      focusDistance: distance * factor,
     );
   }
 }
