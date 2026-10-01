@@ -1,11 +1,11 @@
 import 'dart:math' as math;
 
 import 'package:equatable/equatable.dart';
-import 'package:faust_cad_app_2/cad_scene/cad_primitivies/point3d.dart';
 import 'package:flutter/material.dart';
+import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 class CameraConfig with Equatable {
-  final Point3d position;
+  final Vector3 position;
   final double yaw;
   final double pitch;
   final double focalLength;
@@ -26,7 +26,7 @@ class CameraConfig with Equatable {
   List<Object?> get props => [position, yaw, pitch, focalLength, focusDistance];
 
   CameraConfig copyWith({
-    Point3d? position,
+    Vector3? position,
     double? yaw,
     double? pitch,
     double? focalLength,
@@ -72,11 +72,7 @@ class CameraConfig with Equatable {
     final factor = 1 / scaleFactor.clamp(0.2, 5.0);
     final step = distance * (1 - factor);
     return copyWith(
-      position: Point3d(
-        position.x + directionX * step,
-        position.y + directionY * step,
-        position.z + directionZ * step,
-      ),
+      position: position + Vector3(directionX, directionY, directionZ) * step,
       focusDistance: distance * factor,
     );
   }
