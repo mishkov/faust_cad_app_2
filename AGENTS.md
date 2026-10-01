@@ -1,3 +1,19 @@
+# Code best practices
+
 Follow these rules during coding within `lib/` folder:
 
 - One class per one file. This is recommendation. If there is real reason to keep few classes within the same file then do it
+
+# Git workflow
+
+For implementation tasks:
+
+1. Work in a separate Codex/AI-agent worktree.
+2. Create a branch named `codex|ai-agent/<short-task-name>`.
+3. Implement the task.
+4. Run relevant tests and checks.
+5. Commit all changes.
+6. Push the branch to `origin`.
+7. Create a pull request targeting `main`.
+9. Never merge the pull request yourself.
+10. Leave the worktree clean.
