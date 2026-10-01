@@ -1,7 +1,8 @@
-import 'package:faust_cad_app_2/cad_scene/cad_scene.dart';
-import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
+import 'package:faust_cad_app_2/cad_scene/cad_objects/cube.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_objects/ground_grid.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/point3d.dart';
+import 'package:faust_cad_app_2/cad_scene/cad_scene.dart';
+import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
 import 'package:flutter/material.dart';
 
 class CadScreen extends StatefulWidget {
@@ -43,9 +44,9 @@ class _CadScreenState extends State<CadScreen> {
 
                     setState(() {
                       final rotatedCamera = _cameraPosition.copyWith(
-                        yaw: _cameraPosition.yaw + event.panDelta.dx * 0.005,
+                        yaw: _cameraPosition.yaw - event.panDelta.dx * 0.005,
                         pitch:
-                            _cameraPosition.pitch + event.panDelta.dy * 0.005,
+                            _cameraPosition.pitch - event.panDelta.dy * 0.005,
                       );
                       _cameraPosition = rotatedCamera.zoomTowardCursor(
                         cursor: event.localPosition,
