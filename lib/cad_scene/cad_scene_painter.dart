@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:faust_cad_app_2/cad_scene/cad_objects/cad_object.dart';
+import 'package:faust_cad_app_2/cad_scene/cad_primitivies/point3d.dart';
 import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/line3d.dart';
 import 'package:flutter/material.dart';
@@ -19,9 +20,13 @@ class CadScenePainter extends CustomPainter {
 
       for (final primitive in primitives) {
         switch (primitive) {
-          case Line3d(begin: Vector3 begin, end: Vector3 end):
-            final beginPoint = _project(begin, cameraConfig, screen: size);
-            final endPoint = _project(end, cameraConfig, screen: size);
+          case Line3d(begin: Point3d begin, end: Point3d end):
+            final beginPoint = _project(
+              begin.vector,
+              cameraConfig,
+              screen: size,
+            );
+            final endPoint = _project(end.vector, cameraConfig, screen: size);
 
             if (beginPoint == null || endPoint == null) {
               break;
@@ -56,7 +61,7 @@ class CadScenePainter extends CustomPainter {
   }
 
   Vector3 _toCameraSpace(Vector3 point, CameraConfig camera) {
-    var p = point - camera.position;
+    var p = point - camera.position.vector;
 
     // Inverse camera yaw: rotate around Z
     final cy = math.cos(-camera.yaw);

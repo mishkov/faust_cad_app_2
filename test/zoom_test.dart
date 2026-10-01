@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:faust_cad_app_2/cad_scene/cad_primitivies/point3d.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_scene.dart';
 import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
 import 'package:faust_cad_app_2/main_app.dart';
@@ -11,7 +12,7 @@ import 'package:vector_math/vector_math_64.dart' show Vector3;
 void main() {
   const viewport = Size(1000, 800);
   final camera = CameraConfig(
-    position: Vector3(0, -50, 100),
+    position: Point3d(Vector3(0, -50, 100)),
     yaw: 0.35,
     pitch: -0.5,
     focalLength: 650.0,
@@ -19,20 +20,20 @@ void main() {
   );
 
   test('zoom leaves the original camera position unchanged', () {
-    final originalPosition = camera.position.clone();
+    final originalPosition = camera.position.vector.clone();
     final zoomed = camera.zoomTowardCursor(
       cursor: viewport.center(Offset.zero),
       viewport: viewport,
       scaleFactor: 1.25,
     );
 
-    expect(camera.position, originalPosition);
+    expect(camera.position.vector, originalPosition);
     expect(identical(zoomed.position, camera.position), isFalse);
-    expect(zoomed.position, isNot(originalPosition));
+    expect(zoomed.position.vector, isNot(originalPosition));
   });
 
   test('zoom keeps the ground point under the cursor', () {
-    final target = Vector3(20, 50, 0);
+    final target = Point3d(Vector3(20, 50, 0));
     final cursor = _project(target, camera, viewport);
     final zoomed = camera.zoomTowardCursor(
       cursor: cursor,
@@ -40,7 +41,7 @@ void main() {
       scaleFactor: 1.25,
     );
 
-    expect(zoomed.position.z, lessThan(camera.position.z));
+    expect(zoomed.position.vector.z, lessThan(camera.position.vector.z));
     expect(_project(target, zoomed, viewport).dx, closeTo(cursor.dx, 1e-9));
     expect(_project(target, zoomed, viewport).dy, closeTo(cursor.dy, 1e-9));
 
@@ -49,13 +50,13 @@ void main() {
       viewport: viewport,
       scaleFactor: 0.8,
     );
-    expect(restored.position.x, closeTo(camera.position.x, 1e-9));
-    expect(restored.position.y, closeTo(camera.position.y, 1e-9));
-    expect(restored.position.z, closeTo(camera.position.z, 1e-9));
+    expect(restored.position.vector.x, closeTo(camera.position.vector.x, 1e-9));
+    expect(restored.position.vector.y, closeTo(camera.position.vector.y, 1e-9));
+    expect(restored.position.vector.z, closeTo(camera.position.vector.z, 1e-9));
   });
 
   test('zoom follows a ray toward a point above the ground', () {
-    final target = Vector3(0, 500, 120);
+    final target = Point3d(Vector3(0, 500, 120));
     final cursor = _project(target, camera, viewport);
     final zoomed = camera.zoomTowardCursor(
       cursor: cursor,
@@ -64,7 +65,7 @@ void main() {
     );
 
     expect(cursor.dy, lessThan(viewport.height / 2));
-    expect(zoomed.position.z, greaterThan(camera.position.z));
+    expect(zoomed.position.vector.z, greaterThan(camera.position.vector.z));
     expect(_project(target, zoomed, viewport).dx, closeTo(cursor.dx, 1e-9));
     expect(_project(target, zoomed, viewport).dy, closeTo(cursor.dy, 1e-9));
 
@@ -73,9 +74,9 @@ void main() {
       viewport: viewport,
       scaleFactor: 0.8,
     );
-    expect(restored.position.x, closeTo(camera.position.x, 1e-9));
-    expect(restored.position.y, closeTo(camera.position.y, 1e-9));
-    expect(restored.position.z, closeTo(camera.position.z, 1e-9));
+    expect(restored.position.vector.x, closeTo(camera.position.vector.x, 1e-9));
+    expect(restored.position.vector.y, closeTo(camera.position.vector.y, 1e-9));
+    expect(restored.position.vector.z, closeTo(camera.position.vector.z, 1e-9));
   });
 
   test('zoom works when the cursor ray is parallel to the ground', () {
@@ -86,8 +87,11 @@ void main() {
       scaleFactor: 1.25,
     );
 
-    expect(zoomed.position.y, greaterThan(levelCamera.position.y));
-    expect(zoomed.position.z, levelCamera.position.z);
+    expect(
+      zoomed.position.vector.y,
+      greaterThan(levelCamera.position.vector.y),
+    );
+    expect(zoomed.position.vector.z, levelCamera.position.vector.z);
   });
 
   testWidgets('pan zoom uses incremental scale from cumulative updates', (
@@ -111,9 +115,9 @@ void main() {
 
     final after = tester.widget<CadScene>(find.byType(CadScene)).cameraConfig;
     final expectedZ =
-        before.position.z +
+        before.position.vector.z +
         math.sin(before.pitch) * before.focusDistance * (1 - 1 / 1.5);
-    expect(after.position.z, closeTo(expectedZ, 1e-9));
+    expect(after.position.vector.z, closeTo(expectedZ, 1e-9));
     expect(after.focusDistance, closeTo(before.focusDistance / 1.5, 1e-9));
     expect(after.yaw, before.yaw);
     expect(after.pitch, before.pitch);
@@ -122,10 +126,10 @@ void main() {
   });
 }
 
-Offset _project(Vector3 point, CameraConfig camera, Size viewport) {
-  final dx = point.x - camera.position.x;
-  final dy = point.y - camera.position.y;
-  final dz = point.z - camera.position.z;
+Offset _project(Point3d point, CameraConfig camera, Size viewport) {
+  final dx = point.vector.x - camera.position.vector.x;
+  final dy = point.vector.y - camera.position.vector.y;
+  final dz = point.vector.z - camera.position.vector.z;
   final cy = math.cos(-camera.yaw);
   final sy = math.sin(-camera.yaw);
   final x = dx * cy - dy * sy;
