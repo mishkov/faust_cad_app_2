@@ -14,6 +14,9 @@ class CadScenePainter extends CustomPainter {
   final CameraConfig cameraConfig;
   final List<CadObject> cadObjects;
 
+  // Keep perspective division away from the camera plane at depth zero.
+  static const double _nearPlane = 1e-6;
+
   @override
   void paint(Canvas canvas, Size size) {
     for (final cadObject in cadObjects) {
@@ -26,16 +29,16 @@ class CadScenePainter extends CustomPainter {
             end: Vertex end,
             curve: LinearCadCurve(),
           ):
-            final beginPoint = _project(
-              begin.vector,
-              cameraConfig,
-              screen: size,
+            final clipped = _clipToNearPlane(
+              _toCameraSpace(begin.vector, cameraConfig),
+              _toCameraSpace(end.vector, cameraConfig),
             );
-            final endPoint = _project(end.vector, cameraConfig, screen: size);
-
-            if (beginPoint == null || endPoint == null) {
+            if (clipped == null) {
               break;
             }
+
+            final beginPoint = _project(clipped.begin, screen: size);
+            final endPoint = _project(clipped.end, screen: size);
 
             canvas.drawLine(
               Offset(beginPoint.x, beginPoint.y),
@@ -49,19 +52,31 @@ class CadScenePainter extends CustomPainter {
     }
   }
 
-  ({double x, double y})? _project(
-    Vector3 point,
-    CameraConfig camera, {
-    required Size screen,
-  }) {
-    final p = _toCameraSpace(point, camera);
+  ({Vector3 begin, Vector3 end})? _clipToNearPlane(Vector3 begin, Vector3 end) {
+    final beginVisible = begin.y >= _nearPlane;
+    final endVisible = end.y >= _nearPlane;
+    if (!beginVisible && !endVisible) return null;
 
-    final befindCamera = p.y <= 0;
-    if (befindCamera) return null;
+    if (beginVisible != endVisible) {
+      // Preserve the visible part of an edge whose other endpoint is behind
+      // the near plane, instead of discarding the whole edge.
+      final t = (_nearPlane - begin.y) / (end.y - begin.y);
+      final intersection = begin + (end - begin) * t;
+      intersection.y = _nearPlane;
+      if (!beginVisible) {
+        begin = intersection;
+      } else {
+        end = intersection;
+      }
+    }
 
+    return (begin: begin, end: end);
+  }
+
+  ({double x, double y}) _project(Vector3 p, {required Size screen}) {
     return (
-      x: screen.width / 2 + p.x / p.y * camera.focalLength,
-      y: screen.height / 2 - p.z / p.y * camera.focalLength,
+      x: screen.width / 2 + p.x / p.y * cameraConfig.focalLength,
+      y: screen.height / 2 - p.z / p.y * cameraConfig.focalLength,
     );
   }
 
