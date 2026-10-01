@@ -75,7 +75,7 @@ void main() {
       paint,
       paints..line(p1: const Offset(100, 100), p2: const Offset(100, 100)),
     );
-    expect(paint, paints..everything(_hasFiniteLineEndpoints));
+    expect(paint, paints..everything(_hasViewportLineEndpoints(viewport)));
   });
 
   for (final reverse in [false, true]) {
@@ -99,9 +99,9 @@ void main() {
             if (method != #drawLine) return false;
             final clippedPoint = arguments[reverse ? 1 : 0] as Offset;
             final visiblePoint = arguments[reverse ? 0 : 1] as Offset;
-            // The edge meets depth 1e-6 at x = 1 + 0.5e-6, z = 1.
-            expect(clippedPoint.dx, closeTo(90000145, 1e-6));
-            expect(clippedPoint.dy, closeTo(-89999900, 1e-6));
+            // The visible portion enters the viewport at its right edge.
+            expect(clippedPoint.dx, closeTo(200, 1e-9));
+            expect(clippedPoint.dy, closeTo(45, 1e-9));
             expect(visiblePoint, const Offset(190, 55));
             return true;
           }),
@@ -127,7 +127,47 @@ void main() {
     });
   }
 
+  test('clips edges that cross opposite viewport boundaries', () {
+    final painter = CadScenePainter(
+      cameraConfig: camera,
+      cadObjects: [
+        _EdgeObject(Vertex(Vector3(-2, 1, 0)), Vertex(Vector3(2, 1, 0))),
+        _EdgeObject(Vertex(Vector3(0, 1, 2)), Vertex(Vector3(0, 1, -2))),
+      ],
+    );
+    void paint(Canvas canvas) => painter.paint(canvas, viewport);
+
+    expect(paint, paintsExactlyCountTimes(#drawLine, 2));
+    expect(
+      paint,
+      paints
+        ..line(p1: const Offset(0, 100), p2: const Offset(200, 100))
+        ..line(p1: const Offset(100, 0), p2: const Offset(100, 200)),
+    );
+  });
+
+  for (final direction in [
+    Vector3(-2, 0, 0),
+    Vector3(2, 0, 0),
+    Vector3(0, 0, -2),
+    Vector3(0, 0, 2),
+  ]) {
+    test('skips edges outside the viewport in direction $direction', () {
+      final painter = CadScenePainter(
+        cameraConfig: camera,
+        cadObjects: [
+          _EdgeObject(
+            Vertex(direction + Vector3(0, 1, 0)),
+            Vertex(direction + Vector3(0, 1.5, 0)),
+          ),
+        ],
+      );
+      expect((Canvas canvas) => painter.paint(canvas, viewport), paintsNothing);
+    });
+  }
+
   test('close cursor zoom preserves grid lines crossing the camera plane', () {
+    const zoomViewport = Size(700, 600);
     final zoomed = camera
         .copyWith(
           position: Vertex(Vector3(0, -50, 100)),
@@ -136,31 +176,74 @@ void main() {
           focusDistance: 200,
         )
         .zoomTowardCursor(
-          cursor: viewport.center(Offset.zero),
-          viewport: viewport,
-          scaleFactor: 5,
+          cursor: zoomViewport.center(Offset.zero),
+          viewport: zoomViewport,
+          scaleFactor: 2,
         );
     final painter = CadScenePainter(
       cameraConfig: zoomed,
       cadObjects: [GroundGrid(100, 100)],
     );
-    void paint(Canvas canvas) => painter.paint(canvas, viewport);
+    void paint(Canvas canvas) => painter.paint(canvas, zoomViewport);
 
-    // Eleven crossing edges plus three edges entirely in front of the camera.
-    expect(paint, paintsExactlyCountTimes(#drawLine, 14));
-    expect(paint, paints..everything(_hasFiniteLineEndpoints));
+    // Six crossing edges plus four horizontal edges intersect the viewport.
+    expect(paint, paintsExactlyCountTimes(#drawLine, 10));
+    expect(paint, paints..line(p1: const Offset(350, 600)));
+    expect(paint, paints..everything(_hasViewportLineEndpoints(zoomViewport)));
+  });
+
+  test(
+    'strong rotated zoom keeps every drawn endpoint inside the viewport',
+    () {
+      const zoomViewport = Size(700, 600);
+      var zoomed = camera.copyWith(
+        position: Vertex(Vector3(0, -50, 100)),
+        yaw: -0.6,
+        pitch: -0.6,
+        focalLength: 500,
+        focusDistance: 200,
+      );
+      for (final scale in [2.0, 1.25, 1.25]) {
+        zoomed = zoomed.zoomTowardCursor(
+          cursor: zoomViewport.center(Offset.zero),
+          viewport: zoomViewport,
+          scaleFactor: scale,
+        );
+        final painter = CadScenePainter(
+          cameraConfig: zoomed,
+          cadObjects: [GroundGrid(100, 100)],
+        );
+        void paint(Canvas canvas) => painter.paint(canvas, zoomViewport);
+
+        expect(paint, paints..line());
+        expect(
+          paint,
+          paints..everything(_hasViewportLineEndpoints(zoomViewport)),
+        );
+      }
+    },
+  );
+
+  test('empty viewport draws nothing', () {
+    final painter = CadScenePainter(
+      cameraConfig: camera,
+      cadObjects: [GroundGrid(100, 100)],
+    );
+    expect((Canvas canvas) => painter.paint(canvas, Size.zero), paintsNothing);
   });
 }
 
-bool _hasFiniteLineEndpoints(Symbol method, List<dynamic> arguments) {
-  if (method != #drawLine) return false;
-  final begin = arguments[0] as Offset;
-  final end = arguments[1] as Offset;
-  return begin.dx.isFinite &&
-      begin.dy.isFinite &&
-      end.dx.isFinite &&
-      end.dy.isFinite;
-}
+PaintPatternPredicate _hasViewportLineEndpoints(Size viewport) =>
+    (method, arguments) {
+      if (method != #drawLine) return false;
+      final begin = arguments[0] as Offset;
+      final end = arguments[1] as Offset;
+      for (final point in [begin, end]) {
+        expect(point.dx, inInclusiveRange(0, viewport.width));
+        expect(point.dy, inInclusiveRange(0, viewport.height));
+      }
+      return true;
+    };
 
 class _EdgeObject extends CadObject {
   _EdgeObject(this.begin, this.end);

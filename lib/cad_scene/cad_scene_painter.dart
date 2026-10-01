@@ -19,6 +19,8 @@ class CadScenePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) return;
+
     for (final cadObject in cadObjects) {
       final primitives = cadObject.build();
 
@@ -29,9 +31,10 @@ class CadScenePainter extends CustomPainter {
             end: Vertex end,
             curve: LinearCadCurve(),
           ):
-            final clipped = _clipToNearPlane(
+            final clipped = _clipToViewFrustum(
               _toCameraSpace(begin.vector, cameraConfig),
               _toCameraSpace(end.vector, cameraConfig),
+              screen: size,
             );
             if (clipped == null) {
               break;
@@ -52,31 +55,55 @@ class CadScenePainter extends CustomPainter {
     }
   }
 
-  ({Vector3 begin, Vector3 end})? _clipToNearPlane(Vector3 begin, Vector3 end) {
-    final beginVisible = begin.y >= _nearPlane;
-    final endVisible = end.y >= _nearPlane;
-    if (!beginVisible && !endVisible) return null;
+  ({Vector3 begin, Vector3 end})? _clipToViewFrustum(
+    Vector3 begin,
+    Vector3 end, {
+    required Size screen,
+  }) {
+    final halfWidth = screen.width / (2 * cameraConfig.focalLength);
+    final halfHeight = screen.height / (2 * cameraConfig.focalLength);
+    final planes = [
+      (normal: Vector3(0, 1, 0), offset: -_nearPlane),
+      (normal: Vector3(1, halfWidth, 0), offset: 0.0),
+      (normal: Vector3(-1, halfWidth, 0), offset: 0.0),
+      (normal: Vector3(0, halfHeight, 1), offset: 0.0),
+      (normal: Vector3(0, halfHeight, -1), offset: 0.0),
+    ];
+    var enter = 0.0;
+    var exit = 1.0;
 
-    if (beginVisible != endVisible) {
-      // Preserve the visible part of an edge whose other endpoint is behind
-      // the near plane, instead of discarding the whole edge.
-      final t = (_nearPlane - begin.y) / (end.y - begin.y);
-      final intersection = begin + (end - begin) * t;
-      intersection.y = _nearPlane;
-      if (!beginVisible) {
-        begin = intersection;
-      } else {
-        end = intersection;
+    // Clip in camera space before perspective division. Clipping only to the
+    // near plane can leave enormous screen coordinates that lose precision
+    // when the native renderer converts them to floats.
+    for (final plane in planes) {
+      final beginDistance = plane.normal.dot(begin) + plane.offset;
+      final endDistance = plane.normal.dot(end) + plane.offset;
+      if (beginDistance < 0 && endDistance < 0) return null;
+      if (beginDistance < 0 || endDistance < 0) {
+        final t = beginDistance / (beginDistance - endDistance);
+        if (beginDistance < 0) {
+          enter = math.max(enter, t);
+        } else {
+          exit = math.min(exit, t);
+        }
+        if (enter > exit) return null;
       }
     }
 
-    return (begin: begin, end: end);
+    final direction = end - begin;
+    return (begin: begin + direction * enter, end: begin + direction * exit);
   }
 
   ({double x, double y}) _project(Vector3 p, {required Size screen}) {
+    final depth = math.max(p.y, _nearPlane);
+    // Clamp tiny rounding errors at the clipping planes to the viewport.
     return (
-      x: screen.width / 2 + p.x / p.y * cameraConfig.focalLength,
-      y: screen.height / 2 - p.z / p.y * cameraConfig.focalLength,
+      x: (screen.width / 2 + p.x / depth * cameraConfig.focalLength)
+          .clamp(0.0, screen.width)
+          .toDouble(),
+      y: (screen.height / 2 - p.z / depth * cameraConfig.focalLength)
+          .clamp(0.0, screen.height)
+          .toDouble(),
     );
   }
 
