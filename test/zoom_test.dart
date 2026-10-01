@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:faust_cad_app_2/cad_scene/cad_primitivies/point3d.dart';
+import 'package:faust_cad_app_2/cad_scene/cad_primitivies/vertex.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_scene.dart';
 import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
 import 'package:faust_cad_app_2/main_app.dart';
@@ -11,7 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   const viewport = Size(1000, 800);
   final camera = CameraConfig(
-    position: Point3d(0, -50, 100),
+    position: Vertex(0, -50, 100),
     yaw: 0.35,
     pitch: -0.5,
     focalLength: 650.0,
@@ -19,7 +19,7 @@ void main() {
   );
 
   test('zoom keeps the ground point under the cursor', () {
-    final target = Point3d(20, 50, 0);
+    final target = Vertex(20, 50, 0);
     final cursor = _project(target, camera, viewport);
     final zoomed = camera.zoomTowardCursor(
       cursor: cursor,
@@ -42,7 +42,7 @@ void main() {
   });
 
   test('zoom follows a ray toward a point above the ground', () {
-    final target = Point3d(0, 500, 120);
+    final target = Vertex(0, 500, 120);
     final cursor = _project(target, camera, viewport);
     final zoomed = camera.zoomTowardCursor(
       cursor: cursor,
@@ -109,7 +109,7 @@ void main() {
   });
 }
 
-Offset _project(Point3d point, CameraConfig camera, Size viewport) {
+Offset _project(Vertex point, CameraConfig camera, Size viewport) {
   final dx = point.x - camera.position.x;
   final dy = point.y - camera.position.y;
   final dz = point.z - camera.position.z;

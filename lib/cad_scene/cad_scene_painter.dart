@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:faust_cad_app_2/cad_scene/cad_objects/cad_object.dart';
 import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/line3d.dart';
-import 'package:faust_cad_app_2/cad_scene/cad_primitivies/point3d.dart';
+import 'package:faust_cad_app_2/cad_scene/cad_primitivies/vertex.dart';
 import 'package:flutter/material.dart';
 
 class CadScenePainter extends CustomPainter {
@@ -19,7 +19,7 @@ class CadScenePainter extends CustomPainter {
 
       for (final primitive in primitives) {
         switch (primitive) {
-          case Line3d(begin: Point3d begin, end: Point3d end):
+          case Line3d(begin: Vertex begin, end: Vertex end):
             final beginPoint = _project(begin, cameraConfig, screen: size);
             final endPoint = _project(end, cameraConfig, screen: size);
 
@@ -40,7 +40,7 @@ class CadScenePainter extends CustomPainter {
   }
 
   ({double x, double y})? _project(
-    Point3d point,
+    Vertex point,
     CameraConfig camera, {
     required Size screen,
   }) {
@@ -55,7 +55,7 @@ class CadScenePainter extends CustomPainter {
     );
   }
 
-  Point3d _toCameraSpace(Point3d point, CameraConfig camera) {
+  Vertex _toCameraSpace(Vertex point, CameraConfig camera) {
     var p = point - camera.position;
 
     // Inverse camera yaw: rotate around Z
@@ -73,7 +73,7 @@ class CadScenePainter extends CustomPainter {
     final y2 = y1 * cp - z1 * sp;
     final z2 = y1 * sp + z1 * cp;
 
-    return Point3d(x1, y2, z2);
+    return Vertex(x1, y2, z2);
   }
 
   @override
