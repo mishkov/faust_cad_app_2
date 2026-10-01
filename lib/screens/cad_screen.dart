@@ -4,6 +4,7 @@ import 'package:faust_cad_app_2/cad_scene/cad_primitivies/vertex.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_scene.dart';
 import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 class CadScreen extends StatefulWidget {
@@ -46,6 +47,17 @@ class _CadScreenState extends State<CadScreen> {
                     }
 
                     setState(() {
+                      if (HardwareKeyboard.instance.isShiftPressed) {
+                        _cameraPosition = _cameraPosition
+                            .pan(event.panDelta)
+                            .zoomTowardCursor(
+                              cursor: event.localPosition,
+                              viewport: constraints.biggest,
+                              scaleFactor: scaleFactor,
+                            );
+                        return;
+                      }
+
                       final yaw =
                           _cameraPosition.yaw - event.panDelta.dx * 0.005;
                       final pitch =

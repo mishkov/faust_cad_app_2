@@ -42,6 +42,24 @@ class CameraConfig with Equatable {
     );
   }
 
+  /// Moves the scene with the gesture in the camera's view plane.
+  CameraConfig pan(Offset delta) {
+    if (!delta.dx.isFinite || !delta.dy.isFinite || delta == Offset.zero) {
+      return this;
+    }
+
+    final unitsPerPixel = focusDistance / focalLength;
+    final right = Vector3(math.cos(yaw), math.sin(yaw), 0);
+    final up = Vector3(
+      math.sin(yaw) * math.sin(pitch),
+      -math.cos(yaw) * math.sin(pitch),
+      math.cos(pitch),
+    );
+    // Translate opposite to the screen drag, accounting for screen Y down.
+    final translation = (up * delta.dy - right * delta.dx) * unitsPerPixel;
+    return copyWith(position: Vertex(position.vector + translation));
+  }
+
   CameraConfig zoomTowardCursor({
     required Offset cursor,
     required Size viewport,
