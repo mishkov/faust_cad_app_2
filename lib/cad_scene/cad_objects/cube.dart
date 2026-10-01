@@ -1,6 +1,7 @@
+import 'package:faust_cad_app_2/cad_scene/cad_curves/linear_cad_curve.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_objects/cad_object.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/cad_primitive.dart';
-import 'package:faust_cad_app_2/cad_scene/cad_primitivies/line3d.dart';
+import 'package:faust_cad_app_2/cad_scene/cad_primitivies/edge.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/vertex.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
 
@@ -30,18 +31,18 @@ class Cube extends CadObject {
     final backTopRight = Vertex(Vector3(right, back, top));
 
     return [
-      Line3d(frontBottomLeft, frontBottomRight),
-      Line3d(frontBottomRight, backBottomRight),
-      Line3d(backBottomRight, backBottomLeft),
-      Line3d(backBottomLeft, frontBottomLeft),
-      Line3d(frontTopLeft, frontTopRight),
-      Line3d(frontTopRight, backTopRight),
-      Line3d(backTopRight, backTopLeft),
-      Line3d(backTopLeft, frontTopLeft),
-      Line3d(frontBottomLeft, frontTopLeft),
-      Line3d(frontBottomRight, frontTopRight),
-      Line3d(backBottomLeft, backTopLeft),
-      Line3d(backBottomRight, backTopRight),
+      Edge(frontBottomLeft, frontBottomRight, curve: const LinearCadCurve()),
+      Edge(frontBottomRight, backBottomRight, curve: const LinearCadCurve()),
+      Edge(backBottomRight, backBottomLeft, curve: const LinearCadCurve()),
+      Edge(backBottomLeft, frontBottomLeft, curve: const LinearCadCurve()),
+      Edge(frontTopLeft, frontTopRight, curve: const LinearCadCurve()),
+      Edge(frontTopRight, backTopRight, curve: const LinearCadCurve()),
+      Edge(backTopRight, backTopLeft, curve: const LinearCadCurve()),
+      Edge(backTopLeft, frontTopLeft, curve: const LinearCadCurve()),
+      Edge(frontBottomLeft, frontTopLeft, curve: const LinearCadCurve()),
+      Edge(frontBottomRight, frontTopRight, curve: const LinearCadCurve()),
+      Edge(backBottomLeft, backTopLeft, curve: const LinearCadCurve()),
+      Edge(backBottomRight, backTopRight, curve: const LinearCadCurve()),
     ];
   }
 }
