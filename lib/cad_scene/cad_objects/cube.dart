@@ -1,11 +1,11 @@
 import 'package:faust_cad_app_2/cad_scene/cad_objects/cad_object.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/cad_primitive.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/line3d.dart';
-import 'package:faust_cad_app_2/cad_scene/cad_primitivies/point3d.dart';
+import 'package:faust_cad_app_2/cad_scene/cad_primitivies/vertex.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 class Cube extends CadObject {
-  final Point3d centerPosition;
+  final Vertex centerPosition;
   final double size;
 
   new({required this.centerPosition, required this.size});
@@ -20,14 +20,14 @@ class Cube extends CadObject {
     final bottom = centerPosition.vector.z - halfSize;
     final top = centerPosition.vector.z + halfSize;
 
-    final frontBottomLeft = Point3d(Vector3(left, front, bottom));
-    final frontBottomRight = Point3d(Vector3(right, front, bottom));
-    final backBottomLeft = Point3d(Vector3(left, back, bottom));
-    final backBottomRight = Point3d(Vector3(right, back, bottom));
-    final frontTopLeft = Point3d(Vector3(left, front, top));
-    final frontTopRight = Point3d(Vector3(right, front, top));
-    final backTopLeft = Point3d(Vector3(left, back, top));
-    final backTopRight = Point3d(Vector3(right, back, top));
+    final frontBottomLeft = Vertex(Vector3(left, front, bottom));
+    final frontBottomRight = Vertex(Vector3(right, front, bottom));
+    final backBottomLeft = Vertex(Vector3(left, back, bottom));
+    final backBottomRight = Vertex(Vector3(right, back, bottom));
+    final frontTopLeft = Vertex(Vector3(left, front, top));
+    final frontTopRight = Vertex(Vector3(right, front, top));
+    final backTopLeft = Vertex(Vector3(left, back, top));
+    final backTopRight = Vertex(Vector3(right, back, top));
 
     return [
       Line3d(frontBottomLeft, frontBottomRight),

@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:faust_cad_app_2/cad_scene/cad_objects/cad_object.dart';
-import 'package:faust_cad_app_2/cad_scene/cad_primitivies/point3d.dart';
+import 'package:faust_cad_app_2/cad_scene/cad_primitivies/vertex.dart';
 import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/line3d.dart';
 import 'package:flutter/material.dart';
@@ -20,7 +20,7 @@ class CadScenePainter extends CustomPainter {
 
       for (final primitive in primitives) {
         switch (primitive) {
-          case Line3d(begin: Point3d begin, end: Point3d end):
+          case Line3d(begin: Vertex begin, end: Vertex end):
             final beginPoint = _project(
               begin.vector,
               cameraConfig,

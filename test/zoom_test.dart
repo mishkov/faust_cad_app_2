@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:faust_cad_app_2/cad_scene/cad_primitivies/point3d.dart';
+import 'package:faust_cad_app_2/cad_scene/cad_primitivies/vertex.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_scene.dart';
 import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
 import 'package:faust_cad_app_2/main_app.dart';
@@ -12,7 +12,7 @@ import 'package:vector_math/vector_math_64.dart' show Vector3;
 void main() {
   const viewport = Size(1000, 800);
   final camera = CameraConfig(
-    position: Point3d(Vector3(0, -50, 100)),
+    position: Vertex(Vector3(0, -50, 100)),
     yaw: 0.35,
     pitch: -0.5,
     focalLength: 650.0,
@@ -33,7 +33,7 @@ void main() {
   });
 
   test('zoom keeps the ground point under the cursor', () {
-    final target = Point3d(Vector3(20, 50, 0));
+    final target = Vertex(Vector3(20, 50, 0));
     final cursor = _project(target, camera, viewport);
     final zoomed = camera.zoomTowardCursor(
       cursor: cursor,
@@ -56,7 +56,7 @@ void main() {
   });
 
   test('zoom follows a ray toward a point above the ground', () {
-    final target = Point3d(Vector3(0, 500, 120));
+    final target = Vertex(Vector3(0, 500, 120));
     final cursor = _project(target, camera, viewport);
     final zoomed = camera.zoomTowardCursor(
       cursor: cursor,
@@ -126,7 +126,7 @@ void main() {
   });
 }
 
-Offset _project(Point3d point, CameraConfig camera, Size viewport) {
+Offset _project(Vertex point, CameraConfig camera, Size viewport) {
   final dx = point.vector.x - camera.position.vector.x;
   final dy = point.vector.y - camera.position.vector.y;
   final dz = point.vector.z - camera.position.vector.z;
