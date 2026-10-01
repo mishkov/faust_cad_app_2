@@ -57,7 +57,10 @@ class _CadScreenState extends State<CadScreen> {
                   onPointerPanZoomEnd: (_) => _previousGestureScale = 1.0,
                   child: CadScene(
                     cameraConfig: _cameraPosition,
-                    cadObjects: [GroundGrid(100, 100)],
+                    cadObjects: [
+                      GroundGrid(100, 100),
+                      Cube(centerPosition: Point3d(15, 16, 19), size: 20),
+                    ],
                   ),
                 ),
               ),
