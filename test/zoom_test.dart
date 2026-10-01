@@ -1,6 +1,9 @@
 import 'dart:math' as math;
 
-import 'package:faust_cad_app_2/main.dart';
+import 'package:faust_cad_app_2/cad_scene/cad_primitivies/point3d.dart';
+import 'package:faust_cad_app_2/cad_scene/cad_scene.dart';
+import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
+import 'package:faust_cad_app_2/main_app.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
