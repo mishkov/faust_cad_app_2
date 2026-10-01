@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:equatable/equatable.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/vertex.dart';
 import 'package:flutter/material.dart';
+import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 class CameraConfig with Equatable {
   final Vertex position;
@@ -73,9 +74,7 @@ class CameraConfig with Equatable {
     final step = distance * (1 - factor);
     return copyWith(
       position: Vertex(
-        position.x + directionX * step,
-        position.y + directionY * step,
-        position.z + directionZ * step,
+        position.vector + Vector3(directionX, directionY, directionZ) * step,
       ),
       focusDistance: distance * factor,
     );

@@ -9,11 +9,12 @@ Follow these rules during coding within `lib/` folder:
 For implementation tasks:
 
 1. Work in a separate Codex/AI-agent worktree.
-2. Create a branch named `codex|ai-agent/<short-task-name>`.
-3. Implement the task.
-4. Run relevant tests and checks.
-5. Commit all changes.
-6. Push the branch to `origin`.
-7. Create a pull request targeting `main`.
+2. pull latest main
+3. Create a branch named `codex|ai-agent/<short-task-name>` from main.
+4. Implement the task.
+5. Run relevant tests and checks.
+6. Commit all changes.
+7. Push the branch to `origin`.
+8. Create a pull request targeting `main`.
 9. Never merge the pull request yourself.
 10. Leave the worktree clean.

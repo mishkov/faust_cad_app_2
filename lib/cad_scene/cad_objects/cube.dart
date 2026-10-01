@@ -2,6 +2,7 @@ import 'package:faust_cad_app_2/cad_scene/cad_objects/cad_object.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/cad_primitive.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/line3d.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/vertex.dart';
+import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 class Cube extends CadObject {
   final Vertex centerPosition;
@@ -12,21 +13,21 @@ class Cube extends CadObject {
   @override
   List<CadPrimitive> build() {
     final halfSize = size / 2;
-    final left = centerPosition.x - halfSize;
-    final right = centerPosition.x + halfSize;
-    final front = centerPosition.y - halfSize;
-    final back = centerPosition.y + halfSize;
-    final bottom = centerPosition.z - halfSize;
-    final top = centerPosition.z + halfSize;
+    final left = centerPosition.vector.x - halfSize;
+    final right = centerPosition.vector.x + halfSize;
+    final front = centerPosition.vector.y - halfSize;
+    final back = centerPosition.vector.y + halfSize;
+    final bottom = centerPosition.vector.z - halfSize;
+    final top = centerPosition.vector.z + halfSize;
 
-    final frontBottomLeft = Vertex(left, front, bottom);
-    final frontBottomRight = Vertex(right, front, bottom);
-    final backBottomLeft = Vertex(left, back, bottom);
-    final backBottomRight = Vertex(right, back, bottom);
-    final frontTopLeft = Vertex(left, front, top);
-    final frontTopRight = Vertex(right, front, top);
-    final backTopLeft = Vertex(left, back, top);
-    final backTopRight = Vertex(right, back, top);
+    final frontBottomLeft = Vertex(Vector3(left, front, bottom));
+    final frontBottomRight = Vertex(Vector3(right, front, bottom));
+    final backBottomLeft = Vertex(Vector3(left, back, bottom));
+    final backBottomRight = Vertex(Vector3(right, back, bottom));
+    final frontTopLeft = Vertex(Vector3(left, front, top));
+    final frontTopRight = Vertex(Vector3(right, front, top));
+    final backTopLeft = Vertex(Vector3(left, back, top));
+    final backTopRight = Vertex(Vector3(right, back, top));
 
     return [
       Line3d(frontBottomLeft, frontBottomRight),
