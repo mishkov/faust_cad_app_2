@@ -160,6 +160,10 @@ class _CadScreenState extends State<CadScreen>
                             centerPosition: Vertex(Vector3(15, 16, 19)),
                             size: 20,
                           ),
+                          Cube(
+                            centerPosition: Vertex(Vector3(40, 16, 15)),
+                            size: 30,
+                          ),
                         ],
                       ),
                     ),
