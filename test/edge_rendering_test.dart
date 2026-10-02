@@ -4,6 +4,7 @@ import 'package:faust_cad_app_2/cad_scene/cad_objects/cube.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_objects/ground_grid.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/cad_primitive.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/edge.dart';
+import 'package:faust_cad_app_2/cad_scene/cad_primitivies/solid.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/vertex.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_scene_painter.dart';
 import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
@@ -21,30 +22,18 @@ void main() {
     focusDistance: 10,
   );
 
-  test('cube preserves its twelve connected linear edges and rendering', () {
+  test('cube renders the boundaries of its solid faces', () {
     final cube = Cube(centerPosition: Vertex(Vector3(0, 10, 0)), size: 2);
     final primitives = cube.build();
 
-    expect(primitives, hasLength(12));
-    expect(primitives, everyElement(isA<Edge>()));
-    final edges = primitives.cast<Edge>();
-    expect(
-      edges.map((edge) => edge.curve),
-      everyElement(isA<LinearCadCurve>()),
-    );
-    final vertices = edges.expand((edge) => [edge.begin, edge.end]).toSet();
-    expect(vertices, hasLength(8));
-    for (final vertex in vertices) {
-      expect(
-        edges.where((edge) => edge.begin == vertex || edge.end == vertex),
-        hasLength(3),
-      );
-    }
+    expect(primitives, hasLength(1));
+    expect(primitives.single, isA<Solid>());
 
     final painter = CadScenePainter(cameraConfig: camera, cadObjects: [cube]);
     void paint(Canvas canvas) => painter.paint(canvas, viewport);
 
-    expect(paint, paintsExactlyCountTimes(#drawLine, 12));
+    // Each of the twelve geometric edges belongs to two face boundaries.
+    expect(paint, paintsExactlyCountTimes(#drawLine, 24));
     expect(
       paint,
       paints..line(
