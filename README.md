@@ -1,6 +1,32 @@
 # faust_cad_app_2
 
-A Flutter CAD wireframe viewer.
+A Flutter CAD viewer with wireframe and shaded rendering.
+
+## Render modes
+
+`CadScene.renderMode` accepts `CadRenderMode.frame` (the default) or
+`CadRenderMode.shaded`. The enum is exported by `cad_scene.dart`.
+
+```dart
+CadScene(
+  cameraConfig: camera,
+  cadObjects: objects,
+  renderMode: CadRenderMode.shaded,
+)
+```
+
+Frame mode draws all boundary edges, including hidden geometry. Shaded mode
+fills planar faces with opaque gray, adds black visible boundary edges, and
+uses ambient plus directional lighting fixed above and to the camera's right.
+Faces render from either side. Trimming holes stay open, revealing geometry
+behind them. Depth comparisons hide obscured faces and edges across all objects,
+including standalone wires and grid lines, independently of object order.
+Intersecting faces are clipped by their local perspective depth rather than
+sorted as whole objects. Both modes clip geometry to the camera view frustum.
+
+The current renderer supports `PlaneSurface` faces bounded by `LinearCadCurve`
+edges. Curved surfaces and curved edges need tessellation before they can be
+rendered. Shading describes surface illumination; cast shadows are not rendered.
 
 ## CAD topology and geometry
 
@@ -57,9 +83,8 @@ closed manifold topology. Geometric volume enclosure,
 non-zero volume, self-intersection, cavity containment, and outward/inward
 surface orientation remain the caller's responsibility.
 
-`CadObject.build()` can return solids, shells, faces, wires, or edges. The scene
-draws the linear edges of every shell boundary, including cavities and face holes,
-in its existing wireframe style.
-Surface filling and curved-edge rendering are not implemented. Face construction
-validates topological closure; callers must ensure boundaries lie on the surface,
+`CadObject.build()` can return solids, shells, faces, wires, or edges. Frame mode
+draws the linear edges of every shell boundary, including cavities and face holes;
+shaded mode fills the supported surfaces and draws only visible edges. Face
+construction validates topological closure; callers must ensure boundaries lie on the surface,
 do not self-intersect, and contain their holes.
