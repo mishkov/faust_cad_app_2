@@ -3,6 +3,7 @@ import 'package:faust_cad_app_2/cad_scene/cad_objects/cad_object.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/cad_primitive.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/edge.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/face.dart';
+import 'package:faust_cad_app_2/cad_scene/cad_primitivies/shell.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/vertex.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/wire.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_scene_painter.dart';
@@ -94,6 +95,40 @@ void main() {
     );
   });
 
+  test('renders every shell face, including its hole boundaries', () {
+    final outer = _rectangle(3, 10);
+    final hole = _rectangle(0.5, 10);
+    final surface = PlaneSurface(
+      origin: Vector3(0, 10, 0),
+      normal: Vector3(0, 1, 0),
+    );
+    final shell = Shell(
+      faces: [
+        Face(surface: surface, outerWire: outer, innerWires: [hole]),
+        Face(surface: surface, outerWire: hole),
+      ],
+    );
+    void paint(Canvas canvas) => paintPrimitive(canvas, shell);
+
+    expect(paint, paintsExactlyCountTimes(#drawLine, 12));
+    expect(
+      paint,
+      paints
+        ..line(p1: const Offset(73, 127), p2: const Offset(127, 127))
+        ..line()
+        ..line()
+        ..line()
+        ..line(p1: const Offset(95.5, 104.5), p2: const Offset(104.5, 104.5))
+        ..line()
+        ..line()
+        ..line()
+        ..line(p1: const Offset(95.5, 104.5), p2: const Offset(104.5, 104.5))
+        ..line()
+        ..line()
+        ..line(),
+    );
+  });
+
   test('skips a face behind the camera', () {
     final face = Face(
       surface: PlaneSurface(
@@ -104,6 +139,10 @@ void main() {
     );
 
     expect((Canvas canvas) => paintPrimitive(canvas, face), paintsNothing);
+    expect(
+      (Canvas canvas) => paintPrimitive(canvas, Shell(faces: [face])),
+      paintsNothing,
+    );
   });
 }
 
