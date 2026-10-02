@@ -2,8 +2,11 @@ import 'dart:math' as math;
 
 import 'package:faust_cad_app_2/cad_scene/cad_curves/linear_cad_curve.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_objects/cad_object.dart';
+import 'package:faust_cad_app_2/cad_scene/cad_primitivies/cad_primitive.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/edge.dart';
+import 'package:faust_cad_app_2/cad_scene/cad_primitivies/face.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/vertex.dart';
+import 'package:faust_cad_app_2/cad_scene/cad_primitivies/wire.dart';
 import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
 import 'package:flutter/material.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
@@ -25,33 +28,42 @@ class CadScenePainter extends CustomPainter {
       final primitives = cadObject.build();
 
       for (final primitive in primitives) {
-        switch (primitive) {
-          case Edge(
-            begin: Vertex begin,
-            end: Vertex end,
-            curve: LinearCadCurve(),
-          ):
-            final clipped = _clipToViewFrustum(
-              _toCameraSpace(begin.vector, cameraConfig),
-              _toCameraSpace(end.vector, cameraConfig),
-              screen: size,
-            );
-            if (clipped == null) {
-              break;
-            }
-
-            final beginPoint = _project(clipped.begin, screen: size);
-            final endPoint = _project(clipped.end, screen: size);
-
-            canvas.drawLine(
-              Offset(beginPoint.x, beginPoint.y),
-              Offset(endPoint.x, endPoint.y),
-              Paint()
-                ..color = Colors.red
-                ..strokeWidth = 1,
-            );
-        }
+        _paintPrimitive(canvas, size, primitive);
       }
+    }
+  }
+
+  void _paintPrimitive(Canvas canvas, Size size, CadPrimitive primitive) {
+    switch (primitive) {
+      case Face(:final outerWire, :final innerWires):
+        // The scene currently renders wireframes. Draw the trimming wires,
+        // including holes, using their existing edge geometry.
+        _paintPrimitive(canvas, size, outerWire);
+        for (final wire in innerWires) {
+          _paintPrimitive(canvas, size, wire);
+        }
+      case Wire(:final edges):
+        for (final edge in edges) {
+          _paintPrimitive(canvas, size, edge);
+        }
+      case Edge(begin: Vertex begin, end: Vertex end, curve: LinearCadCurve()):
+        final clipped = _clipToViewFrustum(
+          _toCameraSpace(begin.vector, cameraConfig),
+          _toCameraSpace(end.vector, cameraConfig),
+          screen: size,
+        );
+        if (clipped == null) return;
+
+        final beginPoint = _project(clipped.begin, screen: size);
+        final endPoint = _project(clipped.end, screen: size);
+
+        canvas.drawLine(
+          Offset(beginPoint.x, beginPoint.y),
+          Offset(endPoint.x, endPoint.y),
+          Paint()
+            ..color = Colors.red
+            ..strokeWidth = 1,
+        );
     }
   }
 
