@@ -5,6 +5,7 @@ import 'package:faust_cad_app_2/cad_scene/cad_objects/cad_object.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/cad_primitive.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/edge.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/face.dart';
+import 'package:faust_cad_app_2/cad_scene/cad_primitivies/shell.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/vertex.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/wire.dart';
 import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
@@ -35,6 +36,10 @@ class CadScenePainter extends CustomPainter {
 
   void _paintPrimitive(Canvas canvas, Size size, CadPrimitive primitive) {
     switch (primitive) {
+      case Shell(:final faces):
+        for (final face in faces) {
+          _paintPrimitive(canvas, size, face);
+        }
       case Face(:final outerWire, :final innerWires):
         // The scene currently renders wireframes. Draw the trimming wires,
         // including holes, using their existing edge geometry.
