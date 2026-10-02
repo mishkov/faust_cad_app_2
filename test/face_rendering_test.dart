@@ -4,6 +4,7 @@ import 'package:faust_cad_app_2/cad_scene/cad_primitivies/cad_primitive.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/edge.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/face.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/shell.dart';
+import 'package:faust_cad_app_2/cad_scene/cad_primitivies/solid.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/vertex.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/wire.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_scene_painter.dart';
@@ -12,6 +13,8 @@ import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
+
+import 'support/solid_fixtures.dart';
 
 void main() {
   const viewport = Size(200, 200);
@@ -143,6 +146,32 @@ void main() {
       (Canvas canvas) => paintPrimitive(canvas, Shell(faces: [face])),
       paintsNothing,
     );
+  });
+
+  test('renders every boundary shell of a solid, including cavities', () {
+    final solid = Solid(
+      shells: [
+        tetrahedronShell(origin: Vector3(-2, 10, -2), size: 4),
+        tetrahedronShell(origin: Vector3(-0.5, 11, -0.5)),
+      ],
+    );
+    void paint(Canvas canvas) => paintPrimitive(canvas, solid);
+
+    expect(paint, paintsExactlyCountTimes(#drawLine, 24));
+    expect(
+      paint,
+      paints
+        ..line()
+        ..line()
+        ..line()
+        ..line(p1: const Offset(82, 118), p2: const Offset(118, 118)),
+    );
+  });
+
+  test('clips solid boundaries using the existing edge renderer', () {
+    final solid = Solid(shells: [tetrahedronShell(origin: Vector3(0, -10, 0))]);
+
+    expect((Canvas canvas) => paintPrimitive(canvas, solid), paintsNothing);
   });
 }
 
