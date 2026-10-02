@@ -42,6 +42,28 @@ void main() {
     expect(Shell(faces: faces).faces, orderedEquals(faces));
     expect(Shell(faces: faces.take(5).toList()).faces, hasLength(5));
     expect(Shell(faces: [faces.first]).faces.single, same(faces.first));
+    expect(Shell(faces: faces).isClosed, isTrue);
+    expect(Shell(faces: faces.take(5).toList()).isClosed, isFalse);
+    expect(Shell(faces: [faces.first]).isClosed, isFalse);
+  });
+
+  test('hole boundaries must also be paired to close a shell', () {
+    final faces = _cubeFaces();
+    final holeVertices = [
+      Vertex(Vector3(0.2, 0.2, 1)),
+      Vertex(Vector3(0.2, 0.8, 1)),
+      Vertex(Vector3(0.8, 0.2, 1)),
+    ];
+    final top = faces[1];
+    faces[1] = Face(
+      surface: top.surface,
+      outerWire: top.outerWire,
+      innerWires: [_face(holeVertices).outerWire],
+    );
+
+    expect(Shell(faces: faces).isClosed, isFalse);
+    faces.add(_face(holeVertices.reversed.toList()));
+    expect(Shell(faces: faces).isClosed, isTrue);
   });
 
   test('connectivity is transitive and independent of face order', () {

@@ -6,6 +6,7 @@ import 'package:faust_cad_app_2/cad_scene/cad_primitivies/cad_primitive.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/edge.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/face.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/shell.dart';
+import 'package:faust_cad_app_2/cad_scene/cad_primitivies/solid.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/vertex.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/wire.dart';
 import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
@@ -36,6 +37,10 @@ class CadScenePainter extends CustomPainter {
 
   void _paintPrimitive(Canvas canvas, Size size, CadPrimitive primitive) {
     switch (primitive) {
+      case Solid(:final shells):
+        for (final shell in shells) {
+          _paintPrimitive(canvas, size, shell);
+        }
       case Shell(:final faces):
         for (final face in faces) {
           _paintPrimitive(canvas, size, face);
