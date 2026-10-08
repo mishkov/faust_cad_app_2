@@ -76,7 +76,10 @@ Shell construction validates connectivity. `Shell.isClosed` checks that every
 outer and inner boundary edge is paired with exactly one edge on a distinct
 face, using shared endpoint instances, matching curves, and opposite traversal.
 Linear edges with the same shared endpoints match regardless of curve instance;
-other curves must share their curve instance. Each face must visit a boundary
+other curves must share their curve instance. Circular edges must additionally
+reference the same directed trim up to reversal; complementary arcs between the
+same endpoints remain different boundaries. Pairing uses effective traversal,
+including each face's orientation. Each face must visit a boundary
 vertex only once, and faces around each vertex must form one connected fan, so
 skins touching at only a vertex are rejected. Solid construction requires this
 closed manifold topology. Geometric volume enclosure,
@@ -158,3 +161,75 @@ These tolerances classify numerical agreement. They do not snap points, merge
 vertices, close gaps, or bridge separated geometry. Existing topology continues
 to require shared vertex instances. Future screen-space snapping must have a
 separate policy measured in pixels; camera and rendering behavior are unchanged.
+
+## Analytic circular boundaries
+
+Task 1's `PlanarFrame` and `GeometryTolerance` provide the circle's planar basis
+and numerical policy. `CircularCadCurve(frame: frame, radius: r)` is untrimmed
+geometry with a finite positive radius and center at `frame.origin`. It owns no
+vertices or topological boundary. Vector results are defensive copies.
+
+The curve parameter θ is a finite angle in radians:
+
+```text
+C(θ) = center + radius * (cos(θ) * frame.xAxis + sin(θ) * frame.yAxis)
+C′(θ) = radius * (-sin(θ) * frame.xAxis + cos(θ) * frame.yAxis)
+```
+
+Zero lies on +X; positive angles turn toward +Y, counterclockwise viewed from
++normal toward the plane. `circle.evaluate(θ)` is periodic; `circle.tangent(θ)`
+is the derivative per radian, not a unit tangent.
+
+An `Edge` on a circle requires `CircularTrim(startAngle: θ0, sweepAngle: Δθ)`.
+The start is canonicalized into `[0, 2π)` and the signed sweep must satisfy
+`0 < |Δθ| < 2π`. Positive sweeps are counterclockwise; negative sweeps are
+clockwise. No shortest-arc inference occurs: sweeps `π/2` and `-3π/2` from the
+same start describe complementary arcs with the same endpoint coordinates.
+
+```dart
+final circle = CircularCadCurve(frame: PlanarFrame.xy(), radius: 5);
+final begin = Vertex(circle.evaluate(0));
+final end = Vertex(circle.evaluate(math.pi / 2));
+final quarter = Edge(
+  begin, end,
+  curve: circle,
+  trim: CircularTrim(startAngle: 0, sweepAngle: math.pi / 2),
+);
+final oppositeUse = quarter.reversed(); // Same curve and shared vertices.
+final profile = Wire.circular(circle); // Four exact arcs, not polygon chords.
+final clockwiseProfile = profile.reversed();
+```
+
+`Edge.evaluate(t)` uses normalized traversal `t ∈ [0, 1]` and circle angle
+`θ0 + Δθ*t`. `Edge.tangent(t)` is `C′(θ0 + Δθ*t) * Δθ`, the derivative per
+normalized traversal parameter. Reversal swaps the shared endpoint instances,
+starts at the old end angle, and negates the sweep. For linear edges these
+methods evaluate endpoint interpolation and its derivative. Unknown curve types
+throw `UnsupportedError` for evaluation and tangents.
+
+Circular edge construction checks both vertices against their trimmed analytic
+endpoints using `frame.tolerance.distance`, without moving or merging vertices.
+Missing trims, nonfinite angles, zero/full-turn/multiple-turn sweeps, mismatched
+endpoints, and collapsed circular edges are rejected. Shell validation rechecks
+circular endpoints because vertex coordinates are mutable. Matching circular
+boundaries requires shared endpoint and curve instances and agreement of start
+and signed sweep up to reversal. The frame's angular threshold is used as a
+radian roundoff threshold for this trim comparison; periodic start angles match.
+
+`Wire.circular` creates at least two analytic arcs (four by default), with one
+shared vertex at each junction and topological closure at the final junction.
+`arcCount`, `startAngle`, and `clockwise` select the subdivision and traversal.
+Two semicircles remain separate boundaries even though they share both vertices
+and the same circle. A full-circle single edge and periodic face seams are not
+supported. Existing collapsed linear-edge and manifold protections remain.
+
+`Face.orientation` defaults to `FaceOrientation.forward`;
+`FaceOrientation.reversed` negates the material normal and reverses effective
+boundary traversal. `face.orientedNormal(surfaceNormal)` applies that sign and
+returns a copy; `face.reversed()` retains the surface and all wires while
+flipping orientation. Thus outward and cavity faces can share a parameterized
+surface without changing its frame. Shell pairing uses this orientation as well
+as edge traversal. Whether the chosen normal points outward from material is
+still the caller's geometric responsibility. The current two-sided renderer
+retains its existing behavior; circular tessellation, cylindrical surfaces,
+sketches, and extrusion are outside this change.
