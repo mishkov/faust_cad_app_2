@@ -3,8 +3,11 @@ import 'package:faust_cad_app_2/cad_scene/cad_render_mode.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_scene_painter.dart';
 import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
 import 'package:flutter/material.dart';
+import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/scene_tessellator.dart';
+import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/tessellation_settings.dart';
 
 export 'package:faust_cad_app_2/cad_scene/cad_render_mode.dart';
+export 'package:faust_cad_app_2/cad_scene/rendering/tessellation/tessellation_settings.dart';
 
 class CadScene extends StatefulWidget {
   const new({
@@ -12,6 +15,8 @@ class CadScene extends StatefulWidget {
     required this.cameraConfig,
     required this.cadObjects,
     this.renderMode = CadRenderMode.frame,
+    this.tessellationSettings,
+    this.geometryRevision,
   });
 
   final CameraConfig cameraConfig;
@@ -19,12 +24,17 @@ class CadScene extends StatefulWidget {
 
   /// Defaults to the existing wireframe appearance.
   final CadRenderMode renderMode;
+  final TessellationSettings? tessellationSettings;
+
+  /// Change to explicitly invalidate derived geometry after model edits.
+  final Object? geometryRevision;
 
   @override
   State<CadScene> createState() => _CadSceneState();
 }
 
 class _CadSceneState extends State<CadScene> {
+  final _tessellator = SceneTessellator();
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
@@ -32,6 +42,9 @@ class _CadSceneState extends State<CadScene> {
         cameraConfig: widget.cameraConfig,
         cadObjects: widget.cadObjects,
         renderMode: widget.renderMode,
+        tessellationSettings: widget.tessellationSettings,
+        geometryRevision: widget.geometryRevision,
+        tessellator: _tessellator,
       ),
     );
   }

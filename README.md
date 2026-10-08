@@ -16,7 +16,7 @@ CadScene(
 ```
 
 Frame mode draws all boundary edges, including hidden geometry. Shaded mode
-fills planar faces with opaque gray, adds black visible boundary edges, and
+fills supported planar and cylindrical faces with opaque gray, adds black visible boundary edges, and
 uses ambient plus directional lighting fixed above and to the camera's right.
 Faces render from either side. Trimming holes stay open, revealing geometry
 behind them. Depth comparisons hide obscured faces and edges across all objects,
@@ -24,9 +24,12 @@ including standalone wires and grid lines, independently of object order.
 Intersecting faces are clipped by their local perspective depth rather than
 sorted as whole objects. Both modes clip geometry to the camera view frustum.
 
-The current renderer supports `PlaneSurface` faces bounded by `LinearCadCurve`
-edges. Curved surfaces and curved edges need tessellation before they can be
-rendered. Shading describes surface illumination; cast shadows are not rendered.
+The renderer supports linear/circular boundaries, trimmed `PlaneSurface` faces
+(including disks, annuli, concave loops, and holes), and nonperiodic
+`CylinderSurface` patches bounded by coaxial circular arcs and axial lines,
+including angular/axial windows. Boundary loops must be simple and lie on their
+surface. Full-turn periodic faces and other curve/surface types are not supported.
+Shading describes surface illumination; cast shadows are not rendered.
 
 ## CAD topology and geometry
 
@@ -87,7 +90,7 @@ non-zero volume, self-intersection, cavity containment, and outward/inward
 surface orientation remain the caller's responsibility.
 
 `CadObject.build()` can return solids, shells, faces, wires, or edges. Frame mode
-draws the linear edges of every shell boundary, including cavities and face holes;
+draws the supported edges of every shell boundary, including cavities and face holes;
 shaded mode fills the supported surfaces and draws only visible edges. Face
 construction validates topological closure; callers must ensure boundaries lie on the surface,
 do not self-intersect, and contain their holes.
@@ -289,5 +292,83 @@ Existing shell checks still reject missing/duplicate faces, incorrect traversal,
 complementary arcs, independent coincident geometry, and mutated arc endpoints.
 
 These objects do not create sketch features or execute extrusion commands.
-Rendering circular boundaries and cylindrical surfaces remains a separate task;
-the fixtures are not added to the viewer's scene.
+The renderer tessellates these analytic fixtures without changing their topology;
+the fixtures are not added to the viewer's default scene.
+
+
+## Rendering tessellation and cache
+
+`lib/cad_scene/rendering/tessellation/` contains derived samples and meshes;
+`Edge`, `CircularCadCurve`, `CylinderSurface`, and `Face` remain analytic CAD
+geometry. Both modes share these samples. Circular segments satisfy the sagitta
+(chord deviation) bound in model units, with an additional angular bound for
+smooth normals. Topological boundary matches, including reversed uses, reuse
+exactly the same samples. Trimmed loops are triangulated with an even-odd slab
+method in planar or unwrapped angular/axial coordinates. Splits interpolate the
+existing boundary chords rather than resampling them, so neighboring faces
+retain the same boundary geometry. Holes remain empty.
+
+Cylindrical triangles carry analytic radial vertex normals with face orientation,
+interpolated for smooth two-sided camera-fixed lighting. Triangle diagonals and
+shared axial edges between patches on the same oriented cylinder surface are
+never outlines. Open patches retain their axial borders; standalone wires retain
+all their edges. Planar fills keep the existing single path and depth plane,
+avoiding a visibility primitive for every coplanar triangle. Clipping happens in
+camera space before projection. Shaded depth queries use a fixed screen grid and
+stroke bounds to reduce unrelated face comparisons.
+
+```dart
+CadScene(
+  cameraConfig: camera,
+  cadObjects: objects,
+  renderMode: CadRenderMode.shaded,
+  tessellationSettings: TessellationSettings(
+    chordError: 0.01,       // Model units, independent of zoom.
+    maxAngle: math.pi / 12, // Radians; also controls lighting interpolation.
+    maxSegmentsPerEdge: 512,
+    maxTriangles: 20000,    // Total derived triangles per scene.
+  ),
+  geometryRevision: modelRevision,
+)
+```
+
+`TessellationSettings` is exported by `cad_scene.dart`. The values above are the
+defaults. Invalid quality values throw `ArgumentError`; exceeding a tessellation
+budget throws `StateError` instead of allocating unbounded geometry or silently
+relaxing the requested error. Camera zoom never triggers automatic refinement.
+Callers should choose the model-space error for their model scale.
+
+Each `CadScene` owns one `SceneTessellator` cache across camera and mode changes.
+Quality changes or a changed `geometryRevision` invalidate the whole derived
+scene. A coordinate/topology snapshot also detects in-place vertex edits and
+fresh geometry returned by `CadObject.build()`. Manual painter users can supply
+and reuse a `SceneTessellator`, or call `invalidateGeometry()` explicitly. The
+cache retains only the latest scene; projection and visibility are view-dependent
+and recalculated per paint. Model building and snapshot comparison still run per
+paint so mutable existing objects cannot produce stale renders.
+
+## Repeatable curved-rendering verification
+
+Run accuracy, topology-preservation, cache, budget, pixel, and multi-camera tests:
+
+```sh
+flutter test test/cad_scene/rendering
+flutter analyze
+flutter test
+```
+
+Export deterministic images without editing the default scene:
+
+```sh
+CURVED_RENDER_OUTPUT=build/curved-rendering flutter test \
+  test/cad_scene/rendering/curved_rendering_test.dart
+```
+
+The ignored output directory includes `gallery.png` (left to right: front, orbit,
+rear, top, camera-inside; shaded above, frame below) and individual images:
+front, orbit, rear, top, and camera-inside
+clipping views in both modes, plus cylinder side views and end-on tube/bore/wire
+checks. The fixtures include cylinders, a tube, a cube, and a wire for occlusion.
+Pixel assertions check smooth lighting, opaque mesh interiors, absence of patch
+seams, through holes, hidden circular wires, and visibility independent of object
+order. No screenshots or fixture objects replace the viewer's default scene.
