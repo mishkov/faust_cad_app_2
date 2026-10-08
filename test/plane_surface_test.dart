@@ -1,9 +1,44 @@
 import 'package:faust_cad_app_2/cad_scene/cad_surfaces/cad_surface.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_surfaces/plane_surface.dart';
+import 'package:faust_cad_app_2/cad_scene/geometry/geometry_tolerance.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 void main() {
+  test('plane queries distinguish projection from membership', () {
+    final plane = PlaneSurface(
+      origin: Vector3(1, 2, 3),
+      normal: Vector3(0, 0, -2),
+    );
+    final point = Vector3(4, 5, 8);
+    expect(plane.signedDistance(point), -5);
+    expect(plane.containsPoint(point), isFalse);
+    expect(
+      plane.containsPoint(point, tolerance: GeometryTolerance(distance: 5)),
+      isTrue,
+    );
+    expect(plane.projectPoint(point), Vector3(4, 5, 3));
+    expect(point, Vector3(4, 5, 8));
+    expect(plane.containsPoint(plane.projectPoint(point)), isTrue);
+  });
+
+  test('plane queries reject nonfinite points and numeric overflow', () {
+    final plane = PlaneSurface(
+      origin: Vector3.zero(),
+      normal: Vector3(1, 1, 1),
+    );
+    for (final point in [
+      Vector3(double.nan, 0, 0),
+      Vector3(0, double.infinity, 0),
+      Vector3(0, 0, double.negativeInfinity),
+    ]) {
+      expect(() => plane.signedDistance(point), throwsArgumentError);
+      expect(() => plane.containsPoint(point), throwsArgumentError);
+      expect(() => plane.projectPoint(point), throwsArgumentError);
+    }
+    expect(() => plane.signedDistance(Vector3.all(1.7e308)), throwsStateError);
+  });
+
   test('plane retains its origin and normalizes its normal', () {
     final origin = Vector3(1, 2, 3);
     final normal = Vector3(0, 0, 2);

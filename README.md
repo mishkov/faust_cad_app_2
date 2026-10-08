@@ -88,3 +88,73 @@ draws the linear edges of every shell boundary, including cavities and face hole
 shaded mode fills the supported surfaces and draws only visible edges. Face
 construction validates topological closure; callers must ensure boundaries lie on the surface,
 do not self-intersect, and contain their holes.
+
+## Planar coordinates and numerical tolerance
+
+`PlanarFrame` in `lib/cad_scene/geometry/planar_frame.dart` provides an origin,
+unit local X/Y axes, and their right-handed normal (X × Y). It reuses
+`PlaneSurface`; neither type stores sketch entities or boundaries. Vector inputs
+are copied and vector getters/results cannot mutate the stored geometry.
+
+The named frames have deterministic orientation and optional translated origins:
+
+| Factory | Local X | Local Y | Normal |
+| --- | --- | --- | --- |
+| `PlanarFrame.xy` | +X | +Y | +Z |
+| `PlanarFrame.xz` | +X | +Z | −Y |
+| `PlanarFrame.yz` | +Y | +Z | +X |
+
+The unnamed constructor validates unit, perpendicular axes. `fromPlane` preserves
+the supplied plane's oriented normal and projects a preferred direction onto the
+plane to choose local X. It rejects zero, nonfinite, or nearly normal preferred
+directions instead of choosing an arbitrary fallback. Normal and direction
+normalization supports very large and very small finite magnitudes.
+
+```dart
+final tolerance = GeometryTolerance(distance: 1e-7, angular: 1e-10);
+final frame = PlanarFrame.fromPlane(
+  plane: PlaneSurface(origin: Vector3(0, 0, 5), normal: Vector3(0, 0, 2)),
+  preferredDirection: Vector3(1, 0, 0),
+  tolerance: tolerance,
+);
+final world = frame.localToWorld(Vector2(2, 3)); // (2, 3, 5).
+final local = frame.worldToLocal(world); // (2, 3), after membership validation.
+final projected = frame.projectToLocal(Vector3(2, 3, 9)); // (2, 3).
+final onPlane = frame.projectPoint(Vector3(2, 3, 9)); // (2, 3, 5).
+final distance = frame.signedDistance(Vector3(2, 3, 9)); // +4 model units.
+final hit = frame.intersectRay(
+  rayOrigin: Vector3(2, 3, 9),
+  rayDirection: Vector3(0, 0, -2),
+); // (2, 3, 5).
+```
+
+`worldToLocal` validates plane membership and throws for points outside the
+inclusive distance threshold. Accepted normal residuals are discarded.
+`projectToLocal` and `projectPoint` deliberately accept off-plane points; calling
+a projection does not establish that the original point lies on the plane.
+`containsPoint` only classifies membership and never modifies a point.
+`PlaneSurface` also exposes `signedDistance`, `containsPoint`, and `projectPoint`.
+
+Ray intersection returns a new world point or `null` for parallel/near-parallel
+rays, coplanar rays with no unique hit, and intersections behind the origin.
+A transverse ray starting exactly on the plane hits at its origin. Directions
+are normalized, so their magnitude does not affect classification. Distance
+tolerance never clamps a negative ray parameter or moves its origin onto the
+plane. Invalid inputs throw `ArgumentError`; calculations exceeding finite
+floating-point range throw `StateError` rather than returning NaN or infinity.
+
+`GeometryTolerance` separates two configurable numerical thresholds:
+
+- `distance`: an absolute length in the model's own units, default `1e-8`.
+  It must be finite and nonnegative; zero requests exact floating-point plane
+  membership. Choose it for the model's scale and precision. No millimeter,
+  meter, relative tolerance, or camera scale is assumed.
+- `angular`: a dimensionless threshold in `(0, 1)`, default `1e-10`, used for
+  unit-vector dot/cross products and axis unit-length error. It bounds the sine
+  of angles near parallel and the absolute cosine near perpendicular. It is
+  not an angle in radians or a model-space length.
+
+These tolerances classify numerical agreement. They do not snap points, merge
+vertices, close gaps, or bridge separated geometry. Existing topology continues
+to require shared vertex instances. Future screen-space snapping must have a
+separate policy measured in pixels; camera and rendering behavior are unchanged.
