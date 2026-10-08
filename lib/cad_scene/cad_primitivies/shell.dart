@@ -1,4 +1,5 @@
 import 'package:faust_cad_app_2/cad_scene/cad_curves/cad_curve.dart';
+import 'package:faust_cad_app_2/cad_scene/cad_curves/circular_cad_curve.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_curves/linear_cad_curve.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/cad_primitive.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/edge.dart';
@@ -18,10 +19,12 @@ class Shell extends CadPrimitive {
   /// Whether the faces form a closed manifold with consistent wire traversal.
   ///
   /// Each boundary edge must occur in exactly two distinct faces, traversed in
-  /// opposite directions, each face must visit a boundary vertex only once,
+  /// opposite effective directions (including face orientation). Each face
+  /// must visit a boundary vertex only once,
   /// and the faces around each vertex must form one fan.
   /// Edges match by shared endpoint instances and curve instances (all linear
   /// curves describe the same straight segment for a given pair of vertices).
+  /// Circular trims must also agree; complementary arcs are separate boundaries.
   /// Both outer and inner wires participate. Coincident geometry alone does not
   /// close a shell. This does not check self-intersection or non-zero volume.
   bool get isClosed {
@@ -30,14 +33,16 @@ class Shell extends CadPrimitive {
 
     final vertexIds = Map<Vertex, int>.identity();
     final curveIds = Map<CadCurve, int>.identity();
-    final usesByEdge = <(int, int, int), List<({int face, Edge edge})>>{};
+    final usesByEdge = <(int, int, int), List<List<({int face, Edge edge})>>>{};
     final fans = Map<Vertex, Map<int, Set<int>>>.identity();
     for (var i = 0; i < faces.length; i++) {
       final faceVertices = Set<Vertex>.identity();
       for (final wire in [faces[i].outerWire, ...faces[i].innerWires]) {
         for (final edge in wire.edges) {
           if (identical(edge.begin, edge.end) ||
-              !faceVertices.add(edge.begin)) {
+              !faceVertices.add(edge.begin) ||
+              (edge.curve is CircularCadCurve &&
+                  !edge.hasValidCircularEndpoints)) {
             return false;
           }
           final begin = vertexIds.putIfAbsent(
@@ -49,7 +54,16 @@ class Shell extends CadPrimitive {
               ? 0
               : curveIds.putIfAbsent(edge.curve, () => curveIds.length + 1);
           final key = begin < end ? (begin, end, curve) : (end, begin, curve);
-          (usesByEdge[key] ??= []).add((face: i, edge: edge));
+          // Two semicircles share endpoints and a circle but have distinct trims.
+          final boundaries = usesByEdge[key] ??= [];
+          final matching = boundaries.where(
+            (uses) => uses.first.edge.hasSameBoundary(edge),
+          );
+          if (matching.isEmpty) {
+            boundaries.add([(face: i, edge: edge)]);
+          } else {
+            matching.first.add((face: i, edge: edge));
+          }
           for (final vertex in [edge.begin, edge.end]) {
             (fans[vertex] ??= {})[i] ??= <int>{};
           }
@@ -57,13 +71,14 @@ class Shell extends CadPrimitive {
       }
     }
 
-    for (final uses in usesByEdge.values) {
+    for (final uses in usesByEdge.values.expand((boundaries) => boundaries)) {
       if (uses.length != 2) return false;
       final first = uses[0];
       final second = uses[1];
-      if (first.face == second.face ||
-          !identical(first.edge.begin, second.edge.end) ||
-          !identical(first.edge.end, second.edge.begin)) {
+      final sameTraversal = identical(first.edge.begin, second.edge.begin);
+      final sameOrientation =
+          faces[first.face].orientation == faces[second.face].orientation;
+      if (first.face == second.face || sameTraversal == sameOrientation) {
         return false;
       }
       for (final vertex in [first.edge.begin, first.edge.end]) {
