@@ -231,5 +231,63 @@ flipping orientation. Thus outward and cavity faces can share a parameterized
 surface without changing its frame. Shell pairing uses this orientation as well
 as edge traversal. Whether the chosen normal points outward from material is
 still the caller's geometric responsibility. The current two-sided renderer
-retains its existing behavior; circular tessellation, cylindrical surfaces,
-sketches, and extrusion are outside this change.
+retains its existing behavior; circular tessellation, sketches, and extrusion
+remain separate tasks.
+
+## Cylindrical surfaces and reference solids
+
+Tasks 1 and 2 supply the immutable planar frame, tolerance policy, circular arcs,
+and face orientation used here. `CylinderSurface(frame: frame, radius: r)` is
+untrimmed geometry with a finite positive radius. Its axis is `frame.normal`;
+`frame.origin` defines axial zero and `frame.xAxis` defines angular zero.
+Positive angles turn from local X toward local Y. The parameters are radians
+and signed model-space axial length:
+
+```text
+S(θ, z) = frame.origin + r * (cos(θ) * frame.xAxis + sin(θ) * frame.yAxis)
+          + z * frame.normal
+N(θ) = cos(θ) * frame.xAxis + sin(θ) * frame.yAxis
+```
+
+`surface.evaluate(angle, axial)` accepts any finite angle and axial value;
+`surface.normal(angle)` returns a fresh outward radial unit normal. Neither
+method trims the surface. Normals follow the angular derivative crossed with
+the axial derivative. `Face.orientation` reverses this normal for inner walls.
+Vector results cannot mutate the frame. Invalid dimensions/parameters throw
+`ArgumentError`; evaluation exceeding finite range throws `StateError`.
+
+`Cylinder` and `Tube` in `lib/cad_scene/cad_objects/` are independently testable
+fixtures/reference primitives. Their required `frame` places the base center at
+its origin; finite positive `height` extends along its normal. Arbitrary axes
+and angular reference directions use the existing frame constructor:
+
+```dart
+final frame = PlanarFrame.fromPlane(
+  plane: PlaneSurface(origin: Vector3(3, 4, 5), normal: Vector3(1, 2, 3)),
+  preferredDirection: Vector3(1, 0, 0),
+);
+final cylinder = Cylinder(frame: frame, radius: 3, height: 8).build().single;
+final tube = Tube(
+  frame: frame, outerRadius: 3, innerRadius: 1, height: 8,
+).build().single;
+```
+
+Both return a fresh `Solid` with exactly one closed manifold `Shell`. A cylinder
+has two disk caps and outward cylindrical walls. A tube requires
+`0 < innerRadius < outerRadius`, has two annular caps, outward outer walls, and
+inward inner walls. Its bore passes through both caps and belongs to the same
+connected shell; it is not an enclosed cavity represented by a second shell.
+
+`patchCount` defaults to four and must be at least two. Each wall patch has two
+exact circular arcs and two axial linear boundaries; the caps reference those
+same arc geometries and shared endpoint vertices. Adjacent patches share axial
+boundaries with opposite effective traversal. The wall patches share one
+untrimmed cylinder surface per radius. Splitting the circumference avoids a
+full-turn edge or periodic seam topology; the subdivision is not tessellation.
+Unresolvable axial boundaries at extreme placements are rejected during build.
+Existing shell checks still reject missing/duplicate faces, incorrect traversal,
+complementary arcs, independent coincident geometry, and mutated arc endpoints.
+
+These objects do not create sketch features or execute extrusion commands.
+Rendering circular boundaries and cylindrical surfaces remains a separate task;
+the fixtures are not added to the viewer's scene.
