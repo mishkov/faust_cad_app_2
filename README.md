@@ -402,3 +402,7 @@ checks. The fixtures include cylinders, a tube, a cube, and a wire for occlusion
 Pixel assertions check smooth lighting, opaque mesh interiors, absence of patch
 seams, through holes, hidden circular wires, and visibility independent of object
 order. No screenshots or fixture objects replace the viewer's default scene.
+
+The headless [analytic planar region engine](docs/planar_regions.md) accepts
+identified 2D segments and circles for future sketch profile selection, with
+analytic boundaries, holes, provenance, and validated material unions.
