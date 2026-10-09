@@ -1,10 +1,11 @@
 import 'package:faust_cad_app_2/cad_scene/cad_objects/cad_object.dart';
+import 'package:faust_cad_app_2/cad_scene/cad_primitivies/cad_primitive.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_render_mode.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_scene_painter.dart';
 import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
-import 'package:flutter/material.dart';
 import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/scene_tessellator.dart';
 import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/tessellation_settings.dart';
+import 'package:flutter/material.dart';
 
 export 'package:faust_cad_app_2/cad_scene/cad_render_mode.dart';
 export 'package:faust_cad_app_2/cad_scene/rendering/tessellation/tessellation_settings.dart';
@@ -13,7 +14,8 @@ class CadScene extends StatefulWidget {
   const new({
     super.key,
     required this.cameraConfig,
-    required this.cadObjects,
+    this.cadObjects = const [],
+    this.geometry,
     this.renderMode = CadRenderMode.frame,
     this.tessellationSettings,
     this.geometryRevision,
@@ -21,6 +23,7 @@ class CadScene extends StatefulWidget {
 
   final CameraConfig cameraConfig;
   final List<CadObject> cadObjects;
+  final List<CadPrimitive>? geometry;
 
   /// Defaults to the existing wireframe appearance.
   final CadRenderMode renderMode;
@@ -41,6 +44,7 @@ class _CadSceneState extends State<CadScene> {
       painter: CadScenePainter(
         cameraConfig: widget.cameraConfig,
         cadObjects: widget.cadObjects,
+        geometry: widget.geometry,
         renderMode: widget.renderMode,
         tessellationSettings: widget.tessellationSettings,
         geometryRevision: widget.geometryRevision,

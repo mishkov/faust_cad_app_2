@@ -1,5 +1,8 @@
 import 'package:faust_cad_app_2/cad_scene/cad_curves/linear_cad_curve.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_objects/cad_object.dart';
+
+import 'cube_geometry.dart';
+
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/edge.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/face.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/shell.dart';
@@ -16,7 +19,9 @@ class Cube extends CadObject {
   new({required this.centerPosition, required this.size});
 
   @override
-  List<Solid> build() {
+  List<Solid> build() => [buildGeometry().body];
+
+  CubeGeometry buildGeometry() {
     final halfSize = size / 2;
     final left = centerPosition.vector.x - halfSize;
     final right = centerPosition.vector.x + halfSize;
@@ -34,53 +39,49 @@ class Cube extends CadObject {
     final backTopLeft = Vertex(Vector3(left, back, top));
     final backTopRight = Vertex(Vector3(right, back, top));
 
-    return [
-      Solid(
-        shells: [
-          Shell(
-            faces: [
-              // Counterclockwise boundaries viewed from outside the cube.
-              _buildFace([
-                frontBottomLeft,
-                frontBottomRight,
-                frontTopRight,
-                frontTopLeft,
-              ]),
-              _buildFace([
-                backBottomRight,
-                backBottomLeft,
-                backTopLeft,
-                backTopRight,
-              ]),
-              _buildFace([
-                frontBottomLeft,
-                backBottomLeft,
-                backBottomRight,
-                frontBottomRight,
-              ]),
-              _buildFace([
-                frontTopLeft,
-                frontTopRight,
-                backTopRight,
-                backTopLeft,
-              ]),
-              _buildFace([
-                backBottomLeft,
-                frontBottomLeft,
-                frontTopLeft,
-                backTopLeft,
-              ]),
-              _buildFace([
-                frontBottomRight,
-                backBottomRight,
-                backTopRight,
-                frontTopRight,
-              ]),
-            ],
-          ),
-        ],
-      ),
-    ];
+    final faces = <String, Face>{
+      // Counterclockwise boundaries viewed from outside the cube.
+      'front': _buildFace([
+        frontBottomLeft,
+        frontBottomRight,
+        frontTopRight,
+        frontTopLeft,
+      ]),
+      'back': _buildFace([
+        backBottomRight,
+        backBottomLeft,
+        backTopLeft,
+        backTopRight,
+      ]),
+      'bottom': _buildFace([
+        frontBottomLeft,
+        backBottomLeft,
+        backBottomRight,
+        frontBottomRight,
+      ]),
+      'top': _buildFace([
+        frontTopLeft,
+        frontTopRight,
+        backTopRight,
+        backTopLeft,
+      ]),
+      'left': _buildFace([
+        backBottomLeft,
+        frontBottomLeft,
+        frontTopLeft,
+        backTopLeft,
+      ]),
+      'right': _buildFace([
+        frontBottomRight,
+        backBottomRight,
+        backTopRight,
+        frontTopRight,
+      ]),
+    };
+    return CubeGeometry(
+      body: Solid(shells: [Shell(faces: faces.values.toList())]),
+      planarFaces: faces,
+    );
   }
 
   Face _buildFace(List<Vertex> vertices) => Face(

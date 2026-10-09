@@ -31,6 +31,35 @@ including angular/axial windows. Boundary loops must be simple and lie on their
 surface. Full-turn periodic faces and other curve/surface types are not supported.
 Shading describes surface illumination; cast shadows are not rendered.
 
+## Document and feature history
+
+`CadDocument` owns immutable feature definitions and publishes complete evaluation
+snapshots. Features have stable IDs, value parameters, explicit dependencies, and
+named body/planar-face output references. Edits rebuild affected descendants in
+deterministic dependency order. Failed features block descendants and retain prior
+geometry only for diagnostics; independent valid bodies remain renderable.
+
+```dart
+final document = CadDocument(
+  evaluators: {CubeFeature.type: CubeFeature.evaluate},
+  features: [
+    FeatureDefinition(
+      id: FeatureId('base'),
+      type: CubeFeature.type,
+      parameters: {'x': 0, 'y': 0, 'z': 0, 'size': 20},
+    ),
+  ],
+);
+CadScene(
+  cameraConfig: camera,
+  geometry: document.evaluation.geometry,
+  geometryRevision: document.evaluation.revision,
+);
+```
+
+The demo uses evaluated Cube bodies. See [the foundation contract](docs/feature_history.md)
+for editing, failure states, reference resolution, copy isolation, and scope.
+
 ## CAD topology and geometry
 
 - `Vertex` stores a position; `Edge` connects vertices using a `CadCurve`.
@@ -344,8 +373,9 @@ scene. A coordinate/topology snapshot also detects in-place vertex edits and
 fresh geometry returned by `CadObject.build()`. Manual painter users can supply
 and reuse a `SceneTessellator`, or call `invalidateGeometry()` explicitly. The
 cache retains only the latest scene; projection and visibility are view-dependent
-and recalculated per paint. Model building and snapshot comparison still run per
-paint so mutable existing objects cannot produce stale renders.
+and recalculated per paint. Model building and snapshot comparison run when a
+painter is constructed; painting reuses its prepared render data. Supply updated
+geometry (or construct a new painter for edited legacy objects) after model edits.
 
 ## Repeatable curved-rendering verification
 
