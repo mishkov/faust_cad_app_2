@@ -1,8 +1,10 @@
 import 'package:faust_cad_app_2/cad_scene/cad_objects/cube.dart';
+import 'package:faust_cad_app_2/cad_scene/cad_objects/cylinder.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_objects/ground_grid.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/vertex.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_scene.dart';
 import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
+import 'package:faust_cad_app_2/cad_scene/geometry/planar_frame.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
@@ -154,6 +156,7 @@ class _CadScreenState extends State<CadScreen>
                       onPointerPanZoomEnd: (_) => _previousGestureScale = 1.0,
                       child: CadScene(
                         cameraConfig: _cameraPosition,
+                        renderMode: CadRenderMode.shaded,
                         cadObjects: [
                           GroundGrid(100, 100),
                           Cube(
@@ -163,6 +166,11 @@ class _CadScreenState extends State<CadScreen>
                           Cube(
                             centerPosition: Vertex(Vector3(40, 16, 15)),
                             size: 30,
+                          ),
+                          Cylinder(
+                            frame: PlanarFrame.xy(origin: Vector3(60, 60, 0)),
+                            radius: 8,
+                            height: 15,
                           ),
                         ],
                       ),
