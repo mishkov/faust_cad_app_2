@@ -60,3 +60,8 @@ Tests include a tiny dependent feature that places a half-sized Cube above a nam
 support face, plus a diamond graph, overlapping cycles, failure/recovery, missing
 and ambiguous references, atomic publication, and mutation isolation. There are no
 sketches, extrusion features, disk persistence, or history UI in this change.
+
+User model edits can be routed through `DocumentController`, which adds atomic
+commands and document-level undo/redo without changing feature-history semantics.
+See [Document undo and redo](document_undo_redo.md) for transactions, cancellation,
+and restoration through this evaluator.
