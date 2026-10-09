@@ -1,10 +1,14 @@
-import 'package:faust_cad_app_2/cad_scene/cad_objects/cube.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_objects/cylinder.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_objects/ground_grid.dart';
+import 'package:faust_cad_app_2/cad_scene/cad_primitivies/cad_primitive.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/vertex.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_scene.dart';
 import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
 import 'package:faust_cad_app_2/cad_scene/geometry/planar_frame.dart';
+import 'package:faust_cad_app_2/document/cad_document.dart';
+import 'package:faust_cad_app_2/document/feature_definition.dart';
+import 'package:faust_cad_app_2/document/feature_id.dart';
+import 'package:faust_cad_app_2/document/features/cube_feature.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
@@ -21,6 +25,31 @@ class _CadScreenState extends State<CadScreen>
   static const _initialFocusDistance = 200.0;
 
   double _previousGestureScale = 1.0;
+
+  final _document = CadDocument(
+    evaluators: {CubeFeature.type: CubeFeature.evaluate},
+    features: [
+      FeatureDefinition(
+        id: FeatureId('cube-a'),
+        type: CubeFeature.type,
+        parameters: {'x': 15, 'y': 16, 'z': 19, 'size': 20},
+      ),
+      FeatureDefinition(
+        id: FeatureId('cube-b'),
+        type: CubeFeature.type,
+        parameters: {'x': 40, 'y': 16, 'z': 15, 'size': 30},
+      ),
+    ],
+  );
+  late final List<CadPrimitive> _geometry = [
+    ...GroundGrid(100, 100).build(),
+    ..._document.evaluation.geometry,
+    ...Cylinder(
+      frame: PlanarFrame.xy(origin: Vector3(60, 60, 0)),
+      radius: 8,
+      height: 15,
+    ).build(),
+  ];
 
   static final _initialCameraPosition = CameraConfig(
     position: Vertex(Vector3(0, -50, 100)),
@@ -157,22 +186,8 @@ class _CadScreenState extends State<CadScreen>
                       child: CadScene(
                         cameraConfig: _cameraPosition,
                         renderMode: CadRenderMode.shaded,
-                        cadObjects: [
-                          GroundGrid(100, 100),
-                          Cube(
-                            centerPosition: Vertex(Vector3(15, 16, 19)),
-                            size: 20,
-                          ),
-                          Cube(
-                            centerPosition: Vertex(Vector3(40, 16, 15)),
-                            size: 30,
-                          ),
-                          Cylinder(
-                            frame: PlanarFrame.xy(origin: Vector3(60, 60, 0)),
-                            radius: 8,
-                            height: 15,
-                          ),
-                        ],
+                        geometry: _geometry,
+                        geometryRevision: _document.evaluation.revision,
                       ),
                     ),
                   ),

@@ -41,6 +41,18 @@ class SceneTessellator {
     TessellationSettings? settings,
     Object? geometryRevision,
   }) {
+    return buildGeometry(
+      [for (final object in objects) ...object.build()],
+      settings: settings,
+      geometryRevision: geometryRevision,
+    );
+  }
+
+  TessellatedScene buildGeometry(
+    List<CadPrimitive> geometry, {
+    TessellationSettings? settings,
+    Object? geometryRevision,
+  }) {
     final quality = settings ?? TessellationSettings.defaults;
     final faces = <Face>[];
     final uses = <({Edge edge, Face? face})>[];
@@ -112,13 +124,9 @@ class SceneTessellator {
       }
     }
 
-    snapshot.add(objects.length);
-    for (final object in objects) {
-      final primitives = object.build();
-      snapshot.add(primitives.length);
-      for (final p in primitives) {
-        collect(p);
-      }
+    snapshot.add(geometry.length);
+    for (final primitive in geometry) {
+      collect(primitive);
     }
     if (_cached != null &&
         _settings == quality &&
