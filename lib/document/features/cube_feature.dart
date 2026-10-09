@@ -29,7 +29,12 @@ final class CubeFeature {
       size: size,
     ).buildGeometry();
     return [
-      FeatureOutput(key: 'body', kind: OutputKind.body, geometry: cube.body),
+      FeatureOutput(
+        key: 'body',
+        kind: OutputKind.body,
+        geometry: cube.body,
+        faceKeys: cube.planarFaces,
+      ),
       for (final entry in cube.planarFaces.entries)
         FeatureOutput(
           key: entry.key,

@@ -406,3 +406,100 @@ order. No screenshots or fixture objects replace the viewer's default scene.
 The headless [analytic planar region engine](docs/planar_regions.md) accepts
 identified 2D segments and circles for future sketch profile selection, with
 analytic boundaries, holes, provenance, and validated material unions.
+
+
+## Viewport selection and associative planar supports
+
+The viewer has Body / Planar face selection. Click a visible cube face to tint
+its visible trimmed area and inspect its semantic reference, plane origin, local
+X/Y axes, and normal. Selection and camera state do not edit document history.
+No sketch drawing is implemented. The widget preview is in
+`lib/screens/previews.dart`.
+
+Reusable viewport input comes from `EvaluationSnapshot.materializeGeometry()`.
+It copies valid evaluated bodies once, preserving explicit face correspondence.
+Use the same materialized snapshot across camera-only builds, and replace it
+when the document evaluation changes:
+
+```dart
+final evaluated = document.evaluation.materializeGeometry();
+CadScene(
+  cameraConfig: camera,
+  evaluatedGeometry: evaluated,
+  geometry: gridGeometry, // Additional geometry also participates in occlusion.
+  geometryRevision: document.evaluation.revision,
+  renderMode: CadRenderMode.shaded,
+  selectionMode: ViewportSelectionMode.planarFace,
+  selectedReference: selectedReference,
+  onSelected: (hit) {
+    selectedReference = hit?.faceReference;
+  },
+);
+```
+
+`ViewportPicker` is also usable without the widget. Its `ViewportHit` returns the
+exact analytic face, owning body, world point, camera depth, and optional body
+and face `OutputReference`s. Picking uses the renderer's bounded tessellation and
+near plane. It honors rotated faces, finite trimming boundaries, holes, and
+frontmost planar/cylindrical geometry regardless of selection mode. A curved
+front face blocks planar picking behind it. Body mode selects solids. Planar
+face mode rejects cylindrical walls. Face fills define picking in both render
+modes; standalone wires/grid strokes are not selection targets. Curved trim rims
+and cylindrical occlusion share the configured rendering chord approximation.
+Only surfaces supported by the renderer participate.
+
+A producing feature explicitly supplies `FeatureOutput.faceKeys` on its body
+output: a map from semantic face-output key to the **exact Face instance in the
+body**. `CubeFeature` supplies front/back/top/bottom/left/right. Also publish the
+matching face output. `OutputKind.face` allows analytic faces whose surface type
+may change; existing `OutputKind.planarFace` continues to enforce planarity.
+There is no face-index or spatial matching fallback. Unnamed/ambiguous faces
+remain geometrically pickable but have no attachable reference. The feature
+adapter owns stable naming; extrusion's operation-local keys require an explicit
+lineage policy before being used as persistent references.
+
+Supports are immutable definition data on any `FeatureDefinition`:
+
+```dart
+final definition = FeatureDefinition(
+  id: FeatureId('supported-feature'),
+  type: 'my-feature',
+  support: PlanarSupport.face(
+    reference: selectedFaceReference,
+    preferredDirection: Vector3(1, 0, 0),
+  ),
+);
+// Or: PlanarSupport.principal(PrincipalPlane.xy), .xz, or .yz.
+```
+
+The producer automatically becomes a dependency. The document evaluator resolves
+supports before invoking the consumer, exposes `context.support`, and retains
+the resolved support on `FeatureResult.support` for inspection. Producer edits,
+rebuilds, and undo/redo resolve the same feature/key/kind again. Self/mutual
+support cycles use the existing cycle detection and never invoke evaluators.
+Missing, ambiguous, unavailable, or nonplanar faces produce
+`FeatureIssue.brokenAttachment` with a diagnostic and no valid consumer outputs.
+A reference whose output kind changes is missing; it never silently changes kind.
+Standalone `PlanarSupportResolution.resolve` provides the same resolution logic.
+
+Face frames use Task 1's `PlanarFrame.fromPlane`: origin is the analytic plane's
+origin; normal includes the face's material orientation; local X is the projection
+of the stored, normalized preferred **model-space** direction. Local Y is normal
+cross X. The direction is selected deliberately at attachment creation and never
+switched during rebuild. It provides a deterministic world-axis convention,
+rather than a rigidly transported edge axis. A nearly normal preferred direction
+breaks the attachment instead of introducing a fallback or arbitrary flip.
+Principal supports preserve Task 1's XY/XZ/YZ conventions.
+
+`ResolvedPlanarSupport.frame` describes an infinite supporting plane.
+`boundary` is a separate, defensively copied trimmed face for inspection. Neither
+outer trim nor holes constrain future local sketch coordinates: geometry can
+extend beyond the supporting face or across its holes.
+
+Verification:
+
+```sh
+flutter test test/document/planar_support_test.dart test/cad_scene/selection
+flutter analyze
+flutter test
+```

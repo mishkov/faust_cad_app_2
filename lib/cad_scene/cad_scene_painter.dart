@@ -9,6 +9,8 @@ import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/tessellated_sce
 import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/tessellation_settings.dart';
 import 'package:flutter/material.dart';
 
+import 'cad_primitivies/face.dart';
+
 class CadScenePainter extends CustomPainter {
   CadScenePainter({
     required this.cameraConfig,
@@ -18,13 +20,17 @@ class CadScenePainter extends CustomPainter {
     this.tessellationSettings,
     this.geometryRevision,
     SceneTessellator? tessellator,
+    TessellatedScene? evaluatedScene,
+    this.selectedFaces = const {},
   }) : tessellator = tessellator ?? SceneTessellator() {
     // Build render data once before painting. Camera-only paints reuse it.
-    scene = this.tessellator.buildGeometry(
-      [...?geometry, for (final object in cadObjects) ...object.build()],
-      settings: tessellationSettings,
-      geometryRevision: geometryRevision,
-    );
+    scene =
+        evaluatedScene ??
+        this.tessellator.buildGeometry(
+          [...?geometry, for (final object in cadObjects) ...object.build()],
+          settings: tessellationSettings,
+          geometryRevision: geometryRevision,
+        );
   }
 
   final CameraConfig cameraConfig;
@@ -34,12 +40,14 @@ class CadScenePainter extends CustomPainter {
   final Object? geometryRevision;
   final SceneTessellator tessellator;
   late final TessellatedScene scene;
+  final Set<Face> selectedFaces;
 
   @override
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
     if (renderMode == CadRenderMode.shaded) {
-      ShadedSceneRenderer(cameraConfig).paint(canvas, size, scene);
+      ShadedSceneRenderer(cameraConfig)
+          .paint(canvas, size, scene, selectedFaces: selectedFaces);
       return;
     }
     final projection = CameraProjection(cameraConfig);

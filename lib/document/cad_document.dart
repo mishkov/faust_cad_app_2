@@ -5,6 +5,8 @@ import 'feature_id.dart';
 import 'feature_output.dart';
 import 'feature_result.dart';
 import 'reference_resolution.dart';
+import 'planar_support_resolution.dart';
+import 'resolved_planar_support.dart';
 
 final class CadDocument {
   CadDocument({
@@ -166,6 +168,28 @@ final class CadDocument {
         results[id] = _evaluation.features[id]!;
         continue;
       }
+      ResolvedPlanarSupport? support;
+      if (feature.support != null) {
+        final resolution = PlanarSupportResolution.resolve(
+          feature.support!,
+          EvaluationSnapshot(
+            revision: _evaluation.revision + 1,
+            features: results,
+            evaluationOrder: const [],
+            rebuiltFeatures: const {},
+          ),
+        );
+        if (!resolution.isResolved) {
+          results[id] = invalid(
+            id,
+            FeatureState.failed,
+            FeatureIssue.brokenAttachment,
+            resolution.diagnostic!,
+          );
+          continue;
+        }
+        support = resolution.support;
+      }
       final missing = sorted(
         feature.dependencies.where((dep) => !next.containsKey(dep)),
       );
@@ -227,6 +251,7 @@ final class CadDocument {
         final outputs = evaluator(
           feature,
           FeatureEvaluationContext(
+            support: support,
             inputs: inputs,
             dependencies: {
               for (final dep in feature.dependencies) dep: results[dep]!,
@@ -235,6 +260,7 @@ final class CadDocument {
         );
         results[id] = FeatureResult(
           state: FeatureState.valid,
+          support: support,
           outputs: outputs,
         );
       } catch (error) {

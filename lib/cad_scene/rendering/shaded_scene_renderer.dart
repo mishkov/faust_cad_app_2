@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 import 'dart:ui' as ui;
 
 import 'package:faust_cad_app_2/cad_scene/cad_surfaces/plane_surface.dart';
@@ -12,6 +13,8 @@ import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/tessellated_fac
 import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/render_triangle.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
 
+import '../cad_primitivies/face.dart';
+
 /// Vector rendering with per-region depth comparisons for planar and tessellated CAD geometry.
 ///
 /// Reciprocal depth is affine after perspective projection. Subtracting only
@@ -24,11 +27,20 @@ class ShadedSceneRenderer {
   final CameraProjection _projection;
   static final _light = Vector3(0.55, -0.65, 0.8).normalized();
 
-  void paint(Canvas canvas, Size size, TessellatedScene scene) {
+  void paint(
+    Canvas canvas,
+    Size size,
+    TessellatedScene scene, {
+    Set<Face> selectedFaces = const {},
+  }) {
     final faces = <ProjectedFace>[];
     for (final face in scene.faces) {
       if (face.source.surface is PlaneSurface) {
-        final projected = _projectFace(face, size);
+        final projected = _projectFace(
+          face,
+          size,
+          selectedFaces.contains(face.source),
+        );
         if (projected != null) faces.add(projected);
       } else {
         for (final triangle in face.triangles) {
@@ -152,7 +164,7 @@ class ShadedSceneRenderer {
     }
   }
 
-  ProjectedFace? _projectFace(TessellatedFace face, Size size) {
+  ProjectedFace? _projectFace(TessellatedFace face, Size size, bool selected) {
     final surface = face.source.surface;
     if (surface is! PlaneSurface) return null;
     final origin = _projection.toCameraSpace(surface.origin);
@@ -191,7 +203,9 @@ class ShadedSceneRenderer {
     return ProjectedFace(
       path,
       inverseDepth,
-      Color.fromARGB(255, gray, gray, gray),
+      selected
+          ? Color.fromARGB(255, gray ~/ 2, gray, 255)
+          : Color.fromARGB(255, gray, gray, gray),
     );
   }
 
