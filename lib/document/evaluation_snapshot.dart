@@ -1,5 +1,8 @@
 import '../cad_scene/cad_primitivies/cad_primitive.dart';
+import '../cad_scene/cad_primitivies/face.dart';
+
 import 'feature_id.dart';
+import 'evaluated_geometry.dart';
 import 'feature_result.dart';
 import 'output_reference.dart';
 import 'reference_resolution.dart';
@@ -44,6 +47,46 @@ final class EvaluationSnapshot {
       output: matches.single,
       candidateCount: 1,
     );
+  }
+
+  EvaluatedGeometry materializeGeometry() {
+    final geometry = <CadPrimitive>[];
+    final bodies = <CadPrimitive, OutputReference>{};
+    final faces = <Face, OutputReference>{};
+    for (final entry in features.entries) {
+      if (entry.value.state != FeatureState.valid) continue;
+      for (final output in entry.value.outputs) {
+        if (output.kind != OutputKind.body) continue;
+        final materialized = output.materialize();
+        geometry.add(materialized.geometry);
+        final bodyReference = OutputReference(
+          featureId: entry.key,
+          key: output.key,
+          kind: output.kind,
+        );
+        if (resolve(bodyReference).status == ReferenceStatus.resolved) {
+          bodies[materialized.geometry] = bodyReference;
+        }
+        for (final face in materialized.faceKeys.entries) {
+          final matches = entry.value.outputs.where(
+            (o) =>
+                o.key == face.value &&
+                (o.kind == OutputKind.planarFace || o.kind == OutputKind.face),
+          );
+          // Ambiguous names remain unattachable; picking never guesses a key.
+          if (matches.length != 1) continue;
+          final reference = OutputReference(
+            featureId: entry.key,
+            key: face.value,
+            kind: matches.single.kind,
+          );
+          if (resolve(reference).status == ReferenceStatus.resolved) {
+            faces[face.key] = reference;
+          }
+        }
+      }
+    }
+    return EvaluatedGeometry(geometry: geometry, bodies: bodies, faces: faces);
   }
 
   // Semantic faces are attachments, not extra surfaces to draw over their body.

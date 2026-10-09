@@ -52,11 +52,12 @@ class SceneTessellator {
     List<CadPrimitive> geometry, {
     TessellationSettings? settings,
     Object? geometryRevision,
+    bool preserveSourceIdentity = false,
   }) {
     final quality = settings ?? TessellationSettings.defaults;
     final faces = <Face>[];
     final uses = <({Edge edge, Face? face})>[];
-    final snapshot = <Object>[];
+    final snapshot = <Object>[preserveSourceIdentity];
     final identities = Map<Object, int>.identity();
     int id(Object object) =>
         identities.putIfAbsent(object, () => identities.length);
@@ -83,6 +84,7 @@ class SceneTessellator {
           }
         case Face():
           faces.add(p);
+          if (preserveSourceIdentity) snapshot.add(p);
           snapshot.addAll([
             id(p.surface),
             p.surface.runtimeType,

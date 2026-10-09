@@ -1,4 +1,5 @@
 import 'feature_output.dart';
+import 'resolved_planar_support.dart';
 
 enum FeatureState { valid, failed, blocked }
 
@@ -9,6 +10,7 @@ enum FeatureIssue {
   missingOutput,
   ambiguousOutput,
   evaluationFailed,
+  brokenAttachment,
 }
 
 final class FeatureResult {
@@ -16,6 +18,7 @@ final class FeatureResult {
     required this.state,
     List<FeatureOutput> outputs = const [],
     this.issue,
+    this.support,
     this.message,
     List<FeatureOutput> diagnosticOutputs = const [],
   }) : outputs = List.unmodifiable(
@@ -23,6 +26,7 @@ final class FeatureResult {
        ),
        diagnosticOutputs = List.unmodifiable(diagnosticOutputs);
 
+  final ResolvedPlanarSupport? support;
   final FeatureState state;
   final List<FeatureOutput> outputs;
   final FeatureIssue? issue;

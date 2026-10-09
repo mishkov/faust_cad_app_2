@@ -9,13 +9,13 @@ class CameraProjection {
   const CameraProjection(this.cameraConfig);
 
   final CameraConfig cameraConfig;
-  static const double _nearPlane = 1e-6;
+  static const double nearPlane = 1e-6;
 
   List<({Vector3 normal, double offset})> _planes(Size screen) {
     final halfWidth = screen.width / (2 * cameraConfig.focalLength);
     final halfHeight = screen.height / (2 * cameraConfig.focalLength);
     return [
-      (normal: Vector3(0, 1, 0), offset: -_nearPlane),
+      (normal: Vector3(0, 1, 0), offset: -nearPlane),
       (normal: Vector3(1, halfWidth, 0), offset: 0.0),
       (normal: Vector3(-1, halfWidth, 0), offset: 0.0),
       (normal: Vector3(0, halfHeight, 1), offset: 0.0),
@@ -79,7 +79,7 @@ class CameraProjection {
   }
 
   ({double x, double y}) project(Vector3 p, {required Size screen}) {
-    final depth = math.max(p.y, _nearPlane);
+    final depth = math.max(p.y, nearPlane);
     // Clamp tiny rounding errors at the clipping planes to the viewport.
     return (
       x: (screen.width / 2 + p.x / depth * cameraConfig.focalLength)
@@ -88,6 +88,17 @@ class CameraProjection {
       y: (screen.height / 2 - p.z / depth * cameraConfig.focalLength)
           .clamp(0.0, screen.height)
           .toDouble(),
+    );
+  }
+
+  Vector3 fromCameraDirection(Vector3 point) {
+    final cp = math.cos(cameraConfig.pitch), sp = math.sin(cameraConfig.pitch);
+    final cy = math.cos(cameraConfig.yaw), sy = math.sin(cameraConfig.yaw);
+    final y = point.y * cp - point.z * sp;
+    return Vector3(
+      point.x * cy - y * sy,
+      point.x * sy + y * cy,
+      point.y * sp + point.z * cp,
     );
   }
 
