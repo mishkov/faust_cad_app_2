@@ -252,7 +252,7 @@ void main() {
       for (final bad in [
         null,
         {},
-        {...good, 'version': 2},
+        {...good, 'version': 3},
         {
           ...good,
           'points': [

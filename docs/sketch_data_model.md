@@ -1,6 +1,7 @@
 # Independent sketch data and feature history
 
-`lib/sketch/sketch.dart` exports the immutable, unconstrained sketch model.
+`lib/sketch/sketch.dart` exports the immutable authored sketch model. Headless constraints and solving are documented
+in [Sketch constraints](sketch_constraints.md).
 `SketchPoint` stores a stable `SketchEntityId` and finite local `x`/`y` values.
 `SketchLineSegment` references two point IDs; `SketchCircle` references a center
 point ID and has a finite positive radius. These entities are independent of
@@ -72,7 +73,8 @@ nonfinite parameter values are rejected before publication.
 The initial feature publishes one `FeatureOutput.sketch` with semantic key
 `SketchFeature.outputKey` (`sketch`) and kind `OutputKind.sketch`. Its `data` is a
 `SketchGeometry` containing the immutable definition and a captured resolved
-`PlanarFrame`. It contains no derived topology or face boundary. Support edits
+`PlanarFrame`, plus separate solved coordinates and solve diagnostics. It
+contains no derived topology or face boundary. Support edits
 recompute placement and rebuild declared descendants while keeping entity IDs
 and local coordinates. Principal planes use the existing axis conventions.
 
@@ -85,7 +87,7 @@ final reference = OutputReference(
 final resolved = controller.evaluation.resolve(reference);
 if (resolved.status == ReferenceStatus.resolved) {
   final data = resolved.output!.data as SketchGeometry;
-  final inputs = const SketchPlanarAdapter().adapt(data.definition);
+  final inputs = const SketchPlanarAdapter().adaptSolved(data.solved);
   final regions = const PlanarRegionEngine().build(inputs);
   // Later operations explicitly consume regions and data.frame.
 }
@@ -126,5 +128,5 @@ Tests cover identity and deletion rules, parameter validation, shared references
 adapter provenance, downstream region consumption, all principal planes,
 translated/rotated/reversed face support, broken attachments and recovery,
 body/face rendering preservation, mutation isolation, snapshots, undo/redo, and
-transaction commit/cancellation. No sketch editor, constraint solver, disk
-persistence, or extrusion feature is introduced.
+transaction commit/cancellation. No sketch editor, disk persistence, or extrusion feature is introduced.
+The headless constraint solver is documented separately.

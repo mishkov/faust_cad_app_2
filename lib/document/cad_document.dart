@@ -1,4 +1,5 @@
 import 'evaluation_snapshot.dart';
+import 'feature_evaluation_failure.dart';
 import 'feature_definition.dart';
 import 'feature_evaluation_context.dart';
 import 'feature_id.dart';
@@ -138,13 +139,15 @@ final class CadDocument {
       FeatureId id,
       FeatureState state,
       FeatureIssue issue,
-      String message,
-    ) {
+      String message, {
+      Map<String, Object?> diagnostics = const {},
+    }) {
       final previous = _evaluation.features[id];
       return FeatureResult(
         state: state,
         issue: issue,
         message: message,
+        diagnostics: diagnostics,
         diagnosticOutputs: previous == null
             ? const []
             : previous.state == FeatureState.valid
@@ -267,8 +270,13 @@ final class CadDocument {
         results[id] = invalid(
           id,
           FeatureState.failed,
-          FeatureIssue.evaluationFailed,
+          error is FeatureEvaluationFailure
+              ? error.issue
+              : FeatureIssue.evaluationFailed,
           error.toString(),
+          diagnostics: error is FeatureEvaluationFailure
+              ? error.diagnostics
+              : const {},
         );
       }
     }

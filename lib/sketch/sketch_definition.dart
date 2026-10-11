@@ -2,12 +2,15 @@ import 'package:equatable/equatable.dart';
 
 import '../document/planar_support.dart';
 import '../document/src/immutable_value.dart';
+import 'constraints/sketch_constraint.dart';
+import 'constraints/sketch_constraint_id.dart';
+import 'constraints/sketch_constraint_kind.dart';
 import 'sketch_circle.dart';
 import 'sketch_entity_id.dart';
 import 'sketch_line_segment.dart';
 import 'sketch_point.dart';
 
-/// An immutable unconstrained sketch attached to an infinite planar support.
+/// An immutable authored sketch attached to an infinite planar support.
 ///
 /// Entity IDs are unique across points, segments, and circles. Edits through
 /// [copyWith] preserve retained identities and reserve deleted IDs permanently
@@ -19,10 +22,14 @@ final class SketchDefinition extends Equatable {
     Iterable<SketchLineSegment> segments = const [],
     Iterable<SketchCircle> circles = const [],
     Set<SketchEntityId> retiredIds = const {},
+    Iterable<SketchConstraint> constraints = const [],
+    Set<SketchConstraintId> retiredConstraintIds = const {},
   }) : points = _index(points, (p) => p.id),
        segments = _index(segments, (s) => s.id),
        circles = _index(circles, (c) => c.id),
-       retiredIds = Set.unmodifiable(retiredIds) {
+       retiredIds = Set.unmodifiable(retiredIds),
+       constraints = _indexConstraints(constraints),
+       retiredConstraintIds = Set.unmodifiable(retiredConstraintIds) {
     final ids = [
       ...this.points.keys,
       ...this.segments.keys,
@@ -33,6 +40,12 @@ final class SketchDefinition extends Equatable {
     }
     if (ids.any(this.retiredIds.contains)) {
       throw ArgumentError('Deleted sketch entity IDs cannot be reused');
+    }
+    for (final constraint in this.constraints.values) {
+      if (this.retiredConstraintIds.contains(constraint.id)) {
+        throw ArgumentError('Deleted constraint IDs cannot be reused');
+      }
+      _validateConstraint(constraint);
     }
     for (final segment in this.segments.values) {
       _requirePoint(segment.startPointId);
@@ -47,6 +60,8 @@ final class SketchDefinition extends Equatable {
   final Map<SketchEntityId, SketchPoint> points;
   final Map<SketchEntityId, SketchLineSegment> segments;
   final Map<SketchEntityId, SketchCircle> circles;
+  final Map<SketchConstraintId, SketchConstraint> constraints;
+  final Set<SketchConstraintId> retiredConstraintIds;
 
   /// The deleted identities reserved against reuse, including after encoding.
   final Set<SketchEntityId> retiredIds;
@@ -61,6 +76,7 @@ final class SketchDefinition extends Equatable {
     Iterable<SketchPoint>? points,
     Iterable<SketchLineSegment>? segments,
     Iterable<SketchCircle>? circles,
+    Iterable<SketchConstraint>? constraints,
   }) {
     final nextPoints = List<SketchPoint>.of(points ?? this.points.values);
     final nextSegments = List<SketchLineSegment>.of(
@@ -86,7 +102,22 @@ final class SketchDefinition extends Equatable {
       ...nextSegments.map((s) => s.id),
       ...nextCircles.map((c) => c.id),
     };
+    final nextConstraints = List<SketchConstraint>.of(
+      constraints ?? this.constraints.values,
+    );
+    for (final constraint in nextConstraints) {
+      final previous = this.constraints[constraint.id];
+      if (previous != null && previous.kind != constraint.kind) {
+        throw ArgumentError('A retained constraint ID cannot change kind');
+      }
+    }
+    final nextConstraintIds = nextConstraints.map((c) => c.id).toSet();
     return SketchDefinition(
+      constraints: nextConstraints,
+      retiredConstraintIds: {
+        ...retiredConstraintIds,
+        ...this.constraints.keys.where((id) => !nextConstraintIds.contains(id)),
+      },
       support: support ?? this.support,
       points: nextPoints,
       segments: nextSegments,
@@ -104,7 +135,7 @@ final class SketchDefinition extends Equatable {
   ///
   /// The associated support is stored in the owning feature's support field.
   Map<String, Object?> toParameters() => freezeValue({
-    'version': 1,
+    'version': 2,
     'points': [
       for (final point in points.values)
         {'id': point.id.value, 'x': point.x, 'y': point.y},
@@ -126,6 +157,8 @@ final class SketchDefinition extends Equatable {
         },
     ],
     'retiredIds': retiredIds.map((id) => id.value).toList(),
+    'constraints': constraints.values.map((c) => c.toParameters()).toList(),
+    'retiredConstraintIds': retiredConstraintIds.map((id) => id.value).toList(),
   }) as Map<String, Object?>;
 
   /// Decodes and validates document-owned values without external registries.
@@ -133,14 +166,39 @@ final class SketchDefinition extends Equatable {
     required PlanarSupport support,
     required Object? parameters,
   }) {
-    if (parameters case {
-      'version': 1,
-      'points': List rawPoints,
-      'segments': List rawSegments,
-      'circles': List rawCircles,
-      'retiredIds': List rawRetired,
-    }) {
+    if (parameters
+        case {
+          'version': int version,
+          'points': List rawPoints,
+          'segments': List rawSegments,
+          'circles': List rawCircles,
+          'retiredIds': List rawRetired,
+        }
+        when version == 1 || version == 2) {
+      final List rawConstraints;
+      final List rawRetiredConstraints;
+      if (version == 1) {
+        rawConstraints = const [];
+        rawRetiredConstraints = const [];
+      } else if (parameters case {
+        'constraints': List constraints,
+        'retiredConstraintIds': List retired,
+      }) {
+        rawConstraints = constraints;
+        rawRetiredConstraints = retired;
+      } else {
+        throw ArgumentError('Missing constraint parameters');
+      }
       return SketchDefinition(
+        constraints: rawConstraints.map(SketchConstraint.fromParameters),
+        retiredConstraintIds: rawRetiredConstraints
+            .map(
+              (id) => switch (id) {
+                String() => SketchConstraintId(id),
+                _ => throw ArgumentError('Invalid retired constraint ID'),
+              },
+            )
+            .toSet(),
         support: support,
         points: rawPoints.map(
           (p) => switch (p) {
@@ -187,6 +245,46 @@ final class SketchDefinition extends Equatable {
     throw ArgumentError('Invalid sketch definition parameters');
   }
 
+  void _validateConstraint(SketchConstraint c) {
+    final kinds = switch (c.kind) {
+      SketchConstraintKind.coincident ||
+      SketchConstraintKind.distance => ['point', 'point'],
+      SketchConstraintKind.pointOnLine => ['point', 'segment'],
+      SketchConstraintKind.pointOnCircle => ['point', 'circle'],
+      SketchConstraintKind.horizontal ||
+      SketchConstraintKind.vertical ||
+      SketchConstraintKind.lineLength => ['segment'],
+      SketchConstraintKind.parallel ||
+      SketchConstraintKind.perpendicular ||
+      SketchConstraintKind.equalLengths => ['segment', 'segment'],
+      SketchConstraintKind.radius ||
+      SketchConstraintKind.diameter => ['circle'],
+      SketchConstraintKind.equalRadii => ['circle', 'circle'],
+      SketchConstraintKind.fixedPoint => ['point'],
+      SketchConstraintKind.fixedPrimitive => ['primitive'],
+    };
+    for (var i = 0; i < kinds.length; i++) {
+      final id = c.references[i];
+      final valid = switch (kinds[i]) {
+        'point' => points.containsKey(id),
+        'segment' => segments.containsKey(id),
+        'circle' => circles.containsKey(id),
+        _ => segments.containsKey(id) || circles.containsKey(id),
+      };
+      if (!valid) {
+        throw ArgumentError(
+          'Constraint ${c.id} has invalid ${kinds[i]} reference: $id',
+        );
+      }
+    }
+    if (c.kind == SketchConstraintKind.fixedPrimitive) {
+      final circle = circles.containsKey(c.references.single);
+      if (c.values.length != (circle ? 3 : 4) || circle && c.values[2] <= 0) {
+        throw ArgumentError('Invalid fixed primitive values');
+      }
+    }
+  }
+
   void _requirePoint(SketchEntityId id) {
     if (!points.containsKey(id)) {
       throw ArgumentError('Sketch references missing point: $id');
@@ -194,7 +292,15 @@ final class SketchDefinition extends Equatable {
   }
 
   @override
-  List<Object> get props => [support, points, segments, circles, retiredIds];
+  List<Object> get props => [
+    support,
+    points,
+    segments,
+    circles,
+    retiredIds,
+    constraints,
+    retiredConstraintIds,
+  ];
 }
 
 Map<SketchEntityId, T> _index<T>(
@@ -208,6 +314,19 @@ Map<SketchEntityId, T> _index<T>(
       throw ArgumentError('Duplicate sketch entity ID: $id');
     }
     result[id] = entity;
+  }
+  return Map.unmodifiable(result);
+}
+
+Map<SketchConstraintId, SketchConstraint> _indexConstraints(
+  Iterable<SketchConstraint> constraints,
+) {
+  final result = <SketchConstraintId, SketchConstraint>{};
+  for (final c in constraints) {
+    if (result.containsKey(c.id)) {
+      throw ArgumentError('Duplicate constraint ID: ${c.id}');
+    }
+    result[c.id] = c;
   }
   return Map.unmodifiable(result);
 }
