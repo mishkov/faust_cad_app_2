@@ -29,7 +29,7 @@ controller.redo();
 
 `addFeature` rejects duplicate IDs. `setFeature` adds or replaces a definition,
 preserving its existing document position. `updateParameters` merges parameter
-values while preserving type, ID, dependencies, and references. `removeFeature`
+values while preserving type, ID, support, dependencies, and references. `removeFeature`
 rejects unknown IDs and retains dependent definitions; their missing references
 are diagnosed by the evaluator. `replaceFeatures` replaces the full ordered model.
 IDs are caller-provided and never regenerated during restoration.

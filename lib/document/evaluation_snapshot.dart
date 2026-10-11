@@ -4,6 +4,7 @@ import '../cad_scene/cad_primitivies/face.dart';
 import 'feature_id.dart';
 import 'evaluated_geometry.dart';
 import 'feature_result.dart';
+import 'feature_output.dart';
 import 'output_reference.dart';
 import 'reference_resolution.dart';
 
@@ -21,6 +22,16 @@ final class EvaluationSnapshot {
   final Map<FeatureId, FeatureResult> features;
   final List<FeatureId> evaluationOrder;
   final Set<FeatureId> rebuiltFeatures;
+
+  /// The current immutable non-topological outputs, excluding diagnostics.
+  List<FeatureOutput> get dataOutputs => List.unmodifiable([
+    for (final result in features.values)
+      if (result.state == FeatureState.valid)
+        for (final output in result.outputs)
+          if (output.kind == OutputKind.data ||
+              output.kind == OutputKind.sketch)
+            output,
+  ]);
 
   ReferenceResolution resolve(OutputReference reference) {
     final feature = features[reference.featureId];

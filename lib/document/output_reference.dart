@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 
 import 'feature_id.dart';
 
-enum OutputKind { body, planarFace, face }
+enum OutputKind { body, planarFace, face, data, sketch }
 
 final class OutputReference extends Equatable {
   OutputReference({
