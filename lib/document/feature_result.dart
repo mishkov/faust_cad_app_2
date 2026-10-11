@@ -1,4 +1,5 @@
 import 'feature_output.dart';
+import 'src/immutable_value.dart';
 import 'resolved_planar_support.dart';
 
 enum FeatureState { valid, failed, blocked }
@@ -11,6 +12,7 @@ enum FeatureIssue {
   ambiguousOutput,
   evaluationFailed,
   brokenAttachment,
+  constraintSolveFailed,
 }
 
 final class FeatureResult {
@@ -20,8 +22,10 @@ final class FeatureResult {
     this.issue,
     this.support,
     this.message,
+    Map<String, Object?> diagnostics = const {},
     List<FeatureOutput> diagnosticOutputs = const [],
-  }) : outputs = List.unmodifiable(
+  }) : diagnostics = freezeValue(diagnostics) as Map<String, Object?>,
+       outputs = List.unmodifiable(
          state == FeatureState.valid ? outputs : <FeatureOutput>[],
        ),
        diagnosticOutputs = List.unmodifiable(diagnosticOutputs);
@@ -31,5 +35,6 @@ final class FeatureResult {
   final List<FeatureOutput> outputs;
   final FeatureIssue? issue;
   final String? message;
+  final Map<String, Object?> diagnostics;
   final List<FeatureOutput> diagnosticOutputs;
 }

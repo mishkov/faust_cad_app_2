@@ -503,3 +503,24 @@ flutter test test/document/planar_support_test.dart test/cad_scene/selection
 flutter analyze
 flutter test
 ```
+
+## Headless sketch constraints
+
+`SketchDefinition` stores persistent constraints with stable IDs and explicit
+entity/point references. `SketchSolver` returns immutable solved coordinates,
+rank-based freedom, and structured convergence/conflict diagnostics.
+`SketchFeature` publishes only valid solved outputs; underconstrained sketches
+remain usable downstream, while failed solves block dependent outputs. Exact
+shared/coincident connectivity is preserved without closing nearby gaps.
+Point-on-line uses the supporting infinite line.
+
+`SketchFeature.drag` supports temporary constrained drag targets through normal
+document transactions, undo, and redo. No constraint UI is included. See
+[the constraint contract](docs/sketch_constraints.md) for relation roles, tolerances,
+limits, result classification, and drag behavior.
+
+```sh
+flutter test test/sketch test/document/sketch_constraints_test.dart
+flutter analyze
+flutter test
+```
