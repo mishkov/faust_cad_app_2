@@ -3,6 +3,7 @@ import 'package:equatable/equatable.dart';
 import 'feature_id.dart';
 import 'output_reference.dart';
 import 'planar_support.dart';
+import 'src/immutable_value.dart';
 
 // Definitions contain only value data, never topology or mutable vectors.
 final class FeatureDefinition extends Equatable {
@@ -14,7 +15,7 @@ final class FeatureDefinition extends Equatable {
     Set<FeatureId> dependencies = const {},
     Map<String, OutputReference> inputs = const {},
   }) : parameters = Map.unmodifiable(
-         parameters.map((k, v) => MapEntry(k, _freeze(v))),
+         parameters.map((k, v) => MapEntry(k, freezeValue(v))),
        ),
        inputs = Map.unmodifiable(inputs),
        dependencies = Set.unmodifiable({
@@ -42,15 +43,3 @@ final class FeatureDefinition extends Equatable {
     ?support,
   ];
 }
-
-Object? _freeze(Object? value) => switch (value) {
-  null || String() || bool() || int() => value,
-  double() when value.isFinite => value,
-  List() => List<Object?>.unmodifiable(value.map(_freeze)),
-  Map<String, Object?>() => Map<String, Object?>.unmodifiable(
-    value.map((k, v) => MapEntry(k, _freeze(v))),
-  ),
-  _ => throw ArgumentError(
-    'Parameters must be finite scalar, list, or string-keyed map values',
-  ),
-};

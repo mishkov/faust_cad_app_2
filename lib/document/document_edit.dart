@@ -55,6 +55,7 @@ final class DocumentEdit {
         id: feature.id,
         type: feature.type,
         parameters: {...feature.parameters, ...values},
+        support: feature.support,
         dependencies: feature.dependencies,
         inputs: feature.inputs,
       ),

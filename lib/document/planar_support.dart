@@ -17,7 +17,8 @@ final class PlanarSupport extends Equatable {
     required OutputReference reference,
     required Vector3 preferredDirection,
   }) {
-    if (reference.kind == OutputKind.body) {
+    if (reference.kind != OutputKind.face &&
+        reference.kind != OutputKind.planarFace) {
       throw ArgumentError('A support requires a face reference');
     }
     final direction = normalizedVector3(

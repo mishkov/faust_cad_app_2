@@ -39,6 +39,8 @@ ambiguous, or unavailable. Duplicate semantic keys are permitted to represent
 unresolved naming ambiguity; the resolver never selects one candidate. Future
 features that split or remove outputs must deliberately maintain or retire keys.
 This foundation makes no general topological naming claim for arbitrary booleans.
+Independent sketches use kind `sketch`; general finite value outputs use `data`.
+Both participate in the same semantic resolution and dependency evaluation.
 
 Topology is copied at output capture and every consumer boundary because legacy
 `Vertex` vectors remain mutable. Copies preserve shared boundary identities.
@@ -46,6 +48,13 @@ Supported copy geometry includes the existing linear/planar and circular/cylinde
 primitives; unsupported types fail explicitly. Public collections are immutable.
 Parameters accept finite scalars, lists, and string-keyed maps, recursively copied;
 arbitrary mutable objects such as vectors are rejected.
+
+Non-topological `FeatureOutput.data` values use the same deep-freezing rules.
+`FeatureOutput.sketch` captures immutable independent sketch data with a resolved
+plane frame. Consumers use `output.data`; topology-only accessors reject these
+outputs. `EvaluationSnapshot.dataOutputs` includes valid current data outputs and
+excludes last-successful diagnostics. See [Sketch data](sketch_data_model.md) for
+the authored model, adapter, support integration, and controller edit examples.
 
 `EvaluationSnapshot.geometry` exports copies of valid body topology only. Named
 faces serve as attachment targets rather than additional render surfaces.
@@ -59,7 +68,8 @@ The grid and existing cylinder remain fixed scene geometry.
 Tests include a tiny dependent feature that places a half-sized Cube above a named
 support face, plus a diamond graph, overlapping cycles, failure/recovery, missing
 and ambiguous references, atomic publication, and mutation isolation. There are no
-sketches, extrusion features, disk persistence, or history UI in this change.
+extrusion features, disk persistence, or history UI in this foundation. Independent
+sketch definitions and their evaluator are described in the linked sketch guide.
 
 User model edits can be routed through `DocumentController`, which adds atomic
 commands and document-level undo/redo without changing feature-history semantics.
