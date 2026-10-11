@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:faust_cad_app_2/cad_scene/cad_objects/cylinder.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_objects/ground_grid.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/cad_primitive.dart';
@@ -6,7 +8,13 @@ import 'package:faust_cad_app_2/cad_scene/cad_scene.dart';
 import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
 import 'package:faust_cad_app_2/cad_scene/geometry/planar_frame.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_surfaces/plane_surface.dart';
-import 'package:faust_cad_app_2/document/cad_document.dart';
+import 'package:faust_cad_app_2/document/document_controller.dart';
+import 'package:faust_cad_app_2/document/features/sketch_feature.dart';
+import 'package:faust_cad_app_2/sketch/sketch_geometry.dart';
+import 'package:faust_cad_app_2/sketch_editor/sketch_editor_controller.dart';
+import 'package:faust_cad_app_2/sketch_editor/sketch_workspace.dart';
+import 'package:faust_cad_app_2/sketch_editor/presentation/sketch_scene_painter.dart';
+import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/scene_tessellator.dart';
 import 'package:faust_cad_app_2/document/feature_definition.dart';
 import 'package:faust_cad_app_2/document/feature_id.dart';
 import 'package:faust_cad_app_2/document/features/cube_feature.dart';
@@ -18,7 +26,9 @@ import 'package:flutter/services.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 class CadScreen extends StatefulWidget {
-  const new({super.key});
+  const new({super.key, this.controller});
+
+  final DocumentController? controller;
 
   @override
   State<CadScreen> createState() => _CadScreenState();
@@ -30,22 +40,31 @@ class _CadScreenState extends State<CadScreen>
 
   double _previousGestureScale = 1.0;
 
-  final _document = CadDocument(
-    evaluators: {CubeFeature.type: CubeFeature.evaluate},
-    features: [
-      FeatureDefinition(
-        id: FeatureId('cube-a'),
-        type: CubeFeature.type,
-        parameters: {'x': 15, 'y': 16, 'z': 19, 'size': 20},
-      ),
-      FeatureDefinition(
-        id: FeatureId('cube-b'),
-        type: CubeFeature.type,
-        parameters: {'x': 40, 'y': 16, 'z': 15, 'size': 30},
-      ),
-    ],
-  );
-  late final _evaluated = _document.evaluation.materializeGeometry();
+  late final _document =
+      widget.controller ??
+      DocumentController(
+        evaluators: {
+          CubeFeature.type: CubeFeature.evaluate,
+          SketchFeature.type: SketchFeature.evaluate,
+        },
+        features: [
+          FeatureDefinition(
+            id: FeatureId('cube-a'),
+            type: CubeFeature.type,
+            parameters: {'x': 15, 'y': 16, 'z': 19, 'size': 20},
+          ),
+          FeatureDefinition(
+            id: FeatureId('cube-b'),
+            type: CubeFeature.type,
+            parameters: {'x': 40, 'y': 16, 'z': 15, 'size': 30},
+          ),
+        ],
+      );
+  late var _evaluated = _document.evaluation.materializeGeometry();
+  late final _editor = SketchEditorController(_document);
+  CameraConfig? _previousCamera;
+  final _sketchTessellator = SceneTessellator();
+  var _plane = PrincipalPlane.xy;
   OutputReference? _selectedReference;
   PlanarSupport? _inspectedSupport;
   var _selectionMode = ViewportSelectionMode.planarFace;
@@ -74,6 +93,8 @@ class _CadScreenState extends State<CadScreen>
   @override
   void initState() {
     super.initState();
+    _document.addListener(_documentChanged);
+    _editor.addListener(_editorChanged);
     _resetController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 350),
@@ -118,6 +139,10 @@ class _CadScreenState extends State<CadScreen>
 
   @override
   void dispose() {
+    _document.removeListener(_documentChanged);
+    _editor.removeListener(_editorChanged);
+    _editor.dispose();
+    if (widget.controller == null) _document.dispose();
     _resetController.dispose();
     super.dispose();
   }
@@ -141,6 +166,54 @@ class _CadScreenState extends State<CadScreen>
     });
   }
 
+  void _documentChanged() {
+    _evaluated = _document.evaluation.materializeGeometry();
+    if (_selectedReference != null &&
+        !{
+          ..._evaluated.faces.values,
+          ..._evaluated.bodies.values,
+        }.contains(_selectedReference)) {
+      _selectedReference = null;
+      _inspectedSupport = null;
+    }
+    if (mounted) setState(() {});
+  }
+
+  void _editorChanged() {
+    if (_editor.activeId == null && _previousCamera != null) {
+      _cameraPosition = _previousCamera!;
+      _previousCamera = null;
+    }
+    if (mounted) setState(() {});
+  }
+
+  void _enterSketch({FeatureId? id, PlanarSupport? support}) {
+    _resetController.stop();
+    final previous = _previousCamera ?? _cameraPosition;
+    if (id != null) {
+      _editor.open(id);
+    } else {
+      _editor.create(support!);
+    }
+    _previousCamera = previous;
+    final frame = _editor.support?.frame;
+    if (frame != null) {
+      final direction = -frame.normal;
+      _cameraPosition = CameraConfig(
+        position: Vertex(frame.origin - direction * 200),
+        yaw: math.atan2(-direction.x, direction.y),
+        pitch: math.asin(direction.z.clamp(-1.0, 1.0)),
+        focalLength: 500,
+        focusDistance: 200,
+      );
+    }
+    setState(() {});
+  }
+
+  void _leaveSketch() {
+    _editor.close();
+  }
+
   Widget _inspectionPanel() {
     final resolution = _inspectedSupport == null
         ? null
@@ -153,11 +226,54 @@ class _CadScreenState extends State<CadScreen>
         '(${v.x.toStringAsFixed(3)}, ${v.y.toStringAsFixed(3)}, ${v.z.toStringAsFixed(3)})';
     return SizedBox(
       width: 240,
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const Text('Sketches'),
+            DropdownButton<PrincipalPlane>(
+              value: _plane,
+              items: [
+                for (final p in PrincipalPlane.values)
+                  DropdownMenuItem(value: p, child: Text(p.name.toUpperCase())),
+              ],
+              onChanged: (p) => setState(() => _plane = p!),
+            ),
+            FilledButton(
+              key: const Key('new-sketch'),
+              onPressed: () =>
+                  _enterSketch(support: PlanarSupport.principal(_plane)),
+              child: const Text('New sketch'),
+            ),
+            OutlinedButton(
+              key: const Key('sketch-on-face'),
+              onPressed: _inspectedSupport == null
+                  ? null
+                  : () => _enterSketch(support: _inspectedSupport),
+              child: const Text('Sketch on selected face'),
+            ),
+            for (final f in _editor.sketches)
+              TextButton(
+                key: Key('open-${f.id.value}'),
+                onPressed: () => _enterSketch(id: f.id),
+                child: Text('Open ${f.id}'),
+              ),
+            Row(
+              children: [
+                IconButton(
+                  tooltip: 'Undo',
+                  onPressed: _document.canUndo ? _editor.undo : null,
+                  icon: const Icon(Icons.undo),
+                ),
+                IconButton(
+                  tooltip: 'Redo',
+                  onPressed: _document.canRedo ? _editor.redo : null,
+                  icon: const Icon(Icons.redo),
+                ),
+              ],
+            ),
+            const Divider(),
             const Text('Viewport selection'),
             DropdownButton<ViewportSelectionMode>(
               value: _selectionMode,
@@ -203,10 +319,27 @@ class _CadScreenState extends State<CadScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (_editor.activeId != null) {
+      return Scaffold(
+        body: SketchWorkspace(editor: _editor, onClose: _leaveSketch),
+      );
+    }
+    final evaluated = _evaluated;
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.digit1, meta: true):
             _resetCamera,
+        const SingleActivator(LogicalKeyboardKey.keyZ, meta: true):
+            _editor.undo,
+        const SingleActivator(LogicalKeyboardKey.keyZ, meta: true, shift: true):
+            _editor.redo,
+        const SingleActivator(LogicalKeyboardKey.keyZ, control: true):
+            _editor.undo,
+        const SingleActivator(
+          LogicalKeyboardKey.keyZ,
+          control: true,
+          shift: true,
+        ): _editor.redo,
       },
       child: Focus(
         autofocus: true,
@@ -267,15 +400,38 @@ class _CadScreenState extends State<CadScreen>
                         });
                       },
                       onPointerPanZoomEnd: (_) => _previousGestureScale = 1.0,
-                      child: CadScene(
-                        cameraConfig: _cameraPosition,
-                        renderMode: CadRenderMode.shaded,
-                        geometry: _geometry,
-                        evaluatedGeometry: _evaluated,
-                        selectionMode: _selectionMode,
-                        onSelected: _select,
-                        selectedReference: _selectedReference,
-                        geometryRevision: _document.evaluation.revision,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          CadScene(
+                            cameraConfig: _cameraPosition,
+                            renderMode: CadRenderMode.shaded,
+                            geometry: _geometry,
+                            evaluatedGeometry: evaluated,
+                            selectionMode: _selectionMode,
+                            onSelected: _select,
+                            selectedReference: _selectedReference,
+                            geometryRevision: _document.evaluation.revision,
+                          ),
+                          IgnorePointer(
+                            child: CustomPaint(
+                              painter: SketchScenePainter(
+                                camera: _cameraPosition,
+                                sketches: [
+                                  for (final output
+                                      in _document.evaluation.dataOutputs)
+                                    if (output.data is SketchGeometry)
+                                      output.data as SketchGeometry,
+                                ],
+                                occluders: _sketchTessellator.buildGeometry(
+                                  [...evaluated.geometry, ..._geometry],
+                                  geometryRevision:
+                                      _document.evaluation.revision,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
