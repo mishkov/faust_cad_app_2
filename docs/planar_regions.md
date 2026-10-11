@@ -146,6 +146,12 @@ sources, or changed hole lineage can retire a reference as missing. This is not 
 general topological naming solution. Future sketch-profile features must handle
 all statuses explicitly and can add their own authored semantic constraints.
 
+For document-storable selection, use `captureProfile`, `ProfileReference`, and
+`ProfileSelectionReference`. Directed authored endpoint/intersection lineage now
+distinguishes overlapping-circle lenses and crescents through ordinary edits.
+See [Persistent profile selection and extrusion lineage](profile_lineage.md) for
+serialization, atomic resolution, and the explicit failure contract.
+
 ## Verification and limits
 
 Tests cover rectangles, circles, overlapping circles/rectangles, partial and full
@@ -160,5 +166,6 @@ area conservation.
 The implementation uses pairwise intersection discovery, linear endpoint lookup,
 and graph traversal with recursive bridge discovery. It is intended for modest
 sketch profiles, not massive arrangements. There is no spatial index, general
-spline/ellipse support, arbitrary independent-region Boolean API, persistence,
-feature evaluator integration, sketch UI, or solid construction in this task.
+spline/ellipse support or arbitrary independent-region Boolean API. Stored profile
+references and the extrusion adapter are described in the linked guide; there is
+no production extrusion feature or sketch editor integration.

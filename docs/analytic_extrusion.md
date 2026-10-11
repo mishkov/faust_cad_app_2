@@ -97,12 +97,14 @@ and directed parameter intervals, including duplicates and split portions.
 Intervals describe original profile traversal, even when a generated wire or
 face orientation is reversed. Cancelled internal boundaries have no wall output.
 
-A future feature adapter can expose these face/body keys and resolve region and
-boundary lineage explicitly. Keys such as `volume:union:0:wall:0:1` are snapshot
-identities, not persistent topological names. Rebuilds that reorder components or
-split/remove boundaries need lineage resolution and explicit missing/ambiguous
-handling; face indices and proximity must not become silent fallback names.
-There is no sketch-dependent history feature in this implementation.
+Keys such as `volume:union:0:wall:0:1` remain operation-local snapshot identities.
+`ExtrusionLineageAdapter` supplies semantic `FeatureOutput` values based on
+directed profile component and wall lineage, plus explicit ambiguous/unavailable
+outcomes. It preserves identifiable components and cap roles and withholds
+individual arc patches when the authored span does not identify one face. See
+[Persistent profile selection and extrusion lineage](profile_lineage.md) for the
+adapter and document-storable selection API. The adapter does not register a
+production `ExtrudeFeature` or add editor behavior.
 
 Result collections and provenance are immutable. Legacy `Vertex.vector` remains
 mutable: consumers own the returned solids, and outputs deliberately reference
