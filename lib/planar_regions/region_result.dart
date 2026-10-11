@@ -6,6 +6,11 @@ import 'region_reference.dart';
 import 'region_resolution.dart';
 import 'region_selection.dart';
 import 'region_loop.dart';
+import 'profile_capture.dart';
+import 'profile_lineage.dart';
+import 'profile_reference.dart';
+import 'profile_selection_reference.dart';
+import 'profile_selection_resolution.dart';
 
 /// An immutable selectable arrangement and its diagnostics.
 class RegionResult {
@@ -47,6 +52,103 @@ class RegionResult {
     final region = regions.where((r) => r.id == regionId).firstOrNull;
     if (region == null) throw ArgumentError.value(regionId, 'regionId');
     return RegionReference(this, regionId, semanticSignature(region));
+  }
+
+  /// Captures a unique directed profile identity for document storage.
+  ProfileCapture captureProfile(String regionId, {required String sourceId}) {
+    if (!isValid) {
+      return const ProfileCapture(RegionResolutionStatus.unavailable);
+    }
+    final cell = regions.where((r) => r.id == regionId).firstOrNull;
+    if (cell == null) {
+      return const ProfileCapture(RegionResolutionStatus.missing);
+    }
+    final signature = ProfileLineage.signature(cell);
+    if (signature == null) {
+      return const ProfileCapture(RegionResolutionStatus.unavailable);
+    }
+    final reference = ProfileReference(
+      sourceId: sourceId,
+      signature: signature,
+    );
+    final resolution = resolveProfile(reference, sourceId: sourceId);
+    return ProfileCapture(
+      resolution.status,
+      reference: resolution.status == RegionResolutionStatus.resolved
+          ? reference
+          : null,
+    );
+  }
+
+  /// Resolves authored boundary relationships without snapshot or index fallback.
+  RegionResolution resolveProfile(
+    ProfileReference reference, {
+    required String sourceId,
+  }) {
+    if (!isValid) {
+      return RegionResolution(RegionResolutionStatus.unavailable, []);
+    }
+    if (sourceId != reference.sourceId) {
+      return RegionResolution(RegionResolutionStatus.missing, []);
+    }
+    final signatures = {
+      for (final r in regions) r: ProfileLineage.signature(r),
+    };
+    final sourceIds = reference.boundarySourceIds;
+    if (signatures.entries.any((entry) {
+      if (entry.value != null) return false;
+      final ids = [entry.key.outer, ...entry.key.holes]
+          .expand((l) => l.portions)
+          .expand((p) => p.sources.map((s) => s.inputId))
+          .toSet();
+      return ids.isEmpty ||
+          ids.length == sourceIds.length && ids.containsAll(sourceIds);
+    })) {
+      return RegionResolution(RegionResolutionStatus.unavailable, []);
+    }
+    final candidates = regions
+        .where((r) => signatures[r] == reference.signature)
+        .toList();
+    return RegionResolution(
+      candidates.isEmpty
+          ? RegionResolutionStatus.missing
+          : candidates.length == 1
+          ? RegionResolutionStatus.resolved
+          : RegionResolutionStatus.ambiguous,
+      candidates,
+    );
+  }
+
+  /// Resolves all selected cells and their union atomically, never dropping one.
+  ProfileSelectionResolution resolveProfiles(
+    ProfileSelectionReference selection, {
+    required String sourceId,
+  }) {
+    final outcomes = selection.references
+        .map((r) => resolveProfile(r, sourceId: sourceId))
+        .toList();
+    for (final status in [
+      RegionResolutionStatus.unavailable,
+      RegionResolutionStatus.ambiguous,
+      RegionResolutionStatus.missing,
+    ]) {
+      if (outcomes.any((r) => r.status == status)) {
+        return ProfileSelectionResolution(status, outcomes);
+      }
+    }
+    final cells = outcomes.map((r) => r.candidates.single).toList();
+    final material = union(cells.map((r) => r.id));
+    return material.isValid
+        ? ProfileSelectionResolution(
+            RegionResolutionStatus.resolved,
+            outcomes,
+            regions: cells,
+            material: material,
+          )
+        : ProfileSelectionResolution(
+            RegionResolutionStatus.unavailable,
+            outcomes,
+          );
   }
 
   /// Resolves exact snapshot identity or conservative boundary lineage after edits.

@@ -5,6 +5,7 @@ import 'package:vector_math/vector_math_64.dart' show Vector2;
 
 import '../../cad_scene/geometry/geometry_tolerance.dart';
 import '../boundary_portion.dart';
+import '../boundary_lineage.dart';
 import '../boundary_source.dart';
 import '../planar_circle.dart';
 import '../planar_input.dart';
@@ -29,6 +30,7 @@ class _Node {
   final Vector2 point;
   final int index;
   _Node? parent;
+  final events = <String>{};
   _Node get root {
     if (parent == null) return this;
     return parent = parent!.root;
@@ -234,8 +236,10 @@ class Arrangement {
     b = b.root;
     if (a.index < b.index) {
       b.parent = a;
+      a.events.addAll(b.events);
     } else if (a.index > b.index) {
       a.parent = b;
+      b.events.addAll(a.events);
     }
   }
 
@@ -336,6 +340,12 @@ class Arrangement {
           _Cut(0, _endpoint(c.a, input.start, c)),
           _Cut(1, _endpoint(c.b, input.end, c)),
         ]);
+        c.cuts.first.node.root.events.add(
+          jsonEncode(['endpoint', input.id, 'start']),
+        );
+        c.cuts.last.node.root.events.add(
+          jsonEncode(['endpoint', input.id, 'end']),
+        );
       } else if (input is PlanarCircle) {
         c = _Curve.circle(
           input,
@@ -398,7 +408,14 @@ class Arrangement {
     }
   }
 
-  void _hit(_Curve a, double ta, _Curve b, double tb, Vector2 p) {
+  void _hit(
+    _Curve a,
+    double ta,
+    _Curve b,
+    double tb,
+    Vector2 p, {
+    int? crossing,
+  }) {
     if (a.isCircle) ta %= _tau;
     if (b.isCircle) tb %= _tau;
     if ((!a.isCircle && (ta < 0 || ta > 1)) ||
@@ -431,6 +448,29 @@ class Arrangement {
     final n = na ?? nb ?? _node(p);
     if (na != null) _join(n, na);
     if (nb != null) _join(n, nb);
+    // Branch signs refer to authored tangents, with the source pair sorted by ID.
+    // Circle branches are labeled by the intersection construction itself.
+    final sign =
+        crossing ??
+        exact.directionCross(
+          (a.input as PlanarSegment).start,
+          (a.input as PlanarSegment).end,
+          (b.input as PlanarSegment).start,
+          (b.input as PlanarSegment).end,
+        );
+    for (final left in [a, ...a.aliases]) {
+      for (final right in [b, ...b.aliases]) {
+        final ordered = left.input.id.compareTo(right.input.id) < 0;
+        n.root.events.add(
+          jsonEncode([
+            'intersection',
+            ordered ? left.input.id : right.input.id,
+            ordered ? right.input.id : left.input.id,
+            ordered ? sign : -sign,
+          ]),
+        );
+      }
+    }
     a.cuts.add(_Cut(ta, n));
     b.cuts.add(_Cut(tb, n));
   }
@@ -578,7 +618,18 @@ class Arrangement {
       final t = distance / length;
       if (t < 0 || t > 1) continue;
       final p = line.at(t);
-      _hit(line, t, circle, circle.parameter(p), p);
+      _hit(
+        line,
+        t,
+        circle,
+        circle.parameter(p),
+        p,
+        crossing: h == 0
+            ? 0
+            : distance < along
+            ? -1
+            : 1,
+      );
     }
   }
 
@@ -642,14 +693,15 @@ class Arrangement {
         [a, b],
       );
     }
-    for (final p
+    for (final event
         in h == 0
-            ? [base]
+            ? [(base, 0)]
             : [
-                base + Vector2(-direction.y, direction.x) * h,
-                base - Vector2(-direction.y, direction.x) * h,
+                (base + Vector2(-direction.y, direction.x) * h, 1),
+                (base - Vector2(-direction.y, direction.x) * h, -1),
               ]) {
-      _hit(a, a.parameter(p), b, b.parameter(p), p);
+      final p = event.$1;
+      _hit(a, a.parameter(p), b, b.parameter(p), p, crossing: event.$2);
     }
   }
 
@@ -783,6 +835,12 @@ class Arrangement {
     final sources =
         h.edge.sources.map((s) => h.forward ? s : s.reversed()).toList()
           ..sort((a, b) => a.inputId.compareTo(b.inputId));
+    String? junction(_Node node) =>
+        node.events.isEmpty ? null : jsonEncode(node.events.toList()..sort());
+    final lineage = BoundaryLineage(
+      start: junction(h.start),
+      end: junction(h.end),
+    );
     if (c.input case final PlanarCircle circle) {
       return BoundaryPortion.arc(
         center: circle.center,
@@ -790,6 +848,7 @@ class Arrangement {
         startAngle: h.t0,
         sweepAngle: h.t1 - h.t0,
         sources: sources,
+        lineage: lineage,
       );
     }
     final line = c.input as PlanarSegment;
@@ -802,6 +861,7 @@ class Arrangement {
       start: at(h.t0),
       end: at(h.t1),
       sources: sources,
+      lineage: lineage,
     );
   }
 

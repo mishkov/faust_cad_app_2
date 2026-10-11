@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:vector_math/vector_math_64.dart' show Vector2;
 
 import 'boundary_source.dart';
+import 'boundary_lineage.dart';
 
 /// An immutable analytic line or directed circular arc with all source intervals.
 class BoundaryPortion {
@@ -11,6 +12,7 @@ class BoundaryPortion {
     required Vector2 start,
     required Vector2 end,
     required Iterable<BoundarySource> sources,
+    this.lineage,
   }) : _start = start.clone(),
        _end = end.clone(),
        _center = null,
@@ -26,6 +28,7 @@ class BoundaryPortion {
     required double startAngle,
     required double sweepAngle,
     required Iterable<BoundarySource> sources,
+    this.lineage,
   }) : _center = center.clone(),
        radius = radius,
        startAngle = startAngle,
@@ -69,6 +72,9 @@ class BoundaryPortion {
 
   /// All input intervals contributing to this portion, including duplicates.
   final List<BoundarySource> sources;
+
+  /// Authored junction correspondence, or `null` when it is unsupported.
+  final BoundaryLineage? lineage;
 
   /// Evaluates the analytic boundary at a normalized traversal parameter.
   Vector2 pointAt(double parameter) {
