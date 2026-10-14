@@ -5,7 +5,6 @@ import 'package:vector_math/vector_math_64.dart' show Vector2, Vector3;
 
 import '../../cad_scene/camera_config.dart';
 import '../../cad_scene/rendering/camera_projection.dart';
-import '../../cad_scene/rendering/viewport_clipping.dart';
 import '../../cad_scene/rendering/tessellation/tessellated_scene.dart';
 import '../../sketch/sketch.dart';
 import '../../planar_regions/planar_region_engine.dart';
@@ -53,38 +52,8 @@ final class SketchScenePainter extends CustomPainter {
       final frame = sketch.frame;
       final cameraSide = frame.signedDistance(camera.position.vector);
       if (cameraSide.abs() <= frame.tolerance.distance) continue;
-      canvas.save();
+      canvas.saveLayer(Offset.zero & size, Paint());
       try {
-        for (final face in occluders.faces) {
-          for (final triangle in face.triangles) {
-            final front = <Vector3>[];
-            var previous = triangle.points.last;
-            double side(Vector3 p) =>
-                frame.signedDistance(p) * cameraSide.sign -
-                frame.tolerance.distance;
-            var previousDistance = side(previous);
-            for (final p in triangle.points) {
-              final distance = side(p);
-              if ((distance > 0) != (previousDistance > 0)) {
-                front.add(
-                  previous +
-                      (p - previous) *
-                          (previousDistance / (previousDistance - distance)),
-                );
-              }
-              if (distance > 0) front.add(p);
-              previous = p;
-              previousDistance = distance;
-            }
-            if (front.length >= 3) {
-              clipOutsidePath(
-                canvas,
-                polygon(front.map(projection.toCameraSpace).toList()),
-                size,
-              );
-            }
-          }
-        }
         final regions = _regionCache[sketch] ??= const PlanarRegionEngine()
             .build(const SketchPlanarAdapter().adaptSolved(sketch.solved));
         for (final region in regions.regions) {
@@ -132,6 +101,37 @@ final class SketchScenePainter extends CustomPainter {
                   circle.radius;
           for (var i = 0; i < 128; i++) {
             line(at(i), at(i + 1));
+          }
+        }
+        for (final face in occluders.faces) {
+          for (final triangle in face.triangles) {
+            final front = <Vector3>[];
+            var previous = triangle.points.last;
+            double side(Vector3 p) =>
+                frame.signedDistance(p) * cameraSide.sign -
+                frame.tolerance.distance;
+            var previousDistance = side(previous);
+            for (final p in triangle.points) {
+              final distance = side(p);
+              if ((distance > 0) != (previousDistance > 0)) {
+                front.add(
+                  previous +
+                      (p - previous) *
+                          (previousDistance / (previousDistance - distance)),
+                );
+              }
+              if (distance > 0) front.add(p);
+              previous = p;
+              previousDistance = distance;
+            }
+            if (front.length >= 3) {
+              canvas.drawPath(
+                polygon(front.map(projection.toCameraSpace).toList()),
+                Paint()
+                  ..blendMode = BlendMode.dstOut
+                  ..isAntiAlias = false,
+              );
+            }
           }
         }
       } finally {

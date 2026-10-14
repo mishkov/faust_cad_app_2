@@ -56,7 +56,20 @@ compact sizes. Run `flutter analyze` for static checks.
 The renderer also verifies the reported circle/polyline partial extrusion over
 40 camera orientations, including bottom and nearly edge-on views. Pixel tests
 check that the sketch rim stays on its projected cap boundary after rotation and
-viewport resizing. Visibility uses bounded contour half-plane clipping and
-viewport-complement canvas masks, avoiding native path Boolean failures on
-repeatedly cut near-coincident boundaries. Canvas save/restore pairs use
-`try/finally`; occlusion holes and disconnected concave portions remain intact.
+viewport resizing. Visibility uses bounded contour half-plane clipping and isolated color layers.
+Hidden coverage is erased with `dstOut` inside its own layer, avoiding native
+path Boolean failures and repeated stencil clips on the shared UI canvas.
+Canvas save/restore pairs use `try/finally`; occlusion holes and disconnected
+concave portions remain intact.
+
+Native GPU verification runs with:
+
+```sh
+flutter test integration_test/rendering_impeller_test.dart -d macos --enable-impeller
+```
+
+The integration test renders a partial circle/polyline extrusion across 60
+orbit frames with nearby Material controls. It checks unchanged button colors,
+visible opaque solids, dropdown interaction, and text entry using the native
+renderer. These checks complement the headless geometry and pixel tests, which
+alone did not expose the shared-canvas clipping artifacts in the screen recording.

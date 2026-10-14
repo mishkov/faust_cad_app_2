@@ -14,7 +14,6 @@ import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/render_triangle
 import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 import '../cad_primitivies/face.dart';
-import 'viewport_clipping.dart';
 
 /// Vector rendering with per-region depth comparisons for planar and tessellated CAD geometry.
 ///
@@ -77,14 +76,28 @@ class ShadedSceneRenderer {
     final index = ProjectedFaceIndex(faces, size);
 
     for (final face in faces) {
-      canvas.save();
+      // Occlusion belongs to an isolated, tightly bounded color layer. Erasing
+      // hidden material avoids repeated stencil clips on the shared UI canvas.
+      canvas.saveLayer(face.bounds.inflate(1), Paint());
       try {
-        _clipVisibleRegion(
+        if (face.vertices case final vertices?) {
+          // Mesh cells share samples. Disable per-cell antialiasing to avoid
+          // translucent hairlines along artificial internal boundaries.
+          canvas.drawVertices(
+            vertices,
+            BlendMode.modulate,
+            Paint()
+              ..color = Colors.white
+              ..isAntiAlias = false,
+          );
+        } else {
+          canvas.drawPath(face.path, Paint()..color = face.color);
+        }
+        _eraseOccluded(
           canvas,
           face.bounds,
           face.inverseDepth,
           index,
-          size,
           skip: face,
           bias: face.vertices == null
               ? 0
@@ -99,19 +112,6 @@ class ShadedSceneRenderer {
                         .abs() *
                     1e-10,
         );
-        if (face.vertices case final vertices?) {
-          // Mesh cells share samples. Disable per-cell antialiasing to avoid
-          // translucent hairlines along artificial internal boundaries.
-          canvas.drawVertices(
-            vertices,
-            BlendMode.modulate,
-            Paint()
-              ..color = Colors.white
-              ..isAntiAlias = false,
-          );
-        } else {
-          canvas.drawPath(face.path, Paint()..color = face.color);
-        }
       } finally {
         canvas.restore();
       }
@@ -146,23 +146,23 @@ class ShadedSceneRenderer {
           delta.dy * gradient,
           1 / clipped.begin.y - gradient * (delta.dx * p.dx + delta.dy * p.dy),
         );
-        canvas.save();
+        final bounds = Rect.fromPoints(p, q).inflate(1.5);
+        canvas.saveLayer(bounds, Paint());
         try {
-          _clipVisibleRegion(
-            canvas,
-            Rect.fromPoints(p, q).inflate(1.5),
-            inverseDepth,
-            index,
-            size,
-            // A small relative bias retains boundaries on their own surfaces.
-            bias: math.max(1 / clipped.begin.y, 1 / clipped.end.y) * 1e-6,
-          );
           canvas.drawLine(
             p,
             q,
             Paint()
               ..color = boundary ? Colors.black : Colors.red
               ..strokeWidth = 1,
+          );
+          _eraseOccluded(
+            canvas,
+            bounds,
+            inverseDepth,
+            index,
+            // A small relative bias retains boundaries on their own surfaces.
+            bias: math.max(1 / clipped.begin.y, 1 / clipped.end.y) * 1e-6,
           );
         } finally {
           canvas.restore();
@@ -267,12 +267,11 @@ class ShadedSceneRenderer {
     );
   }
 
-  void _clipVisibleRegion(
+  void _eraseOccluded(
     Canvas canvas,
     Rect bounds,
     Vector3 inverseDepth,
-    ProjectedFaceIndex index,
-    Size size, {
+    ProjectedFaceIndex index, {
     ProjectedFace? skip,
     double bias = 0,
   }) {
@@ -282,10 +281,14 @@ class ShadedSceneRenderer {
       }
       final difference = occluder.inverseDepth - inverseDepth;
       difference.z -= bias;
-      // Subtract each nearer contour directly in the canvas clip stack. Native
-      // path Boolean subtraction fails on some finite near-coincident curves
-      // after many cuts, aborting paint and leaking the viewport translation.
-      clipOutsidePath(canvas, occluder.closerRegion(difference), size);
+      // Each erase removes coverage from this layer only. Overlaps naturally
+      // form a union without native path booleans or a growing clip stack.
+      canvas.drawPath(
+        occluder.closerRegion(difference),
+        Paint()
+          ..blendMode = BlendMode.dstOut
+          ..isAntiAlias = false,
+      );
     }
   }
 }
