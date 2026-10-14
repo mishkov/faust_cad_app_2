@@ -17,9 +17,11 @@ class SketchWorkspace extends StatefulWidget {
     super.key,
     required this.editor,
     required this.onClose,
+    this.onExtrude,
   });
   final SketchEditorController editor;
   final VoidCallback onClose;
+  final VoidCallback? onExtrude;
   @override
   State<SketchWorkspace> createState() => _SketchWorkspaceState();
 }
@@ -495,6 +497,12 @@ class _SketchWorkspaceState extends State<SketchWorkspace> {
                       },
                     ),
                   ),
+                  if (widget.onExtrude != null)
+                    OutlinedButton(
+                      key: const Key('extrude-sketch'),
+                      onPressed: editor.editable ? widget.onExtrude : null,
+                      child: const Text('Extrude regions'),
+                    ),
                   FilledButton(
                     key: const Key('finish-sketch'),
                     onPressed: widget.onClose,
