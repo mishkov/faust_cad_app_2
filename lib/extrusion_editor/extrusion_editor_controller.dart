@@ -24,7 +24,6 @@ final class ExtrusionEditorController extends ChangeNotifier {
   final List<ProfileReference> _profiles = [];
   Set<String> selectedRegionIds = {};
   List<String> diagnostics = [];
-  int _serial = 0;
 
   bool get canConfirm =>
       activeId != null &&
@@ -39,9 +38,7 @@ final class ExtrusionEditorController extends ChangeNotifier {
     distanceText = '10';
     reverse = false;
     _profiles.clear();
-    do {
-      activeId = FeatureId('extrude-${++_serial}');
-    } while (document.features.any((f) => f.id == activeId));
+    activeId = document.allocateFeatureId('extrude');
     _readSketch();
     for (final id in regionIds) {
       final capture = regions?.captureProfile(
@@ -164,12 +161,22 @@ final class ExtrusionEditorController extends ChangeNotifier {
   void _publish() {
     if (activeId == null) return;
     final parsed = double.tryParse(distanceText);
+    final previous = document.features
+        .where((f) => f.id == activeId)
+        .firstOrNull;
     document.setFeature(
       FeatureDefinition(
         id: activeId!,
         type: ExtrudeFeature.type,
-        inputs: {ExtrudeFeature.inputKey: ?sketchReference},
+        name: previous?.name,
+        support: previous?.support,
+        dependencies: previous?.dependencies ?? const {},
+        inputs: {
+          ...?previous?.inputs,
+          ExtrudeFeature.inputKey: ?sketchReference,
+        },
         parameters: {
+          ...?previous?.parameters,
           ExtrudeFeature.profilesKey: _profiles.isEmpty
               ? {'version': 1, 'profiles': <Object?>[]}
               : ProfileSelectionReference(_profiles).toJson(),

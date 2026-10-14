@@ -16,9 +16,29 @@ final class DocumentController extends ChangeNotifier {
   DocumentController({
     required Map<String, FeatureEvaluator> evaluators,
     List<FeatureDefinition> features = const [],
-  }) : _document = CadDocument(evaluators: evaluators, features: features);
+  }) : _document = CadDocument(evaluators: evaluators, features: features),
+       _issuedIds = {for (final feature in features) feature.id};
 
   final CadDocument _document;
+  final Set<FeatureId> _issuedIds;
+  final Map<String, int> _idSerials = {};
+
+  // Session-scoped identity allocation stays outside model undo/redo. Deleted
+  // or undone IDs remain reserved so retained references cannot bind to a new
+  // feature accidentally. Explicit restoration still uses the original IDs.
+  FeatureId allocateFeatureId(String prefix) => _run(() {
+    if (prefix.trim().isEmpty) {
+      throw ArgumentError('Feature prefix must not be blank');
+    }
+    FeatureId id;
+    do {
+      final serial = (_idSerials[prefix] ?? 0) + 1;
+      _idSerials[prefix] = serial;
+      id = FeatureId('$prefix-$serial');
+    } while (_issuedIds.contains(id));
+    _issuedIds.add(id);
+    return id;
+  });
   final List<_UndoEntry> _undo = [];
   final List<_UndoEntry> _redo = [];
   ({String label, List<FeatureDefinition> before})? _transaction;
@@ -67,6 +87,7 @@ final class DocumentController extends ChangeNotifier {
     final after = draft.features;
     if (listEquals(before, after)) return false;
     _document.replaceFeatures(after);
+    _issuedIds.addAll(after.map((f) => f.id));
     if (!hasActiveTransaction) _record(label, before, after);
     notifyListeners();
     return true;
@@ -90,6 +111,12 @@ final class DocumentController extends ChangeNotifier {
     Map<String, Object?> values, {
     String label = 'Change parameters',
   }) => edit(label, (draft) => draft.updateParameters(id, values));
+
+  bool renameFeature(
+    FeatureId id,
+    String name, {
+    String label = 'Rename feature',
+  }) => edit(label, (draft) => draft.renameFeature(id, name));
 
   /// Replaces all definitions as one edit.
   bool replaceFeatures(

@@ -10,11 +10,13 @@ final class FeatureDefinition extends Equatable {
   FeatureDefinition({
     required this.id,
     required this.type,
+    String? name,
     Map<String, Object?> parameters = const {},
     this.support,
     Set<FeatureId> dependencies = const {},
     Map<String, OutputReference> inputs = const {},
-  }) : parameters = Map.unmodifiable(
+  }) : name = name?.trim(),
+       parameters = Map.unmodifiable(
          parameters.map((k, v) => MapEntry(k, freezeValue(v))),
        ),
        inputs = Map.unmodifiable(inputs),
@@ -23,12 +25,16 @@ final class FeatureDefinition extends Equatable {
          if (support?.reference != null) support!.reference!.featureId,
          ...inputs.values.map((r) => r.featureId),
        }) {
+    if (this.name != null && this.name!.isEmpty) {
+      throw ArgumentError('Feature name must not be blank');
+    }
     if (type.isEmpty) throw ArgumentError('Feature type must not be empty');
   }
 
   final PlanarSupport? support;
   final FeatureId id;
   final String type;
+  final String? name;
   final Map<String, Object?> parameters;
   final Set<FeatureId> dependencies;
   final Map<String, OutputReference> inputs;
@@ -37,6 +43,7 @@ final class FeatureDefinition extends Equatable {
   List<Object> get props => [
     id,
     type,
+    ?name,
     parameters,
     dependencies,
     inputs,
