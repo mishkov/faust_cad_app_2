@@ -76,40 +76,44 @@ class ShadedSceneRenderer {
     final index = ProjectedFaceIndex(faces, size);
 
     for (final face in faces) {
-      final visible = _visibleRegion(
-        face.path,
-        face.inverseDepth,
-        index,
-        size,
-        skip: face,
-        bias: face.vertices == null
-            ? 0
-            : face.inverseDepth
-                      .dot(
-                        Vector3(
-                          face.bounds.center.dx,
-                          face.bounds.center.dy,
-                          1,
-                        ),
-                      )
-                      .abs() *
-                  1e-10,
-      );
-      if (face.vertices case final vertices?) {
-        canvas.save();
-        // Mesh cells share samples. Disable per-cell antialiasing to avoid
-        // translucent hairlines along their artificial internal boundaries.
-        canvas.clipPath(visible, doAntiAlias: false);
-        canvas.drawVertices(
-          vertices,
-          BlendMode.modulate,
-          Paint()
-            ..color = Colors.white
-            ..isAntiAlias = false,
+      // Occlusion belongs to an isolated, tightly bounded color layer. Erasing
+      // hidden material avoids repeated stencil clips on the shared UI canvas.
+      canvas.saveLayer(face.bounds.inflate(1), Paint());
+      try {
+        if (face.vertices case final vertices?) {
+          // Mesh cells share samples. Disable per-cell antialiasing to avoid
+          // translucent hairlines along artificial internal boundaries.
+          canvas.drawVertices(
+            vertices,
+            BlendMode.modulate,
+            Paint()
+              ..color = Colors.white
+              ..isAntiAlias = false,
+          );
+        } else {
+          canvas.drawPath(face.path, Paint()..color = face.color);
+        }
+        _eraseOccluded(
+          canvas,
+          face.bounds,
+          face.inverseDepth,
+          index,
+          skip: face,
+          bias: face.vertices == null
+              ? 0
+              : face.inverseDepth
+                        .dot(
+                          Vector3(
+                            face.bounds.center.dx,
+                            face.bounds.center.dy,
+                            1,
+                          ),
+                        )
+                        .abs() *
+                    1e-10,
         );
+      } finally {
         canvas.restore();
-      } else {
-        canvas.drawPath(visible, Paint()..color = face.color);
       }
     }
 
@@ -142,24 +146,27 @@ class ShadedSceneRenderer {
           delta.dy * gradient,
           1 / clipped.begin.y - gradient * (delta.dx * p.dx + delta.dy * p.dy),
         );
-        final visible = _visibleRegion(
-          Path()..addRect(Rect.fromPoints(p, q).inflate(1.5)),
-          inverseDepth,
-          index,
-          size,
-          // A small relative bias retains boundaries on their own surfaces.
-          bias: math.max(1 / clipped.begin.y, 1 / clipped.end.y) * 1e-6,
-        );
-        canvas.save();
-        canvas.clipPath(visible);
-        canvas.drawLine(
-          p,
-          q,
-          Paint()
-            ..color = boundary ? Colors.black : Colors.red
-            ..strokeWidth = 1,
-        );
-        canvas.restore();
+        final bounds = Rect.fromPoints(p, q).inflate(1.5);
+        canvas.saveLayer(bounds, Paint());
+        try {
+          canvas.drawLine(
+            p,
+            q,
+            Paint()
+              ..color = boundary ? Colors.black : Colors.red
+              ..strokeWidth = 1,
+          );
+          _eraseOccluded(
+            canvas,
+            bounds,
+            inverseDepth,
+            index,
+            // A small relative bias retains boundaries on their own surfaces.
+            bias: math.max(1 / clipped.begin.y, 1 / clipped.end.y) * 1e-6,
+          );
+        } finally {
+          canvas.restore();
+        }
       }
     }
   }
@@ -174,19 +181,21 @@ class ShadedSceneRenderer {
     // A plane through the eye projects to a line, not a fillable surface.
     if (planeDistance.abs() < 1e-10) return null;
     final path = Path()..fillType = PathFillType.evenOdd;
+    final contours = <List<Offset>>[];
     for (final points in face.loops) {
       final loop = _projection.clipLoop([
         for (final point in points) _projection.toCameraSpace(point),
       ], screen: size);
       if (loop.length < 3) continue;
-      final first = _projection.project(loop.first, screen: size);
-      path.moveTo(first.x, first.y);
-      for (final point in loop.skip(1)) {
-        final projected = _projection.project(point, screen: size);
-        path.lineTo(projected.x, projected.y);
+      final contour = <Offset>[];
+      for (final p in loop) {
+        final projected = _projection.project(p, screen: size);
+        contour.add(Offset(projected.x, projected.y));
       }
-      path.close();
+      contours.add(contour);
+      path.addPolygon(contour, true);
     }
+    if (contours.isEmpty || path.getBounds().isEmpty) return null;
     final focalLength = _projection.cameraConfig.focalLength;
     final a = normal.x / (focalLength * planeDistance);
     final b = -normal.z / (focalLength * planeDistance);
@@ -206,6 +215,7 @@ class ShadedSceneRenderer {
       selected
           ? Color.fromARGB(255, gray ~/ 2, gray, 255)
           : Color.fromARGB(255, gray, gray, gray),
+      contours: contours,
     );
   }
 
@@ -252,61 +262,33 @@ class ShadedSceneRenderer {
         normal.y / distance - a * size.width / 2 - b * size.height / 2,
       ),
       Colors.white,
+      contours: [points],
       vertices: ui.Vertices(ui.VertexMode.triangleFan, points, colors: colors),
     );
   }
 
-  Path _visibleRegion(
-    Path region,
+  void _eraseOccluded(
+    Canvas canvas,
+    Rect bounds,
     Vector3 inverseDepth,
-    ProjectedFaceIndex index,
-    Size size, {
+    ProjectedFaceIndex index, {
     ProjectedFace? skip,
     double bias = 0,
   }) {
-    for (final occluder in index.query(region.getBounds())) {
-      if (identical(occluder, skip) ||
-          !region.getBounds().overlaps(occluder.bounds)) {
+    for (final occluder in index.query(bounds)) {
+      if (identical(occluder, skip) || !bounds.overlaps(occluder.bounds)) {
         continue;
       }
       final difference = occluder.inverseDepth - inverseDepth;
       difference.z -= bias;
-      final closerRegion = _positiveHalfPlane(difference, size);
-      final hidden = Path.combine(
-        PathOperation.intersect,
-        occluder.path,
-        closerRegion,
+      // Each erase removes coverage from this layer only. Overlaps naturally
+      // form a union without native path booleans or a growing clip stack.
+      canvas.drawPath(
+        occluder.closerRegion(difference),
+        Paint()
+          ..blendMode = BlendMode.dstOut
+          ..isAntiAlias = false,
       );
-      region = Path.combine(PathOperation.difference, region, hidden);
     }
-    return region;
-  }
-
-  /// Clip the viewport to ax + by + c > 0 (the occluder is closer).
-  Path _positiveHalfPlane(Vector3 coefficients, Size size) {
-    final corners = [
-      Offset.zero,
-      Offset(size.width, 0),
-      Offset(size.width, size.height),
-      Offset(0, size.height),
-    ];
-    double distance(Offset p) =>
-        coefficients.x * p.dx + coefficients.y * p.dy + coefficients.z;
-    final points = <Offset>[];
-    var previous = corners.last;
-    var previousDistance = distance(previous);
-    for (final point in corners) {
-      final d = distance(point);
-      if ((d > 0) != (previousDistance > 0)) {
-        points.add(
-          previous +
-              (point - previous) * (previousDistance / (previousDistance - d)),
-        );
-      }
-      if (d > 0) points.add(point);
-      previous = point;
-      previousDistance = d;
-    }
-    return Path()..addPolygon(points, true);
   }
 }

@@ -1,5 +1,10 @@
 import 'dart:math' as math;
 
+import '../document/features/extrude_feature.dart';
+import '../document/feature_result.dart';
+import '../extrusion_editor/extrusion_editor_controller.dart';
+import '../extrusion_editor/extrusion_workspace.dart';
+
 import 'package:faust_cad_app_2/cad_scene/cad_objects/cylinder.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_objects/ground_grid.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/cad_primitive.dart';
@@ -46,6 +51,7 @@ class _CadScreenState extends State<CadScreen>
         evaluators: {
           CubeFeature.type: CubeFeature.evaluate,
           SketchFeature.type: SketchFeature.evaluate,
+          ExtrudeFeature.type: ExtrudeFeature.evaluate,
         },
         features: [
           FeatureDefinition(
@@ -62,6 +68,7 @@ class _CadScreenState extends State<CadScreen>
       );
   late var _evaluated = _document.evaluation.materializeGeometry();
   late final _editor = SketchEditorController(_document);
+  late final _extrusionEditor = ExtrusionEditorController(_document);
   CameraConfig? _previousCamera;
   final _sketchTessellator = SceneTessellator();
   var _plane = PrincipalPlane.xy;
@@ -95,6 +102,7 @@ class _CadScreenState extends State<CadScreen>
     super.initState();
     _document.addListener(_documentChanged);
     _editor.addListener(_editorChanged);
+    _extrusionEditor.addListener(_extrusionChanged);
     _resetController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 350),
@@ -142,6 +150,8 @@ class _CadScreenState extends State<CadScreen>
     _document.removeListener(_documentChanged);
     _editor.removeListener(_editorChanged);
     _editor.dispose();
+    _extrusionEditor.removeListener(_extrusionChanged);
+    _extrusionEditor.dispose();
     if (widget.controller == null) _document.dispose();
     _resetController.dispose();
     super.dispose();
@@ -210,6 +220,24 @@ class _CadScreenState extends State<CadScreen>
     setState(() {});
   }
 
+  void _extrusionChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _enterExtrusion(
+    FeatureId sketchId, {
+    Iterable<String> regions = const [],
+  }) {
+    _editor.close();
+    _extrusionEditor.create(sketchId, regionIds: regions);
+  }
+
+  void _extrudeSketch() {
+    final id = _editor.activeId!;
+    final selected = _editor.selectedRegionIds.toList();
+    _enterExtrusion(id, regions: selected);
+  }
+
   void _leaveSketch() {
     _editor.close();
   }
@@ -259,6 +287,28 @@ class _CadScreenState extends State<CadScreen>
                 onPressed: () => _enterSketch(id: f.id),
                 child: Text('Open ${f.id}'),
               ),
+            const Divider(),
+            const Text('Extrusions'),
+            for (final f in _editor.sketches)
+              TextButton(
+                key: Key('extrude-${f.id.value}'),
+                onPressed: () => _enterExtrusion(f.id),
+                child: Text('Extrude ${f.id}'),
+              ),
+            for (final f in _document.features.where(
+              (f) => f.type == ExtrudeFeature.type,
+            ))
+              TextButton(
+                key: Key('edit-${f.id.value}'),
+                onPressed: () => _extrusionEditor.open(f.id),
+                child: Text('Edit ${f.id}'),
+              ),
+            for (final entry in _document.evaluation.features.entries)
+              if (entry.value.state != FeatureState.valid)
+                Text(
+                  '${entry.key}: ${entry.value.message}',
+                  style: const TextStyle(color: Colors.red),
+                ),
             Row(
               children: [
                 IconButton(
@@ -319,9 +369,16 @@ class _CadScreenState extends State<CadScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (_extrusionEditor.activeId != null) {
+      return Scaffold(body: ExtrusionWorkspace(editor: _extrusionEditor));
+    }
     if (_editor.activeId != null) {
       return Scaffold(
-        body: SketchWorkspace(editor: _editor, onClose: _leaveSketch),
+        body: SketchWorkspace(
+          editor: _editor,
+          onClose: _leaveSketch,
+          onExtrude: _extrudeSketch,
+        ),
       );
     }
     final evaluated = _evaluated;

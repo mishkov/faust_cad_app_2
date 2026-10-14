@@ -52,95 +52,91 @@ final class SketchScenePainter extends CustomPainter {
       final frame = sketch.frame;
       final cameraSide = frame.signedDistance(camera.position.vector);
       if (cameraSide.abs() <= frame.tolerance.distance) continue;
-      final covered = Path();
-      for (final face in occluders.faces) {
-        for (final triangle in face.triangles) {
-          final front = <Vector3>[];
-          var previous = triangle.points.last;
-          double side(Vector3 p) =>
-              frame.signedDistance(p) * cameraSide.sign -
-              frame.tolerance.distance;
-          var previousDistance = side(previous);
-          for (final p in triangle.points) {
-            final distance = side(p);
-            if ((distance > 0) != (previousDistance > 0)) {
-              front.add(
-                previous +
-                    (p - previous) *
-                        (previousDistance / (previousDistance - distance)),
-              );
-            }
-            if (distance > 0) front.add(p);
-            previous = p;
-            previousDistance = distance;
-          }
-          if (front.length >= 3) {
-            covered.addPath(
-              polygon(front.map(projection.toCameraSpace).toList()),
+      canvas.saveLayer(Offset.zero & size, Paint());
+      try {
+        final regions = _regionCache[sketch] ??= const PlanarRegionEngine()
+            .build(const SketchPlanarAdapter().adaptSolved(sketch.solved));
+        for (final region in regions.regions) {
+          final path = Path()..fillType = PathFillType.evenOdd;
+          for (final loop in [region.outer, ...region.holes]) {
+            path.addPath(
+              polygon(
+                SketchPresentation.sampleLoop(loop)
+                    .map((p) => projection.toCameraSpace(frame.localToWorld(p)))
+                    .toList(),
+              ),
               Offset.zero,
             );
           }
-        }
-      }
-      canvas.save();
-      canvas.clipPath(
-        Path.combine(
-          PathOperation.difference,
-          Path()..addRect(Offset.zero & size),
-          covered,
-        ),
-      );
-      final regions = _regionCache[sketch] ??= const PlanarRegionEngine().build(
-        const SketchPlanarAdapter().adaptSolved(sketch.solved),
-      );
-      for (final region in regions.regions) {
-        final path = Path()..fillType = PathFillType.evenOdd;
-        for (final loop in [region.outer, ...region.holes]) {
-          path.addPath(
-            polygon(
-              SketchPresentation.sampleLoop(loop)
-                  .map((p) => projection.toCameraSpace(frame.localToWorld(p)))
-                  .toList(),
-            ),
-            Offset.zero,
+          canvas.drawPath(
+            path,
+            Paint()..color = Colors.blue.withValues(alpha: 0.1),
           );
         }
-        canvas.drawPath(
-          path,
-          Paint()..color = Colors.blue.withValues(alpha: 0.1),
-        );
-      }
-      final pen = Paint()
-        ..strokeWidth = 2
-        ..color = Colors.blue;
-      void line(Vector2 a, Vector2 b) {
-        final clipped = projection.clipLine(
-          projection.toCameraSpace(frame.localToWorld(a)),
-          projection.toCameraSpace(frame.localToWorld(b)),
-          screen: size,
-        );
-        if (clipped != null) {
-          canvas.drawLine(project(clipped.begin), project(clipped.end), pen);
+        final pen = Paint()
+          ..strokeWidth = 2
+          ..color = Colors.blue;
+        void line(Vector2 a, Vector2 b) {
+          final clipped = projection.clipLine(
+            projection.toCameraSpace(frame.localToWorld(a)),
+            projection.toCameraSpace(frame.localToWorld(b)),
+            screen: size,
+          );
+          if (clipped != null) {
+            canvas.drawLine(project(clipped.begin), project(clipped.end), pen);
+          }
         }
-      }
 
-      for (final segment in sketch.solved.segments.values) {
-        line(
-          sketch.solved.points[segment.startPointId]!.position,
-          sketch.solved.points[segment.endPointId]!.position,
-        );
-      }
-      for (final circle in sketch.solved.circles.values) {
-        final center = sketch.solved.points[circle.centerPointId]!.position;
-        Vector2 at(int i) =>
-            center +
-            Vector2(math.cos(i * math.pi / 64), math.sin(i * math.pi / 64)) *
-                circle.radius;
-        for (var i = 0; i < 128; i++) {
-          line(at(i), at(i + 1));
+        for (final segment in sketch.solved.segments.values) {
+          line(
+            sketch.solved.points[segment.startPointId]!.position,
+            sketch.solved.points[segment.endPointId]!.position,
+          );
         }
+        for (final circle in sketch.solved.circles.values) {
+          final center = sketch.solved.points[circle.centerPointId]!.position;
+          Vector2 at(int i) =>
+              center +
+              Vector2(math.cos(i * math.pi / 64), math.sin(i * math.pi / 64)) *
+                  circle.radius;
+          for (var i = 0; i < 128; i++) {
+            line(at(i), at(i + 1));
+          }
+        }
+        for (final face in occluders.faces) {
+          for (final triangle in face.triangles) {
+            final front = <Vector3>[];
+            var previous = triangle.points.last;
+            double side(Vector3 p) =>
+                frame.signedDistance(p) * cameraSide.sign -
+                frame.tolerance.distance;
+            var previousDistance = side(previous);
+            for (final p in triangle.points) {
+              final distance = side(p);
+              if ((distance > 0) != (previousDistance > 0)) {
+                front.add(
+                  previous +
+                      (p - previous) *
+                          (previousDistance / (previousDistance - distance)),
+                );
+              }
+              if (distance > 0) front.add(p);
+              previous = p;
+              previousDistance = distance;
+            }
+            if (front.length >= 3) {
+              canvas.drawPath(
+                polygon(front.map(projection.toCameraSpace).toList()),
+                Paint()
+                  ..blendMode = BlendMode.dstOut
+                  ..isAntiAlias = false,
+              );
+            }
+          }
+        }
+      } finally {
+        canvas.restore();
       }
-      canvas.restore();
     }
   }
 
