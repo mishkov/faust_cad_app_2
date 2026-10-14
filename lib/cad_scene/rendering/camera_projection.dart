@@ -6,15 +6,27 @@ import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 /// Shared camera transforms and clipping for both rendering modes.
 class CameraProjection {
-  const CameraProjection(this.cameraConfig);
+  CameraProjection(this.cameraConfig)
+    : _cosYaw = math.cos(-cameraConfig.yaw),
+      _sinYaw = math.sin(-cameraConfig.yaw),
+      _cosPitch = math.cos(-cameraConfig.pitch),
+      _sinPitch = math.sin(-cameraConfig.pitch);
 
   final CameraConfig cameraConfig;
+  final double _cosYaw;
+  final double _sinYaw;
+  final double _cosPitch;
+  final double _sinPitch;
+  Size? _clipSize;
+  List<({Vector3 normal, double offset})>? _clipPlanes;
   static const double nearPlane = 1e-6;
 
   List<({Vector3 normal, double offset})> _planes(Size screen) {
+    if (_clipSize == screen) return _clipPlanes!;
     final halfWidth = screen.width / (2 * cameraConfig.focalLength);
     final halfHeight = screen.height / (2 * cameraConfig.focalLength);
-    return [
+    _clipSize = screen;
+    return _clipPlanes = [
       (normal: Vector3(0, 1, 0), offset: -nearPlane),
       (normal: Vector3(1, halfWidth, 0), offset: 0.0),
       (normal: Vector3(-1, halfWidth, 0), offset: 0.0),
@@ -92,8 +104,8 @@ class CameraProjection {
   }
 
   Vector3 fromCameraDirection(Vector3 point) {
-    final cp = math.cos(cameraConfig.pitch), sp = math.sin(cameraConfig.pitch);
-    final cy = math.cos(cameraConfig.yaw), sy = math.sin(cameraConfig.yaw);
+    final cp = _cosPitch, sp = -_sinPitch;
+    final cy = _cosYaw, sy = -_sinYaw;
     final y = point.y * cp - point.z * sp;
     return Vector3(
       point.x * cy - y * sy,
@@ -109,16 +121,16 @@ class CameraProjection {
   /// Rotate a direction without introducing camera translation.
   Vector3 toCameraDirection(Vector3 p) {
     // Inverse camera yaw: rotate around Z
-    final cy = math.cos(-cameraConfig.yaw);
-    final sy = math.sin(-cameraConfig.yaw);
+    final cy = _cosYaw;
+    final sy = _sinYaw;
 
     final x1 = p.x * cy - p.y * sy;
     final y1 = p.x * sy + p.y * cy;
     final z1 = p.z;
 
     // Inverse camera pitch: rotate around X
-    final cp = math.cos(-cameraConfig.pitch);
-    final sp = math.sin(-cameraConfig.pitch);
+    final cp = _cosPitch;
+    final sp = _sinPitch;
 
     final y2 = y1 * cp - z1 * sp;
     final z2 = y1 * sp + z1 * cp;
