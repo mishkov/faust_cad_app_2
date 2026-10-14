@@ -33,8 +33,8 @@ final class CadDocument {
 
   EvaluationSnapshot setFeature(FeatureDefinition feature) => replaceFeatures([
     for (final existing in features)
-      if (existing.id != feature.id) existing,
-    feature,
+      existing.id == feature.id ? feature : existing,
+    if (!_definitions.containsKey(feature.id)) feature,
   ]);
 
   EvaluationSnapshot removeFeature(FeatureId id) => replaceFeatures([

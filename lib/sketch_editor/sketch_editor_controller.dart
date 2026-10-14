@@ -83,10 +83,8 @@ final class SketchEditorController extends ChangeNotifier {
 
   FeatureId create(PlanarSupport plane) {
     cancel();
-    FeatureId id;
-    do {
-      id = FeatureId('sketch-${++_serial}');
-    } while (document.features.any((f) => f.id == id));
+    final id = document.allocateFeatureId('sketch');
+    _serial++;
     document.addFeature(
       SketchFeature.definition(
         id: id,
@@ -470,10 +468,10 @@ final class SketchEditorController extends ChangeNotifier {
     points: solution!.geometry!.points.values,
     circles: solution!.geometry!.circles.values,
   );
-  void _write(SketchDefinition sketch, String label) => document.setFeature(
-    SketchFeature.definition(id: activeId!, sketch: sketch),
-    label: label,
-  );
+  void _write(SketchDefinition sketch, String label) =>
+      document.updateParameters(activeId!, {
+        SketchFeature.parameterKey: sketch.toParameters(),
+      }, label: label);
 
   void deleteSelection() {
     cancel();

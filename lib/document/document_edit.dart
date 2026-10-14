@@ -54,7 +54,23 @@ final class DocumentEdit {
       FeatureDefinition(
         id: feature.id,
         type: feature.type,
+        name: feature.name,
         parameters: {...feature.parameters, ...values},
+        support: feature.support,
+        dependencies: feature.dependencies,
+        inputs: feature.inputs,
+      ),
+    );
+  }
+
+  void renameFeature(FeatureId id, String name) {
+    final feature = _requireFeature(id);
+    setFeature(
+      FeatureDefinition(
+        id: feature.id,
+        type: feature.type,
+        name: name,
+        parameters: feature.parameters,
         support: feature.support,
         dependencies: feature.dependencies,
         inputs: feature.inputs,

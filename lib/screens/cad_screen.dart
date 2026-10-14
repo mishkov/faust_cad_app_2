@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import '../document/features/extrude_feature.dart';
-import '../document/feature_result.dart';
+import '../feature_history/feature_history_panel.dart';
 import '../extrusion_editor/extrusion_editor_controller.dart';
 import '../extrusion_editor/extrusion_workspace.dart';
 
@@ -73,6 +73,7 @@ class _CadScreenState extends State<CadScreen>
   final _sketchTessellator = SceneTessellator();
   var _plane = PrincipalPlane.xy;
   OutputReference? _selectedReference;
+  FeatureId? _selectedFeature;
   PlanarSupport? _inspectedSupport;
   var _selectionMode = ViewportSelectionMode.planarFace;
 
@@ -162,6 +163,7 @@ class _CadScreenState extends State<CadScreen>
       _selectedReference = _selectionMode == ViewportSelectionMode.body
           ? hit?.bodyReference
           : hit?.faceReference;
+      _selectedFeature = _selectedReference?.featureId;
       _inspectedSupport = null;
       if (_selectionMode == ViewportSelectionMode.planarFace &&
           hit?.faceReference != null) {
@@ -186,7 +188,20 @@ class _CadScreenState extends State<CadScreen>
       _selectedReference = null;
       _inspectedSupport = null;
     }
+    if (!_document.features.any((f) => f.id == _selectedFeature)) {
+      _selectedFeature = null;
+    }
     if (mounted) setState(() {});
+  }
+
+  void _selectFeature(FeatureId id) {
+    setState(() {
+      _selectedFeature = id;
+      _selectedReference = _evaluated.bodies.values
+          .where((reference) => reference.featureId == id)
+          .firstOrNull;
+      _inspectedSupport = null;
+    });
   }
 
   void _editorChanged() {
@@ -281,48 +296,6 @@ class _CadScreenState extends State<CadScreen>
                   : () => _enterSketch(support: _inspectedSupport),
               child: const Text('Sketch on selected face'),
             ),
-            for (final f in _editor.sketches)
-              TextButton(
-                key: Key('open-${f.id.value}'),
-                onPressed: () => _enterSketch(id: f.id),
-                child: Text('Open ${f.id}'),
-              ),
-            const Divider(),
-            const Text('Extrusions'),
-            for (final f in _editor.sketches)
-              TextButton(
-                key: Key('extrude-${f.id.value}'),
-                onPressed: () => _enterExtrusion(f.id),
-                child: Text('Extrude ${f.id}'),
-              ),
-            for (final f in _document.features.where(
-              (f) => f.type == ExtrudeFeature.type,
-            ))
-              TextButton(
-                key: Key('edit-${f.id.value}'),
-                onPressed: () => _extrusionEditor.open(f.id),
-                child: Text('Edit ${f.id}'),
-              ),
-            for (final entry in _document.evaluation.features.entries)
-              if (entry.value.state != FeatureState.valid)
-                Text(
-                  '${entry.key}: ${entry.value.message}',
-                  style: const TextStyle(color: Colors.red),
-                ),
-            Row(
-              children: [
-                IconButton(
-                  tooltip: 'Undo',
-                  onPressed: _document.canUndo ? _editor.undo : null,
-                  icon: const Icon(Icons.undo),
-                ),
-                IconButton(
-                  tooltip: 'Redo',
-                  onPressed: _document.canRedo ? _editor.redo : null,
-                  icon: const Icon(Icons.redo),
-                ),
-              ],
-            ),
             const Divider(),
             const Text('Viewport selection'),
             DropdownButton<ViewportSelectionMode>(
@@ -405,7 +378,42 @@ class _CadScreenState extends State<CadScreen>
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _inspectionPanel(),
+                SizedBox(
+                  width: 300,
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          const SizedBox(width: 12),
+                          const Text('Model edits'),
+                          IconButton(
+                            tooltip: 'Undo',
+                            onPressed: _document.canUndo ? _editor.undo : null,
+                            icon: const Icon(Icons.undo),
+                          ),
+                          IconButton(
+                            tooltip: 'Redo',
+                            onPressed: _document.canRedo ? _editor.redo : null,
+                            icon: const Icon(Icons.redo),
+                          ),
+                        ],
+                      ),
+                      Expanded(
+                        flex: 3,
+                        child: FeatureHistoryPanel(
+                          document: _document,
+                          selectedId: _selectedFeature,
+                          onSelected: _selectFeature,
+                          onOpenSketch: (id) => _enterSketch(id: id),
+                          onEditExtrusion: _extrusionEditor.open,
+                          onExtrudeSketch: _enterExtrusion,
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      Expanded(flex: 2, child: _inspectionPanel()),
+                    ],
+                  ),
+                ),
                 Expanded(
                   child: LayoutBuilder(
                     builder: (context, constraints) => Listener(

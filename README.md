@@ -544,3 +544,12 @@ No extrusion command is included.
 flutter test test/sketch_editor
 flutter analyze
 ```
+
+
+## CAD feature-history panel
+
+The CAD panel lists document features in authored order with names, dependencies,
+and evaluation states. Select a row to rename or delete it, reopen a sketch, or
+edit an extrusion. Deletion keeps dependents and shows its impact before applying
+the edit. The Model edits toolbar provides separate document undo/redo.
+See [the history panel contract and verification](docs/feature_history_panel.md).

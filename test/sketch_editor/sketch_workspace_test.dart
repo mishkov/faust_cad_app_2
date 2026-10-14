@@ -212,6 +212,8 @@ void main() {
         tester.widget<CadScene>(find.byType(CadScene)).cameraConfig,
         previous,
       );
+      await tester.ensureVisible(find.byKey(Key('open-${id.value}')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(Key('open-${id.value}')));
       await tester.pump();
       expect(editorOf(tester).activeId, id);

@@ -84,6 +84,7 @@ void main() {
         expect(doc.features.last.parameters['distance'], 8);
         expect(doc.features.last.parameters['reverse'], true);
         await tester.ensureVisible(find.byKey(Key('edit-${id.value}')));
+        await tester.pumpAndSettle();
         await tester.tap(find.byKey(Key('edit-${id.value}')));
         await tester.pump();
         expect(editor.selectedRegionIds, isNotEmpty);
@@ -96,6 +97,7 @@ void main() {
         await tester.pump();
         expect(doc.features.last.parameters['distance'], 8);
         await tester.ensureVisible(find.byKey(Key('edit-${id.value}')));
+        await tester.pumpAndSettle();
         await tester.tap(find.byKey(Key('edit-${id.value}')));
         await tester.pump();
         await tester.enterText(
