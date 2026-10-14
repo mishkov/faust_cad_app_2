@@ -52,3 +52,11 @@ cap picking, a second attached sketch, distance/reverse edits, cancellation,
 reopening, undo/redo, and stale-result suppression. Interactive annulus previews
 are available in `lib/extrusion_editor/extrusion_preview.dart` at desktop and
 compact sizes. Run `flutter analyze` for static checks.
+
+The renderer also verifies the reported circle/polyline partial extrusion over
+40 camera orientations, including bottom and nearly edge-on views. Pixel tests
+check that the sketch rim stays on its projected cap boundary after rotation and
+viewport resizing. Visibility uses bounded contour half-plane clipping and
+viewport-complement canvas masks, avoiding native path Boolean failures on
+repeatedly cut near-coincident boundaries. Canvas save/restore pairs use
+`try/finally`; occlusion holes and disconnected concave portions remain intact.
