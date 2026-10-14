@@ -13,12 +13,30 @@ import 'package:integration_test/integration_test.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 import '../test/support/orbit_extrusion_fixture.dart';
+import '../test/cad_scene/rendering/viewport_image_comparison_test.dart'
+    show compareViewportImages, compareViewportSelectionImages;
 
 void main() {
-  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  testWidgets('native baseline images at nine camera angles and DPR 1/2', (
+    tester,
+  ) async {
+    binding.reportData = {
+      'image_comparisons': await tester.runAsync(compareViewportImages),
+    };
+  });
+  testWidgets('native selection and object order after viewport resizing', (
+    tester,
+  ) async {
+    await tester.runAsync(compareViewportSelectionImages);
+  });
   testWidgets(
     'native GPU orbit preserves Material controls and visible solids',
     (tester) async {
+      // Integration binding leaves the native keyboard connected. Register
+      // the test channel explicitly so text entry also works in profile mode.
+      tester.testTextInput.register();
+      addTearDown(tester.testTextInput.unregister);
       final key = GlobalKey();
       final sketch = orbitSketch();
       final geometry = orbitGeometry(sketch);

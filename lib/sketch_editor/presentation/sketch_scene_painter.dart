@@ -5,6 +5,7 @@ import 'package:vector_math/vector_math_64.dart' show Vector2, Vector3;
 
 import '../../cad_scene/camera_config.dart';
 import '../../cad_scene/rendering/camera_projection.dart';
+import '../../cad_scene/rendering/viewport_layer_counts.dart';
 import '../../cad_scene/rendering/tessellation/tessellated_scene.dart';
 import '../../sketch/sketch.dart';
 import '../../planar_regions/planar_region_engine.dart';
@@ -18,15 +19,18 @@ final class SketchScenePainter extends CustomPainter {
     required this.sketches,
     required this.camera,
     required this.occluders,
+    this.layerCounts,
   });
   final List<SketchGeometry> sketches;
   final CameraConfig camera;
   final TessellatedScene occluders;
+  final ViewportLayerCounts? layerCounts;
   static final _regionCache = Expando<RegionResult>('solved sketch regions');
 
   @override
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
+    final timer = layerCounts == null ? null : (Stopwatch()..start());
     final projection = CameraProjection(camera);
     Offset project(Vector3 p) {
       final v = projection.project(p, screen: size);
@@ -52,6 +56,7 @@ final class SketchScenePainter extends CustomPainter {
       final frame = sketch.frame;
       final cameraSide = frame.signedDistance(camera.position.vector);
       if (cameraSide.abs() <= frame.tolerance.distance) continue;
+      layerCounts?.sketchOverlays++;
       canvas.saveLayer(Offset.zero & size, Paint());
       try {
         final regions = _regionCache[sketch] ??= const PlanarRegionEngine()
@@ -138,6 +143,10 @@ final class SketchScenePainter extends CustomPainter {
         canvas.restore();
       }
     }
+    if (layerCounts != null) {
+      layerCounts!.sketchMicroseconds = timer!.elapsedMicroseconds;
+    }
+    timer?.stop();
   }
 
   @override
