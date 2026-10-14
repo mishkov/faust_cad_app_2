@@ -64,7 +64,7 @@ void main() {
     );
   });
 
-  test('only the rear face and hidden outlines require isolated layers', () {
+  test('hidden outlines are skipped while the rear face stays isolated', () {
     final painter = CadScenePainter(
       cameraConfig: camera,
       cadObjects: [
@@ -73,7 +73,7 @@ void main() {
       renderMode: CadRenderMode.shaded,
     );
     void paint(Canvas canvas) => painter.paint(canvas, const Size(200, 200));
-    expect(paint, paintsExactlyCountTimes(#saveLayer, 5));
+    expect(paint, paintsExactlyCountTimes(#saveLayer, 1));
     expect(
       paint,
       paints..everything((method, arguments) {

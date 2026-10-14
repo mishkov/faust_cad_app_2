@@ -14,7 +14,7 @@ class ProjectedFaceIndex {
 
   final List<ProjectedFace> faces;
   final Size size;
-  final buckets = <int, List<int>>{};
+  final buckets = List<List<int>?>.filled(divisions * divisions, null);
   final List<int> _visited;
   var _queryId = 0;
   static const divisions = 16;
@@ -34,11 +34,32 @@ class ProjectedFaceIndex {
   Iterable<ProjectedFace> query(Rect bounds) {
     final queryId = ++_queryId;
     final matches = <int>[];
-    for (final cell in _cells(bounds)) {
-      for (final index in buckets[cell] ?? const <int>[]) {
-        if (_visited[index] == queryId) continue;
-        _visited[index] = queryId;
-        matches.add(index);
+    final left = (bounds.left / size.width * divisions).floor().clamp(
+      0,
+      divisions - 1,
+    );
+    final right = (bounds.right / size.width * divisions).floor().clamp(
+      0,
+      divisions - 1,
+    );
+    final top = (bounds.top / size.height * divisions).floor().clamp(
+      0,
+      divisions - 1,
+    );
+    final bottom = (bounds.bottom / size.height * divisions).floor().clamp(
+      0,
+      divisions - 1,
+    );
+    for (var row = top; row <= bottom; row++) {
+      for (var column = left; column <= right; column++) {
+        for (final index
+            in buckets[row * divisions + column] ?? const <int>[]) {
+          if (_visited[index] == queryId) continue;
+          _visited[index] = queryId;
+          // Reject cell neighbours before sorting/allocating query results.
+          if (!bounds.overlaps(faces[index].bounds)) continue;
+          matches.add(index);
+        }
       }
     }
     // Keep subtraction order deterministic regardless of visited grid cells.
