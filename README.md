@@ -413,8 +413,9 @@ analytic boundaries, holes, provenance, and validated material unions.
 The viewer has Body / Planar face selection. Click a visible cube face to tint
 its visible trimmed area and inspect its semantic reference, plane origin, local
 X/Y axes, and normal. Selection and camera state do not edit document history.
-No sketch drawing is implemented. The widget preview is in
-`lib/screens/previews.dart`.
+Create and reopen sketches using the plane selector or the selected planar face.
+The interactive widget previews are in `lib/screens/previews.dart`.
+See [the sketch editor](docs/sketch_editor.md) for drawing and constraint controls.
 
 Reusable viewport input comes from `EvaluationSnapshot.materializeGeometry()`.
 It copies valid evaluated bodies once, preserving explicit face correspondence.
@@ -523,4 +524,23 @@ limits, result classification, and drag behavior.
 flutter test test/sketch test/document/sketch_constraints_test.dart
 flutter analyze
 flutter test
+```
+
+
+## Sketch editor
+
+The first sketch editor builds on the model, solver, and profile-reference APIs
+from tasks 10–12. Create a sketch on XY/XZ/YZ or a named planar face, draw lines
+and center/radius circles, select and drag geometry, and enter dimensions.
+The constraint controls expose the complete supported relation set, markers,
+remaining freedom, and removable conflicts. Edits use `DocumentController`
+transactions and undo/redo; finishing sketch mode restores the previous camera.
+
+[Editor usage and presentation policy](docs/sketch_editor.md) describe snapping,
+selection priority, region identity, attachment updates, and verification.
+No extrusion command is included.
+
+```sh
+flutter test test/sketch_editor
+flutter analyze
 ```
