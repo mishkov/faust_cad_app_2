@@ -50,6 +50,63 @@ void main() {
   List<int> pixel(Uint8List image, int x, int y) =>
       image.sublist((y * 200 + x) * 4, (y * 200 + x) * 4 + 4);
 
+  test('unoccluded face and its outlines draw without offscreen layers', () {
+    final painter = CadScenePainter(
+      cameraConfig: camera,
+      cadObjects: [
+        _Objects([_face(depth: 5, halfSize: 2)]),
+      ],
+      renderMode: CadRenderMode.shaded,
+    );
+    expect(
+      (Canvas canvas) => painter.paint(canvas, const Size(200, 200)),
+      paintsExactlyCountTimes(#saveLayer, 0),
+    );
+  });
+
+  test('only the rear face and hidden outlines require isolated layers', () {
+    final painter = CadScenePainter(
+      cameraConfig: camera,
+      cadObjects: [
+        _Objects([_face(depth: 5, halfSize: 2), _face(depth: 10, halfSize: 2)]),
+      ],
+      renderMode: CadRenderMode.shaded,
+    );
+    void paint(Canvas canvas) => painter.paint(canvas, const Size(200, 200));
+    expect(paint, paintsExactlyCountTimes(#saveLayer, 5));
+    expect(
+      paint,
+      paints..everything((method, arguments) {
+        if (method == #drawPath &&
+            (arguments[1] as Paint).blendMode == BlendMode.dstOut) {
+          expect((arguments[0] as Path).getBounds().isEmpty, isFalse);
+        }
+        return true;
+      }),
+    );
+  });
+
+  test('coplanar overlap produces no empty masks or offscreen layers', () {
+    final painter = CadScenePainter(
+      cameraConfig: camera,
+      cadObjects: [
+        _Objects([_face(depth: 5, halfSize: 2), _face(depth: 5, halfSize: 1)]),
+      ],
+      renderMode: CadRenderMode.shaded,
+    );
+    void paint(Canvas canvas) => painter.paint(canvas, const Size(200, 200));
+    expect(paint, paintsExactlyCountTimes(#saveLayer, 0));
+    expect(
+      paint,
+      paints..everything((method, arguments) {
+        if (method == #drawPath) {
+          expect((arguments[1] as Paint).blendMode, isNot(BlendMode.dstOut));
+        }
+        return true;
+      }),
+    );
+  });
+
   testWidgets('scene defaults to frame and forwards changes to its painter', (
     tester,
   ) async {

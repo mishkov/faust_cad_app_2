@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 
 /// Bounded screen-space broad phase for face and stroke visibility queries.
 class ProjectedFaceIndex {
-  ProjectedFaceIndex(this.faces, this.size) {
+  ProjectedFaceIndex(this.faces, this.size)
+    : _visited = List<int>.filled(faces.length, 0) {
     for (var i = 0; i < faces.length; i++) {
       for (final cell in _cells(faces[i].bounds)) {
         (buckets[cell] ??= []).add(i);
@@ -14,6 +15,8 @@ class ProjectedFaceIndex {
   final List<ProjectedFace> faces;
   final Size size;
   final buckets = <int, List<int>>{};
+  final List<int> _visited;
+  var _queryId = 0;
   static const divisions = 16;
 
   Iterable<int> _cells(Rect bounds) sync* {
@@ -29,12 +32,17 @@ class ProjectedFaceIndex {
   }
 
   Iterable<ProjectedFace> query(Rect bounds) {
-    final matches = <int>{};
+    final queryId = ++_queryId;
+    final matches = <int>[];
     for (final cell in _cells(bounds)) {
-      matches.addAll(buckets[cell] ?? const []);
+      for (final index in buckets[cell] ?? const <int>[]) {
+        if (_visited[index] == queryId) continue;
+        _visited[index] = queryId;
+        matches.add(index);
+      }
     }
     // Keep subtraction order deterministic regardless of visited grid cells.
-    final ordered = matches.toList()..sort();
-    return ordered.map((i) => faces[i]);
+    matches.sort();
+    return matches.map((i) => faces[i]);
   }
 }
