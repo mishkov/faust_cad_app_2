@@ -7,6 +7,12 @@ import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/scene_tessellat
 import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/tessellation_settings.dart';
 import 'package:flutter/material.dart';
 
+import '../sketch/sketch_geometry.dart';
+import '../sketch_editor/presentation/sketch_scene_painter.dart';
+import 'cad_render_backend.dart';
+import 'rendering/metal/metal_viewport.dart';
+import 'rendering/metal/metal_viewport_controller.dart';
+
 import '../document/evaluated_geometry.dart';
 import '../document/output_reference.dart';
 import 'cad_primitivies/face.dart';
@@ -16,6 +22,7 @@ import 'selection/viewport_hit.dart';
 
 export 'package:faust_cad_app_2/cad_scene/cad_render_mode.dart';
 
+export 'cad_render_backend.dart';
 export 'selection/viewport_hit.dart';
 export 'selection/viewport_picker.dart';
 
@@ -34,8 +41,15 @@ class CadScene extends StatefulWidget {
     this.selectionMode = ViewportSelectionMode.planarFace,
     this.onSelected,
     this.selectedReference,
+    this._backend,
+    this.sketches = const [],
+    this.metalController,
   });
 
+  final CadRenderBackend? _backend;
+  CadRenderBackend get backend => _backend ?? CadRenderBackend.configured;
+  final List<SketchGeometry> sketches;
+  final MetalViewportController? metalController;
   final EvaluatedGeometry? evaluatedGeometry;
   final ViewportSelectionMode selectionMode;
   final ValueChanged<ViewportHit?>? onSelected;
@@ -87,21 +101,58 @@ class _CadSceneState extends State<CadScene> {
         }
       }
     }
-    final paint = CustomPaint(
-      painter: CadScenePainter(
-        cameraConfig: widget.cameraConfig,
-        devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
-        evaluatedScene: picker?.scene,
-        selectedFaces: selectedFaces,
-        cadObjects: widget.cadObjects,
-        geometry: widget.geometry,
-        renderMode: widget.renderMode,
-        tessellationSettings: widget.tessellationSettings,
-        geometryRevision: widget.geometryRevision,
-        tessellator: _tessellator,
-      ),
-    );
-    if (picker == null || widget.onSelected == null) return paint;
+    final scene =
+        picker?.scene ??
+        _tessellator.buildGeometry(
+          [
+            ...?widget.geometry,
+            for (final object in widget.cadObjects) ...object.build(),
+          ],
+          settings: widget.tessellationSettings,
+          geometryRevision: widget.geometryRevision,
+        );
+    final Widget paint = widget.backend == CadRenderBackend.metal
+        ? MetalViewport(
+            scene: scene,
+            camera: widget.cameraConfig,
+            renderMode: widget.renderMode,
+            selectedFaces: selectedFaces,
+            sketches: widget.sketches,
+            controller: widget.metalController,
+          )
+        : CustomPaint(
+            painter: CadScenePainter(
+              cameraConfig: widget.cameraConfig,
+              devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
+              evaluatedScene: scene,
+              selectedFaces: selectedFaces,
+              cadObjects: widget.cadObjects,
+              geometry: widget.geometry,
+              renderMode: widget.renderMode,
+              tessellationSettings: widget.tessellationSettings,
+              geometryRevision: widget.geometryRevision,
+              tessellator: _tessellator,
+            ),
+          );
+    final contents =
+        widget.backend == CadRenderBackend.canvas && widget.sketches.isNotEmpty
+        ? Stack(
+            fit: StackFit.expand,
+            children: [
+              paint,
+              IgnorePointer(
+                child: CustomPaint(
+                  painter: SketchScenePainter(
+                    sketches: widget.sketches,
+                    camera: widget.cameraConfig,
+                    occluders: scene,
+                  ),
+                ),
+              ),
+            ],
+          )
+        : paint;
+    if (picker == null || widget.onSelected == null) return contents;
     return LayoutBuilder(
       builder: (context, constraints) => GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -113,7 +164,7 @@ class _CadSceneState extends State<CadScene> {
             mode: widget.selectionMode,
           ),
         ),
-        child: paint,
+        child: contents,
       ),
     );
   }

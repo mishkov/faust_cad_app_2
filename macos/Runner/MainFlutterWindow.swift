@@ -9,6 +9,7 @@ class MainFlutterWindow: NSWindow {
     self.setFrame(windowFrame, display: true)
 
     RegisterGeneratedPlugins(registry: flutterViewController)
+    CadMetalPlugin.register(with: flutterViewController.registrar(forPlugin: "CadMetalPlugin"))
 
     super.awakeFromNib()
   }

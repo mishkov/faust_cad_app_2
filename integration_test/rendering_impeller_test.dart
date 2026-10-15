@@ -115,6 +115,7 @@ void main() {
                             fit: StackFit.expand,
                             children: [
                               CadScene(
+                                backend: CadRenderBackend.canvas,
                                 cameraConfig: camera,
                                 geometry: show ? geometry : const [],
                                 renderMode: CadRenderMode.shaded,

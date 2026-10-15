@@ -31,6 +31,20 @@ including angular/axial windows. Boundary loops must be simple and lie on their
 surface. Full-turn periodic faces and other curve/surface types are not supported.
 Shading describes surface illumination; cast shadows are not rendered.
 
+## macOS Metal viewport
+
+Run `flutter run -d macos` to use the default native Metal backend. It renders
+the complete CAD scene and inactive sketches in an embedded `MTKView`, with a
+depth buffer and bounded GPU resources. It has no Canvas fallback; unavailable
+devices and rendering errors show an explicit error.
+Use `--dart-define=CAD_RENDER_BACKEND=canvas` to select the Canvas reference
+renderer explicitly. Other platforms use Canvas by default. A scene can also
+select either backend directly with `backend: CadRenderBackend.metal` or
+`backend: CadRenderBackend.canvas`.
+
+See [Metal validation and performance](docs/metal_viewport.md) for measurements,
+compatibility, visual differences, and reproducible native tests.
+
 ## Document and feature history
 
 `CadDocument` owns immutable feature definitions and publishes complete evaluation
