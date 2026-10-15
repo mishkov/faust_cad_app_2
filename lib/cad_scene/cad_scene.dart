@@ -41,12 +41,13 @@ class CadScene extends StatefulWidget {
     this.selectionMode = ViewportSelectionMode.planarFace,
     this.onSelected,
     this.selectedReference,
-    this.backend = CadRenderBackend.configured,
+    this._backend,
     this.sketches = const [],
     this.metalController,
   });
 
-  final CadRenderBackend backend;
+  final CadRenderBackend? _backend;
+  CadRenderBackend get backend => _backend ?? CadRenderBackend.configured;
   final List<SketchGeometry> sketches;
   final MetalViewportController? metalController;
   final EvaluatedGeometry? evaluatedGeometry;

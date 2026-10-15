@@ -1,14 +1,18 @@
 # Native Metal viewport
 
-Select it explicitly:
+Metal is the default backend on native macOS:
 
 ```sh
-flutter run -d macos --dart-define=CAD_RENDER_BACKEND=metal
+flutter run -d macos
 ```
 
-`CadScene(backend: CadRenderBackend.metal, ...)` selects it per viewport. Canvas
-remains the default and reference. Selecting Metal never invokes a Canvas scene
-renderer, including when the device, shader compilation, or a command fails.
+Use `--dart-define=CAD_RENDER_BACKEND=canvas` to select the Canvas reference
+renderer explicitly. Other platforms default to Canvas. The build setting can
+also force Metal with `--dart-define=CAD_RENDER_BACKEND=metal`.
+`CadScene(backend: CadRenderBackend.metal, ...)` or
+`CadScene(backend: CadRenderBackend.canvas, ...)` overrides the build setting for
+one viewport. Selecting Metal never invokes a Canvas scene renderer, including
+when the device, shader compilation, or a command fails.
 Failures display a diagnostic. Flutter continues to render controls and the
 separate active sketch editor.
 
@@ -131,8 +135,8 @@ work and waiting for presentation.
 
 Measured results and enlarged boundary examples are recorded below. Metal's MSAA
 and analytic stroke coverage differ from Canvas antialiasing. These are measured
-visual differences, not pixel-identical output. This remains an explicitly
-selected backend while migration quality and presentation pacing are evaluated.
+visual differences, not pixel-identical output. Canvas remains available for
+explicit comparisons while migration quality and presentation pacing are evaluated.
 
 Generate machine-readable summaries and nearest-neighbor 4x crops from actual
 image pairs with `python3 tool/summarize_metal_viewport.py build/metal_report.json
@@ -142,7 +146,7 @@ image crops).
 The final matrix passes **171 comparisons**, plus a direct interior-coverage
 assertion for coplanar sketch fill (at least 99% of known uniform reference pixels
 must retain their overlay color). Native button/text/drag input, zero-size hiding,
-resizing and all six disposal cycles pass. All **518** Dart tests pass; static
+resizing and all six disposal cycles pass. All **525** Dart tests pass; static
 analysis is clean.
 
 | Scene | Cases | Largest mean absolute RGB delta / 255 | Largest pixels over delta 4 |
@@ -202,12 +206,13 @@ Final depth/overlay tuning followed that soak; the final revision separately
 passes the full image and six-cycle disposal tests. The report preserves this
 lineage instead of treating the old soak as a new final-revision measurement.
 
-Recommendation: continue migration with the selectable native backend. It
-removes the CPU visibility bottleneck and the previous short-lived surface pool,
-while maintaining a bounded resource lifetime. Keep Canvas as the default
-reference until broader hardware coverage, remaining AA differences and native
-presentation latency have been reviewed. This is evidence for the representative
-fixtures, not a guarantee for arbitrary assemblies or all close-view workloads.
+Metal is now the default on macOS. It removes the CPU visibility bottleneck and
+the previous short-lived surface pool, while maintaining a bounded resource
+lifetime. Broader hardware coverage,
+remaining AA differences and native presentation latency still need review;
+Canvas is available as an explicit reference. This is evidence for the
+representative fixtures, not a guarantee for arbitrary assemblies or all
+close-view workloads.
 
 The normal debug app was also checked with real mouse face selection. Both hot
 reload and hot restart succeeded through the Dart tooling connection, with no

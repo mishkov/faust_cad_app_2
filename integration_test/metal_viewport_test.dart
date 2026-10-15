@@ -36,7 +36,7 @@ void main() {
       await Future<void>.delayed(const Duration(seconds: 1));
     }
   });
-  testWidgets('Metal native capture, presentation, revisions and disposal', (
+  testWidgets('Default Metal capture, presentation, revisions and disposal', (
     tester,
   ) async {
     final controller = MetalViewportController();
@@ -75,7 +75,6 @@ void main() {
               ),
               Expanded(
                 child: CadScene(
-                  backend: CadRenderBackend.metal,
                   metalController: controller,
                   cameraConfig: camera(-.95, -.5),
                   geometry: geometry,
@@ -89,6 +88,10 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    expect(
+      tester.widget<CadScene>(find.byType(CadScene)).backend,
+      CadRenderBackend.metal,
+    );
     await tester.runAsync(() async {
       await controller.ready;
       await Future<void>.delayed(const Duration(seconds: 1));
