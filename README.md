@@ -2,6 +2,10 @@
 
 A Flutter CAD viewer with wireframe and shaded rendering.
 
+The opt-in [GPU depth prototype](docs/gpu_depth_prototype.md) records native
+feasibility, image comparisons and performance limitations. Canvas remains the
+default renderer.
+
 ## Render modes
 
 `CadScene.renderMode` accepts `CadRenderMode.frame` (the default) or

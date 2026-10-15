@@ -1,0 +1,738 @@
+[
+  {
+    "scene": "blank",
+    "environment": {
+      "on_console": true,
+      "session_locked": false,
+      "os": "Version 26.6.2 (Build 25G83)",
+      "gpu": "Apple M1",
+      "foreground": true,
+      "session_available": true
+    },
+    "phase": "idle",
+    "cycle": 0,
+    "rss": 138985472,
+    "max_rss": 141639680,
+    "paints": null,
+    "viewport": null,
+    "dpr": 1.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 9099088,
+      "heapCapacity": 9699328,
+      "externalUsage": 1376
+    },
+    "allocation_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 6828384,
+      "heapCapacity": 9699328,
+      "externalUsage": 576
+    },
+    "live_renderer_classes": [
+      {
+        "name": "Vector3",
+        "instances": 144,
+        "bytes": 2304
+      },
+      {
+        "name": "ShadedSceneRenderer",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedMeshBatch",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedFaceIndex",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedFace",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "CurvedTriangleVisibility",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "Vertices",
+        "instances": 0,
+        "bytes": 0
+      }
+    ],
+    "heap_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 6930464,
+      "heapCapacity": 8912896,
+      "externalUsage": 576
+    },
+    "rss_after_probe_kib": 143392,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 7.547712499999761
+  },
+  {
+    "scene": "default",
+    "environment": {
+      "on_console": true,
+      "session_locked": false,
+      "os": "Version 26.6.2 (Build 25G83)",
+      "gpu": "Apple M1",
+      "foreground": true,
+      "session_available": true
+    },
+    "phase": "idle",
+    "cycle": 0,
+    "rss": 135266304,
+    "max_rss": 155615232,
+    "paints": 1,
+    "gpu": {
+      "submissions": 1,
+      "completions": 1,
+      "failure": "null",
+      "maximum_backing_textures": 1,
+      "geometry_uploads": 1,
+      "owned_geometry_bytes": 80800,
+      "budget_stops": 0
+    },
+    "viewport": [
+      1064.0,
+      784.0
+    ],
+    "dpr": 1.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 8661712,
+      "heapCapacity": 9961472,
+      "externalUsage": 1248
+    },
+    "allocation_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7066752,
+      "heapCapacity": 9961472,
+      "externalUsage": 1088
+    },
+    "live_renderer_classes": [
+      {
+        "name": "Vector3",
+        "instances": 1309,
+        "bytes": 20944
+      },
+      {
+        "name": "ShadedSceneRenderer",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedMeshBatch",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedFaceIndex",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedFace",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "CurvedTriangleVisibility",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "Vertices",
+        "instances": 0,
+        "bytes": 0
+      }
+    ],
+    "heap_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7140816,
+      "heapCapacity": 9961472,
+      "externalUsage": 1088
+    },
+    "rss_after_probe_kib": 132752,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 1.3755511249983101
+  },
+  {
+    "scene": "default",
+    "environment": {
+      "on_console": true,
+      "session_locked": false,
+      "os": "Version 26.6.2 (Build 25G83)",
+      "gpu": "Apple M1",
+      "foreground": true,
+      "session_available": true
+    },
+    "phase": "rotation",
+    "cycle": 1,
+    "rss": 138035200,
+    "max_rss": 155615232,
+    "paints": 864,
+    "gpu": {
+      "submissions": 9,
+      "completions": 9,
+      "failure": "Flutter GPU image surface reached the eight-texture budget",
+      "maximum_backing_textures": 8,
+      "geometry_uploads": 1,
+      "owned_geometry_bytes": 0,
+      "budget_stops": 1
+    },
+    "viewport": [
+      1064.0,
+      784.0
+    ],
+    "dpr": 1.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7823152,
+      "heapCapacity": 8912896,
+      "externalUsage": 2624
+    },
+    "rss_after_probe_kib": 134880,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 1.2466839169974264
+  },
+  {
+    "scene": "default",
+    "environment": {
+      "foreground": true,
+      "gpu": "Apple M1",
+      "session_available": true,
+      "session_locked": false,
+      "on_console": true,
+      "os": "Version 26.6.2 (Build 25G83)"
+    },
+    "phase": "rotation",
+    "cycle": 2,
+    "rss": 140738560,
+    "max_rss": 155615232,
+    "paints": 1728,
+    "gpu": {
+      "submissions": 9,
+      "completions": 9,
+      "failure": "Flutter GPU image surface reached the eight-texture budget",
+      "maximum_backing_textures": 8,
+      "geometry_uploads": 1,
+      "owned_geometry_bytes": 0,
+      "budget_stops": 1
+    },
+    "viewport": [
+      1064.0,
+      784.0
+    ],
+    "dpr": 1.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 10116864,
+      "heapCapacity": 11010048,
+      "externalUsage": 7872
+    },
+    "rss_after_probe_kib": 137536,
+    "probe_seconds": 0.009160374997009058
+  },
+  {
+    "scene": "default",
+    "environment": {
+      "on_console": true,
+      "session_locked": false,
+      "os": "Version 26.6.2 (Build 25G83)",
+      "gpu": "Apple M1",
+      "foreground": true,
+      "session_available": true
+    },
+    "phase": "rotation",
+    "cycle": 3,
+    "rss": 139444224,
+    "max_rss": 155615232,
+    "paints": 2592,
+    "gpu": {
+      "submissions": 9,
+      "completions": 9,
+      "failure": "Flutter GPU image surface reached the eight-texture budget",
+      "maximum_backing_textures": 8,
+      "geometry_uploads": 1,
+      "owned_geometry_bytes": 0,
+      "budget_stops": 1
+    },
+    "viewport": [
+      1064.0,
+      784.0
+    ],
+    "dpr": 1.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 8667200,
+      "heapCapacity": 9437184,
+      "externalUsage": 4448
+    },
+    "rss_after_probe_kib": 136288,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 1.284683750000113
+  },
+  {
+    "scene": "default",
+    "environment": {
+      "on_console": true,
+      "session_locked": false,
+      "os": "Version 26.6.2 (Build 25G83)",
+      "gpu": "Apple M1",
+      "foreground": true,
+      "session_available": true
+    },
+    "phase": "rest",
+    "cycle": 3,
+    "rss": 135282688,
+    "max_rss": 155615232,
+    "paints": 2592,
+    "gpu": {
+      "submissions": 9,
+      "completions": 9,
+      "failure": "Flutter GPU image surface reached the eight-texture budget",
+      "maximum_backing_textures": 8,
+      "geometry_uploads": 1,
+      "owned_geometry_bytes": 0,
+      "budget_stops": 1
+    },
+    "viewport": [
+      1064.0,
+      784.0
+    ],
+    "dpr": 1.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7613440,
+      "heapCapacity": 8388608,
+      "externalUsage": 992
+    },
+    "allocation_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 6984336,
+      "heapCapacity": 8388608,
+      "externalUsage": 768
+    },
+    "live_renderer_classes": [
+      {
+        "name": "Vector3",
+        "instances": 1308,
+        "bytes": 20928
+      },
+      {
+        "name": "ShadedSceneRenderer",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedMeshBatch",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedFaceIndex",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedFace",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "CurvedTriangleVisibility",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "Vertices",
+        "instances": 0,
+        "bytes": 0
+      }
+    ],
+    "heap_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7043744,
+      "heapCapacity": 8388608,
+      "externalUsage": 768
+    },
+    "rss_after_probe_kib": 132368,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 1.2975332080022781
+  },
+  {
+    "scene": "partial_extrusion",
+    "environment": {
+      "foreground": true,
+      "gpu": "Apple M1",
+      "session_available": true,
+      "session_locked": false,
+      "on_console": true,
+      "os": "Version 26.6.2 (Build 25G83)"
+    },
+    "phase": "idle",
+    "cycle": 0,
+    "rss": 141934592,
+    "max_rss": 155615232,
+    "paints": 1,
+    "gpu": {
+      "submissions": 1,
+      "completions": 1,
+      "failure": "null",
+      "maximum_backing_textures": 1,
+      "geometry_uploads": 1,
+      "owned_geometry_bytes": 123504,
+      "budget_stops": 0
+    },
+    "viewport": [
+      1064.0,
+      784.0
+    ],
+    "dpr": 1.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 11961056,
+      "heapCapacity": 13385728,
+      "externalUsage": 8096
+    },
+    "allocation_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7227024,
+      "heapCapacity": 13385728,
+      "externalUsage": 1088
+    },
+    "live_renderer_classes": [
+      {
+        "name": "Vector3",
+        "instances": 2229,
+        "bytes": 35664
+      },
+      {
+        "name": "ShadedSceneRenderer",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedMeshBatch",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedFaceIndex",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedFace",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "CurvedTriangleVisibility",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "Vertices",
+        "instances": 0,
+        "bytes": 0
+      }
+    ],
+    "heap_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7286432,
+      "heapCapacity": 13107200,
+      "externalUsage": 1088
+    },
+    "rss_after_probe_kib": 138704,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 1.2926269579984364
+  },
+  {
+    "scene": "partial_extrusion",
+    "environment": {
+      "os": "Version 26.6.2 (Build 25G83)",
+      "session_locked": false,
+      "session_available": true,
+      "gpu": "Apple M1",
+      "on_console": true,
+      "foreground": true
+    },
+    "phase": "rotation",
+    "cycle": 1,
+    "rss": 164331520,
+    "max_rss": 177864704,
+    "paints": 849,
+    "gpu": {
+      "submissions": 55,
+      "completions": 55,
+      "failure": "Flutter GPU image surface reached the eight-texture budget",
+      "maximum_backing_textures": 8,
+      "geometry_uploads": 1,
+      "owned_geometry_bytes": 0,
+      "budget_stops": 1
+    },
+    "viewport": [
+      1064.0,
+      784.0
+    ],
+    "dpr": 1.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 13623792,
+      "heapCapacity": 15302656,
+      "externalUsage": 45184
+    },
+    "rss_after_probe_kib": 160560,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 1.4214525419993151
+  },
+  {
+    "scene": "partial_extrusion",
+    "environment": {
+      "os": "Version 26.6.2 (Build 25G83)",
+      "session_locked": false,
+      "session_available": true,
+      "gpu": "Apple M1",
+      "on_console": true,
+      "foreground": true
+    },
+    "phase": "rotation",
+    "cycle": 2,
+    "rss": 154238976,
+    "max_rss": 177864704,
+    "paints": 1713,
+    "gpu": {
+      "submissions": 55,
+      "completions": 55,
+      "failure": "Flutter GPU image surface reached the eight-texture budget",
+      "maximum_backing_textures": 8,
+      "geometry_uploads": 1,
+      "owned_geometry_bytes": 0,
+      "budget_stops": 1
+    },
+    "viewport": [
+      1064.0,
+      784.0
+    ],
+    "dpr": 1.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 13653280,
+      "heapCapacity": 15302656,
+      "externalUsage": 45184
+    },
+    "rss_after_probe_kib": 150720,
+    "probe_seconds": 0.0060365829995134845
+  },
+  {
+    "scene": "partial_extrusion",
+    "environment": {
+      "session_locked": false,
+      "on_console": true,
+      "foreground": true,
+      "gpu": "Apple M1",
+      "os": "Version 26.6.2 (Build 25G83)",
+      "session_available": true
+    },
+    "phase": "rotation",
+    "cycle": 3,
+    "rss": 156778496,
+    "max_rss": 177864704,
+    "paints": 2577,
+    "gpu": {
+      "submissions": 55,
+      "completions": 55,
+      "failure": "Flutter GPU image surface reached the eight-texture budget",
+      "maximum_backing_textures": 8,
+      "geometry_uploads": 1,
+      "owned_geometry_bytes": 0,
+      "budget_stops": 1
+    },
+    "viewport": [
+      1064.0,
+      784.0
+    ],
+    "dpr": 1.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 13670928,
+      "heapCapacity": 15302656,
+      "externalUsage": 45184
+    },
+    "rss_after_probe_kib": 153184,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 1.2701192919994355
+  },
+  {
+    "scene": "partial_extrusion",
+    "environment": {
+      "session_locked": false,
+      "os": "Version 26.6.2 (Build 25G83)",
+      "foreground": true,
+      "session_available": true,
+      "on_console": true,
+      "gpu": "Apple M1"
+    },
+    "phase": "rest",
+    "cycle": 3,
+    "rss": 153370624,
+    "max_rss": 177864704,
+    "paints": 2577,
+    "gpu": {
+      "submissions": 55,
+      "completions": 55,
+      "failure": "Flutter GPU image surface reached the eight-texture budget",
+      "maximum_backing_textures": 8,
+      "geometry_uploads": 1,
+      "owned_geometry_bytes": 0,
+      "budget_stops": 1
+    },
+    "viewport": [
+      1064.0,
+      784.0
+    ],
+    "dpr": 1.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 9292512,
+      "heapCapacity": 10584064,
+      "externalUsage": 8224
+    },
+    "allocation_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7231504,
+      "heapCapacity": 10059776,
+      "externalUsage": 768
+    },
+    "live_renderer_classes": [
+      {
+        "name": "Vector3",
+        "instances": 2229,
+        "bytes": 35664
+      },
+      {
+        "name": "ShadedSceneRenderer",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedMeshBatch",
+        "instances": 1,
+        "bytes": 32
+      },
+      {
+        "name": "ProjectedFaceIndex",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedFace",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "CurvedTriangleVisibility",
+        "instances": 1,
+        "bytes": 176
+      },
+      {
+        "name": "Vertices",
+        "instances": 0,
+        "bytes": 0
+      }
+    ],
+    "heap_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7290912,
+      "heapCapacity": 10485760,
+      "externalUsage": 768
+    },
+    "rss_after_probe_kib": 151248,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 1.3162206660017546
+  },
+  {
+    "scene": "unmounted",
+    "environment": {
+      "session_available": true,
+      "gpu": "Apple M1",
+      "session_locked": false,
+      "os": "Version 26.6.2 (Build 25G83)",
+      "on_console": true,
+      "foreground": true
+    },
+    "phase": "rest",
+    "cycle": 3,
+    "rss": 158187520,
+    "max_rss": 177864704,
+    "paints": null,
+    "viewport": null,
+    "dpr": 1.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 11239072,
+      "heapCapacity": 13107200,
+      "externalUsage": 928
+    },
+    "allocation_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7005824,
+      "heapCapacity": 12058624,
+      "externalUsage": 768
+    },
+    "live_renderer_classes": [
+      {
+        "name": "Vector3",
+        "instances": 145,
+        "bytes": 2320
+      },
+      {
+        "name": "ShadedSceneRenderer",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedMeshBatch",
+        "instances": 1,
+        "bytes": 32
+      },
+      {
+        "name": "ProjectedFaceIndex",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedFace",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "CurvedTriangleVisibility",
+        "instances": 1,
+        "bytes": 176
+      },
+      {
+        "name": "Vertices",
+        "instances": 0,
+        "bytes": 0
+      }
+    ],
+    "heap_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7065232,
+      "heapCapacity": 12582912,
+      "externalUsage": 768
+    },
+    "rss_after_probe_kib": 154432,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 1.3065316669999447
+  }
+]

@@ -1,0 +1,23 @@
+{
+  "default": {
+    "cases": 42,
+    "quality_gate_passes": 0,
+    "maximum_channel_delta": 181,
+    "maximum_rmse_rgb": 47.522965255169844,
+    "maximum_changed_percent": 38.45276217880293
+  },
+  "partial_extrusion": {
+    "cases": 42,
+    "quality_gate_passes": 0,
+    "maximum_channel_delta": 181,
+    "maximum_rmse_rgb": 47.522965255169844,
+    "maximum_changed_percent": 38.45276217880293
+  },
+  "tube": {
+    "cases": 42,
+    "quality_gate_passes": 0,
+    "maximum_channel_delta": 163,
+    "maximum_rmse_rgb": 3.4237737312065466,
+    "maximum_changed_percent": 36.004557291666664
+  }
+}

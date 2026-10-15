@@ -1,0 +1,34 @@
+{
+  "failure": "Flutter GPU image surface reached the eight-texture budget",
+  "submissions": 8,
+  "completions": 8,
+  "maximum_backing_textures": 8,
+  "geometry_uploads": 1,
+  "uploaded_geometry_bytes": 80800,
+  "draws_per_submission": 2,
+  "raw_cold_completion_us": [
+    557,
+    453,
+    1198,
+    473,
+    440,
+    892,
+    1053,
+    804
+  ],
+  "environment_before": {
+    "os": "Version 26.6.2 (Build 25G83)",
+    "on_console": true,
+    "session_available": true,
+    "foreground": true,
+    "session_locked": false,
+    "gpu": "Apple M1"
+  },
+  "viewport": [
+    1064.0,
+    784.0
+  ],
+  "dpr": 1.0,
+  "valid_warmed_benchmark": false,
+  "reason": "Resource guard prevented completion of warmup. Cold callbacks are not GPU execution times or presentation latencies."
+}

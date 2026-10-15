@@ -21,6 +21,10 @@ cycles=next((int(arg.split('=',1)[1]) for arg in sys.argv if arg.startswith('--c
 command.append(f'--dart-define=MEMORY_CYCLES={cycles}')
 if '--baseline' in sys.argv:
     command.append('--dart-define=VIEWPORT_BASELINE=true')
+if '--gpu' in sys.argv:
+    command.extend(['--enable-flutter-gpu', '--dart-define=VIEWPORT_GPU=true'])
+if '--wait-for-focus' in sys.argv:
+    command.append('--dart-define=VIEWPORT_WAIT_FOR_FOCUS=true')
 records = []
 service = None
 isolate = None

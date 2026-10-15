@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:developer' as developer;
 import 'dart:io';
 
+import 'package:faust_cad_app_2/cad_scene/rendering/gpu/gpu_scene_renderer.dart';
 import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/scene_tessellator.dart';
 import 'package:flutter/foundation.dart' show debugPrintSynchronously;
 import 'package:flutter/material.dart';
@@ -12,6 +13,8 @@ import 'package:integration_test/integration_test.dart';
 
 import '../test/support/orbit_extrusion_fixture.dart';
 import 'support/viewport_profile_painter.dart';
+import 'support/viewport_focus_gate.dart';
+import 'support/viewport_environment.dart';
 
 // Run through tool/profile_viewport_memory.py. Its external VM client samples
 // heap usage/capacity, requests GC, and records native vmmap summaries while the
@@ -30,6 +33,7 @@ void main() {
   const cycles = int.fromEnvironment('MEMORY_CYCLES', defaultValue: 10);
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   binding.framePolicy = LiveTestWidgetsFlutterBindingFramePolicy.fullyLive;
+  setUpAll(waitForViewportFocus);
   testWidgets('identical orbit cycles reach a bounded memory plateau', (
     tester,
   ) async {
@@ -60,6 +64,9 @@ void main() {
     await tester.runAsync(() async {
       await _sampleMemory('blank', 'idle', 0);
       for (final partial in [false, true]) {
+        final gpuRenderer = const bool.fromEnvironment('VIEWPORT_GPU')
+            ? await GpuSceneRenderer.create()
+            : null;
         final scene = SceneTessellator().buildGeometry(
           partial ? geometry : geometry.sublist(0, geometry.length - 1),
         );
@@ -69,6 +76,7 @@ void main() {
           partial ? sketch : null,
           'orbit',
           const bool.fromEnvironment('VIEWPORT_BASELINE'),
+          gpuRenderer: gpuRenderer,
         );
         activePainter.value = painter;
         Future<void> sample(String phase, int cycle) => _sampleMemory(
@@ -94,6 +102,8 @@ void main() {
         }
         await Future<void>.delayed(const Duration(seconds: 10));
         await sample('rest', cycles);
+        await gpuRenderer?.completed;
+        gpuRenderer?.dispose();
       }
       activePainter.value = null;
       await Future<void>.delayed(const Duration(seconds: 10));
@@ -112,6 +122,7 @@ Future<void> _sampleMemory(
   int cycle, {
   ViewportProfilePainter? painter,
 }) async {
+  final environment = await viewportEnvironment();
   if (painter != null) {
     expect(painter.size.isEmpty, false);
     expect(painter.paintCount, greaterThan(0));
@@ -120,11 +131,13 @@ Future<void> _sampleMemory(
   debugPrintSynchronously(
     'MEMORY_SAMPLE ${jsonEncode({
       'scene': scene,
+      'environment': environment,
       'phase': phase,
       'cycle': cycle,
       'rss': ProcessInfo.currentRss,
       'max_rss': ProcessInfo.maxRss,
       'paints': painter?.paintCount,
+      if (painter?.gpuRenderer case final gpu?) 'gpu': {'submissions': gpu.submissions, 'completions': gpu.completions, 'failure': '${gpu.failure}', 'maximum_backing_textures': gpu.maximumBackingTextures, 'geometry_uploads': gpu.geometryUploads, 'owned_geometry_bytes': gpu.geometryBytes, 'budget_stops': gpu.resourceBudgetStops},
       'viewport': painter == null ? null : [painter.size.width, painter.size.height],
       'dpr': WidgetsBinding.instance.platformDispatcher.views.first.devicePixelRatio,
     })}',

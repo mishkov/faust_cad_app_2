@@ -63,6 +63,11 @@ def summarize(prefix):
             'last_five_rotation_rss_mib': last_five,
             'last_after_gc': collected[-1]['allocation_after_gc'] if collected else None,
         }
+        gpu_samples = [s['gpu'] for s in values if 'gpu' in s]
+        if gpu_samples:
+            result['scenes'][scene]['rendered_workload_complete'] = all(
+                s['failure'] == 'null' for s in gpu_samples)
+            result['scenes'][scene]['completed_gpu_images'] = gpu_samples[-1]['completions']
     for sample in samples:
         path = pathlib.Path(f'{prefix}_{sample["scene"]}_{sample["phase"]}_{sample["cycle"]}_vmmap.txt')
         if path.exists() and sample.get('vmmap_exit_code') == 0:

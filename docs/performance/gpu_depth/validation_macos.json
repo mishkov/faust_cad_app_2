@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-15",
+  "baseline_commit": "56f68c4",
+  "flutter": "3.47.5",
+  "dart": "3.13.4",
+  "framework_revision": "6a19cca56475dbfba1478ee68d7bd0c2ef891da1",
+  "engine_revision": "af7e796e161ae0bb1ff0758c71a7105418bd9ded",
+  "flutter_tests_passed": 515,
+  "static_analysis": "no issues",
+  "reference_native_impeller_tests_passed": 3,
+  "gpu_native_execution_resource_control_tests_passed": 3,
+  "gpu_image_comparisons": 126,
+  "gpu_image_parity_gate_passes": 0,
+  "canvas_profile_phases": 6,
+  "gpu_warmed_benchmark_valid": false,
+  "memory_jobs_completed": 2,
+  "external_memory_samples_succeeded": 24,
+  "debug_hot_reload": "succeeded",
+  "debug_hot_restart": "succeeded",
+  "debug_runtime_errors": [],
+  "recommendation": "Retain Canvas; resolve GPU presentation ownership, clipping and coverage before migration."
+}

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:developer' as developer;
 import 'dart:ui' as ui;
 
+import 'package:faust_cad_app_2/cad_scene/rendering/gpu/gpu_scene_renderer.dart';
 import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/scene_tessellator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show debugPrintSynchronously;
@@ -12,6 +13,7 @@ import 'package:integration_test/integration_test.dart';
 
 import '../test/support/orbit_extrusion_fixture.dart';
 import 'support/viewport_profile_painter.dart';
+import 'support/viewport_environment.dart';
 import '../test/cad_scene/rendering/viewport_image_comparison_test.dart'
     show compareViewportImages;
 
@@ -97,6 +99,9 @@ void main() {
               : [const bool.fromEnvironment('VIEWPORT_BASELINE')];
           for (var run = 0; run < modes.length; run++) {
             final baseline = modes[run];
+            final gpuRenderer = const bool.fromEnvironment('VIEWPORT_GPU')
+                ? await GpuSceneRenderer.create()
+                : null;
             final clock = ValueNotifier<double>(0);
             final painter = ViewportProfilePainter(
               clock,
@@ -104,6 +109,7 @@ void main() {
               sceneName == 'partial_extrusion' ? sketch : null,
               operation,
               baseline,
+              gpuRenderer: gpuRenderer,
             );
             activePainter.value = painter;
 
@@ -121,13 +127,47 @@ void main() {
             final ticker = Ticker(
               (elapsed) => clock.value = elapsed.inMicroseconds / 1e6,
             );
+            final environmentBefore = await viewportEnvironment();
             ticker.start();
             await Future<void>.delayed(const Duration(seconds: 6));
+            if (gpuRenderer?.failure != null) {
+              final failure = gpuRenderer!.failure;
+              final preflight = <String, Object?>{
+                'failure': '$failure',
+                'submissions': gpuRenderer.submissions,
+                'completions': gpuRenderer.completions,
+                'maximum_backing_textures': gpuRenderer.maximumBackingTextures,
+                'geometry_uploads': gpuRenderer.geometryUploads,
+                'uploaded_geometry_bytes': gpuRenderer.uploadedGeometryBytes,
+                'draws_per_submission': gpuRenderer.submittedDrawsPerFrame,
+                'raw_cold_completion_us': gpuRenderer.completionMicroseconds,
+                'environment_before': environmentBefore,
+                'viewport': [painter.size.width, painter.size.height],
+                'dpr': binding.platformDispatcher.views.first.devicePixelRatio,
+              };
+              debugPrintSynchronously('GPU_PREFLIGHT ${jsonEncode(preflight)}');
+              ticker.stop();
+              ticker.dispose();
+              activePainter.value = null;
+              clock.dispose();
+              gpuRenderer.dispose();
+              fail(
+                'GPU warmup must complete before capturing timings: $failure',
+              );
+            }
             start = developer.Timeline.now;
+            final submittedBefore = gpuRenderer?.submissions ?? 0;
+            final busyBefore = gpuRenderer?.busyPaints ?? 0;
+            gpuRenderer?.completionMicroseconds.clear();
+            gpuRenderer?.completionTimestamps.clear();
+            gpuRenderer?.completedFrameIds.clear();
             binding.addTimingsCallback(onTimings);
             await Future<void>.delayed(const Duration(seconds: 6));
             end = developer.Timeline.now;
             ticker.stop();
+            final submittedAtEnd = gpuRenderer?.submissions ?? 0;
+            final busyAtEnd = gpuRenderer?.busyPaints ?? 0;
+            final environmentAfter = await viewportEnvironment();
             // Profile mode delivers timing batches; flush the last capture batch.
             await Future<void>.delayed(const Duration(seconds: 2));
             binding.removeTimingsCallback(onTimings);
@@ -144,6 +184,38 @@ void main() {
             reports['${sceneName}_${operation}_${baseline ? 'baseline' : 'optimized'}_$run'] =
                 {
                   'baseline': baseline,
+                  'environment_before': environmentBefore,
+                  'environment_after': environmentAfter,
+                  'gpu': gpuRenderer != null,
+                  if (gpuRenderer != null)
+                    'gpu_metrics': {
+                      'submissions': submittedAtEnd - submittedBefore,
+                      'completions': [
+                        for (
+                          var i = 0;
+                          i < gpuRenderer.completedFrameIds.length;
+                          i++
+                        )
+                          if (gpuRenderer.completedFrameIds[i] >
+                                  submittedBefore &&
+                              gpuRenderer.completedFrameIds[i] <=
+                                  submittedAtEnd &&
+                              gpuRenderer.completionTimestamps[i] >= start &&
+                              gpuRenderer.completionTimestamps[i] <= end)
+                            i,
+                      ].length,
+                      'busy_paints': busyAtEnd - busyBefore,
+                      'raw_completion_us': gpuRenderer.completionMicroseconds,
+                      'raw_completion_timestamps':
+                          gpuRenderer.completionTimestamps,
+                      'raw_completed_ids': gpuRenderer.completedFrameIds,
+                      'geometry_uploads': gpuRenderer.geometryUploads,
+                      'geometry_bytes': gpuRenderer.geometryBytes,
+                      'draws_per_submission': gpuRenderer.drawsPerSubmission,
+                      'maximum_backing_textures':
+                          gpuRenderer.maximumBackingTextures,
+                      'target_recreations': gpuRenderer.targetRecreations,
+                    },
                   'scene': sceneName,
                   'operation': operation,
                   'frames': timings.length,
@@ -188,6 +260,22 @@ void main() {
             );
             expect(tester.takeException(), isNull);
             clock.dispose();
+            if (gpuRenderer != null) {
+              await gpuRenderer.completed;
+              // Do not mutate telemetry lists retained by the report on disposal.
+              final metrics =
+                  (reports['${sceneName}_${operation}_${baseline ? 'baseline' : 'optimized'}_$run']
+                          as Map)['gpu_metrics']
+                      as Map;
+              for (final key in [
+                'raw_completion_us',
+                'raw_completion_timestamps',
+                'raw_completed_ids',
+              ]) {
+                metrics[key] = List<int>.of(metrics[key] as List<int>);
+              }
+              gpuRenderer.dispose();
+            }
           }
         }
       }

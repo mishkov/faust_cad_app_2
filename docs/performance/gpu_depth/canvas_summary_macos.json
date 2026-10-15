@@ -1,0 +1,698 @@
+{
+  "default_orbit_optimized": {
+    "runs": 1,
+    "frames": 253,
+    "fps": 42.06703090397061,
+    "ui": {
+      "mean_ms": 10.953245059288538,
+      "p50_ms": 11.492,
+      "p95_ms": 14.299,
+      "p99_ms": 15.703,
+      "over_16_7_ms_percent": 0.3952569169960474
+    },
+    "raster": {
+      "mean_ms": 23.557474308300396,
+      "p50_ms": 24.641,
+      "p95_ms": 32.518,
+      "p99_ms": 34.538,
+      "over_16_7_ms_percent": 84.18972332015811
+    },
+    "vsync_interval": {
+      "mean_ms": 23.78457142857143,
+      "p50_ms": 27.778,
+      "p95_ms": 34.726,
+      "p99_ms": 34.728,
+      "over_16_7_ms_percent": 83.73015873015873
+    },
+    "either_over_16_7_ms_percent": 84.18972332015811,
+    "layer_ranges": {
+      "planar_faces": [
+        12,
+        14
+      ],
+      "curved_triangles": [
+        33,
+        106
+      ],
+      "edges": [
+        57,
+        255
+      ],
+      "sketch_overlays": [
+        0,
+        0
+      ],
+      "hidden_edges": [
+        0,
+        258
+      ],
+      "hidden_triangles": [
+        0,
+        71
+      ],
+      "mesh_batches": [
+        0,
+        35
+      ],
+      "cad_draws": [
+        1974,
+        5510
+      ],
+      "mesh_draws": [
+        54,
+        116
+      ],
+      "mesh_vertices": [
+        171,
+        2157
+      ],
+      "planar_draws": [
+        14,
+        14
+      ],
+      "edge_draws": [
+        68,
+        326
+      ],
+      "mask_draws": [
+        1835,
+        5081
+      ],
+      "resolved_triangles": [
+        0,
+        69
+      ],
+      "visibility_fallbacks": [
+        59,
+        120
+      ],
+      "visibility_work": [
+        8411,
+        262143
+      ]
+    },
+    "total_layer_range": [
+      127,
+      332
+    ],
+    "count_medians": {
+      "planar_faces": 14,
+      "curved_triangles": 59,
+      "edges": 183,
+      "sketch_overlays": 0,
+      "mesh_batches": 22,
+      "cad_draws": 3935,
+      "mesh_draws": 87,
+      "mesh_vertices": 705,
+      "mask_draws": 3564,
+      "resolved_triangles": 20,
+      "visibility_fallbacks": 103
+    },
+    "sampled_cpu_median_ms": {
+      "ui_projection_us": 0.386,
+      "ui_faces_us": 4.644,
+      "ui_edges_us": 5.715,
+      "ui_sketch_us": 0.0
+    }
+  },
+  "default_pan_optimized": {
+    "runs": 1,
+    "frames": 247,
+    "fps": 41.120009162936455,
+    "ui": {
+      "mean_ms": 11.322093117408908,
+      "p50_ms": 11.119,
+      "p95_ms": 13.78,
+      "p99_ms": 14.521,
+      "over_16_7_ms_percent": 0.0
+    },
+    "raster": {
+      "mean_ms": 24.13551821862348,
+      "p50_ms": 23.224,
+      "p95_ms": 32.346,
+      "p99_ms": 33.758,
+      "over_16_7_ms_percent": 97.57085020242916
+    },
+    "vsync_interval": {
+      "mean_ms": 24.307853658536583,
+      "p50_ms": 20.837,
+      "p95_ms": 34.725,
+      "p99_ms": 34.728,
+      "over_16_7_ms_percent": 95.52845528455285
+    },
+    "either_over_16_7_ms_percent": 97.57085020242916,
+    "layer_ranges": {
+      "planar_faces": [
+        12,
+        14
+      ],
+      "curved_triangles": [
+        77,
+        103
+      ],
+      "edges": [
+        116,
+        212
+      ],
+      "sketch_overlays": [
+        0,
+        0
+      ],
+      "hidden_edges": [
+        56,
+        188
+      ],
+      "hidden_triangles": [
+        0,
+        4
+      ],
+      "mesh_batches": [
+        14,
+        27
+      ],
+      "cad_draws": [
+        3246,
+        4583
+      ],
+      "mesh_draws": [
+        95,
+        119
+      ],
+      "mesh_vertices": [
+        453,
+        2049
+      ],
+      "planar_draws": [
+        14,
+        14
+      ],
+      "edge_draws": [
+        138,
+        270
+      ],
+      "mask_draws": [
+        2983,
+        4214
+      ],
+      "resolved_triangles": [
+        25,
+        47
+      ],
+      "visibility_fallbacks": [
+        77,
+        103
+      ],
+      "visibility_work": [
+        158550,
+        238034
+      ]
+    },
+    "total_layer_range": [
+      208,
+      307
+    ],
+    "count_medians": {
+      "planar_faces": 13,
+      "curved_triangles": 88,
+      "edges": 140,
+      "sketch_overlays": 0,
+      "mesh_batches": 22,
+      "cad_draws": 3763,
+      "mesh_draws": 112,
+      "mesh_vertices": 834,
+      "mask_draws": 3484,
+      "resolved_triangles": 36,
+      "visibility_fallbacks": 90
+    },
+    "sampled_cpu_median_ms": {
+      "ui_projection_us": 0.398,
+      "ui_faces_us": 4.844,
+      "ui_edges_us": 5.662,
+      "ui_sketch_us": 0.0
+    }
+  },
+  "default_zoom_optimized": {
+    "runs": 1,
+    "frames": 247,
+    "fps": 41.1486504158929,
+    "ui": {
+      "mean_ms": 11.319068825910932,
+      "p50_ms": 11.208,
+      "p95_ms": 12.777,
+      "p99_ms": 13.695,
+      "over_16_7_ms_percent": 0.0
+    },
+    "raster": {
+      "mean_ms": 24.06027125506073,
+      "p50_ms": 23.815,
+      "p95_ms": 29.502,
+      "p99_ms": 32.441,
+      "over_16_7_ms_percent": 100.0
+    },
+    "vsync_interval": {
+      "mean_ms": 24.25110569105691,
+      "p50_ms": 20.841,
+      "p95_ms": 27.783,
+      "p99_ms": 34.725,
+      "over_16_7_ms_percent": 97.96747967479675
+    },
+    "either_over_16_7_ms_percent": 100.0,
+    "layer_ranges": {
+      "planar_faces": [
+        12,
+        14
+      ],
+      "curved_triangles": [
+        73,
+        97
+      ],
+      "edges": [
+        128,
+        196
+      ],
+      "sketch_overlays": [
+        0,
+        0
+      ],
+      "hidden_edges": [
+        88,
+        168
+      ],
+      "hidden_triangles": [
+        0,
+        8
+      ],
+      "mesh_batches": [
+        18,
+        27
+      ],
+      "cad_draws": [
+        3298,
+        4449
+      ],
+      "mesh_draws": [
+        95,
+        118
+      ],
+      "mesh_vertices": [
+        576,
+        1437
+      ],
+      "planar_draws": [
+        14,
+        14
+      ],
+      "edge_draws": [
+        158,
+        238
+      ],
+      "mask_draws": [
+        3015,
+        4094
+      ],
+      "resolved_triangles": [
+        29,
+        53
+      ],
+      "visibility_fallbacks": [
+        73,
+        97
+      ],
+      "visibility_work": [
+        159459,
+        186014
+      ]
+    },
+    "total_layer_range": [
+      228,
+      288
+    ],
+    "count_medians": {
+      "planar_faces": 13,
+      "curved_triangles": 87,
+      "edges": 156,
+      "sketch_overlays": 0,
+      "mesh_batches": 22,
+      "cad_draws": 3817,
+      "mesh_draws": 111,
+      "mesh_vertices": 735,
+      "mask_draws": 3502,
+      "resolved_triangles": 37,
+      "visibility_fallbacks": 87
+    },
+    "sampled_cpu_median_ms": {
+      "ui_projection_us": 0.415,
+      "ui_faces_us": 4.691,
+      "ui_edges_us": 5.592,
+      "ui_sketch_us": 0.0
+    }
+  },
+  "partial_extrusion_orbit_optimized": {
+    "runs": 1,
+    "frames": 172,
+    "fps": 28.655233228608452,
+    "ui": {
+      "mean_ms": 18.223587209302323,
+      "p50_ms": 18.169,
+      "p95_ms": 23.136,
+      "p99_ms": 23.866,
+      "over_16_7_ms_percent": 69.76744186046511
+    },
+    "raster": {
+      "mean_ms": 34.60079069767442,
+      "p50_ms": 34.638,
+      "p95_ms": 43.62,
+      "p99_ms": 48.765,
+      "over_16_7_ms_percent": 100.0
+    },
+    "vsync_interval": {
+      "mean_ms": 34.84660233918129,
+      "p50_ms": 34.725,
+      "p95_ms": 41.672,
+      "p99_ms": 48.619,
+      "over_16_7_ms_percent": 99.41520467836257
+    },
+    "either_over_16_7_ms_percent": 100.0,
+    "layer_ranges": {
+      "planar_faces": [
+        17,
+        18
+      ],
+      "curved_triangles": [
+        49,
+        129
+      ],
+      "edges": [
+        158,
+        348
+      ],
+      "sketch_overlays": [
+        1,
+        1
+      ],
+      "hidden_edges": [
+        0,
+        316
+      ],
+      "hidden_triangles": [
+        0,
+        63
+      ],
+      "mesh_batches": [
+        15,
+        55
+      ],
+      "cad_draws": [
+        3386,
+        6753
+      ],
+      "mesh_draws": [
+        85,
+        168
+      ],
+      "mesh_vertices": [
+        648,
+        1275
+      ],
+      "planar_draws": [
+        18,
+        18
+      ],
+      "edge_draws": [
+        174,
+        490
+      ],
+      "mask_draws": [
+        3082,
+        6261
+      ],
+      "resolved_triangles": [
+        10,
+        75
+      ],
+      "visibility_fallbacks": [
+        127,
+        192
+      ],
+      "visibility_work": [
+        52583,
+        262144
+      ]
+    },
+    "total_layer_range": [
+      273,
+      429
+    ],
+    "count_medians": {
+      "planar_faces": 18.0,
+      "curved_triangles": 95.5,
+      "edges": 250.0,
+      "sketch_overlays": 1.0,
+      "mesh_batches": 34.5,
+      "cad_draws": 5240.0,
+      "mesh_draws": 121.0,
+      "mesh_vertices": 868.5,
+      "mask_draws": 4728.0,
+      "resolved_triangles": 43.5,
+      "visibility_fallbacks": 155.0
+    },
+    "sampled_cpu_median_ms": {
+      "ui_projection_us": 0.6635,
+      "ui_faces_us": 6.054,
+      "ui_edges_us": 8.1005,
+      "ui_sketch_us": 1.0255
+    }
+  },
+  "partial_extrusion_pan_optimized": {
+    "runs": 1,
+    "frames": 172,
+    "fps": 28.590430284313545,
+    "ui": {
+      "mean_ms": 20.513808139534884,
+      "p50_ms": 20.434,
+      "p95_ms": 23.655,
+      "p99_ms": 24.678,
+      "over_16_7_ms_percent": 99.4186046511628
+    },
+    "raster": {
+      "mean_ms": 34.7348023255814,
+      "p50_ms": 34.623,
+      "p95_ms": 40.214,
+      "p99_ms": 42.357,
+      "over_16_7_ms_percent": 100.0
+    },
+    "vsync_interval": {
+      "mean_ms": 34.96820467836257,
+      "p50_ms": 34.725,
+      "p95_ms": 41.67,
+      "p99_ms": 41.672,
+      "over_16_7_ms_percent": 100.0
+    },
+    "either_over_16_7_ms_percent": 100.0,
+    "layer_ranges": {
+      "planar_faces": [
+        16,
+        18
+      ],
+      "curved_triangles": [
+        95,
+        126
+      ],
+      "edges": [
+        214,
+        298
+      ],
+      "sketch_overlays": [
+        1,
+        1
+      ],
+      "hidden_edges": [
+        64,
+        204
+      ],
+      "hidden_triangles": [
+        0,
+        5
+      ],
+      "mesh_batches": [
+        19,
+        40
+      ],
+      "cad_draws": [
+        5101,
+        6266
+      ],
+      "mesh_draws": [
+        126,
+        153
+      ],
+      "mesh_vertices": [
+        717,
+        2190
+      ],
+      "planar_draws": [
+        18,
+        18
+      ],
+      "edge_draws": [
+        286,
+        426
+      ],
+      "mask_draws": [
+        4632,
+        5684
+      ],
+      "resolved_triangles": [
+        28,
+        63
+      ],
+      "visibility_fallbacks": [
+        139,
+        174
+      ],
+      "visibility_work": [
+        186045,
+        262143
+      ]
+    },
+    "total_layer_range": [
+      342,
+      424
+    ],
+    "count_medians": {
+      "planar_faces": 17.0,
+      "curved_triangles": 107.5,
+      "edges": 259.0,
+      "sketch_overlays": 1.0,
+      "mesh_batches": 30.0,
+      "cad_draws": 5646.0,
+      "mesh_draws": 136.0,
+      "mesh_vertices": 1137.0,
+      "mask_draws": 5154.0,
+      "resolved_triangles": 43.5,
+      "visibility_fallbacks": 156.0
+    },
+    "sampled_cpu_median_ms": {
+      "ui_projection_us": 0.735,
+      "ui_faces_us": 8.2565,
+      "ui_edges_us": 9.4165,
+      "ui_sketch_us": 1.729
+    }
+  },
+  "partial_extrusion_zoom_optimized": {
+    "runs": 1,
+    "frames": 172,
+    "fps": 28.655787019528255,
+    "ui": {
+      "mean_ms": 20.99889534883721,
+      "p50_ms": 20.942,
+      "p95_ms": 23.48,
+      "p99_ms": 25.692,
+      "over_16_7_ms_percent": 100.0
+    },
+    "raster": {
+      "mean_ms": 34.67579069767442,
+      "p50_ms": 34.806,
+      "p95_ms": 40.771,
+      "p99_ms": 41.725,
+      "over_16_7_ms_percent": 100.0
+    },
+    "vsync_interval": {
+      "mean_ms": 34.88680116959065,
+      "p50_ms": 34.724,
+      "p95_ms": 41.67,
+      "p99_ms": 41.671,
+      "over_16_7_ms_percent": 100.0
+    },
+    "either_over_16_7_ms_percent": 100.0,
+    "layer_ranges": {
+      "planar_faces": [
+        17,
+        18
+      ],
+      "curved_triangles": [
+        80,
+        118
+      ],
+      "edges": [
+        224,
+        300
+      ],
+      "sketch_overlays": [
+        1,
+        1
+      ],
+      "hidden_edges": [
+        94,
+        188
+      ],
+      "hidden_triangles": [
+        0,
+        5
+      ],
+      "mesh_batches": [
+        28,
+        41
+      ],
+      "cad_draws": [
+        4875,
+        6179
+      ],
+      "mesh_draws": [
+        115,
+        150
+      ],
+      "mesh_vertices": [
+        834,
+        1554
+      ],
+      "planar_draws": [
+        18,
+        18
+      ],
+      "edge_draws": [
+        302,
+        396
+      ],
+      "mask_draws": [
+        4415,
+        5642
+      ],
+      "resolved_triangles": [
+        41,
+        68
+      ],
+      "visibility_fallbacks": [
+        132,
+        160
+      ],
+      "visibility_work": [
+        189733,
+        208518
+      ]
+    },
+    "total_layer_range": [
+      350,
+      410
+    ],
+    "count_medians": {
+      "planar_faces": 18.0,
+      "curved_triangles": 101.0,
+      "edges": 252.0,
+      "sketch_overlays": 1.0,
+      "mesh_batches": 33.5,
+      "cad_draws": 5260.5,
+      "mesh_draws": 136.5,
+      "mesh_vertices": 1075.5,
+      "mask_draws": 4767.0,
+      "resolved_triangles": 51.0,
+      "visibility_fallbacks": 147.5
+    },
+    "sampled_cpu_median_ms": {
+      "ui_projection_us": 0.7655,
+      "ui_faces_us": 7.8665,
+      "ui_edges_us": 10.291,
+      "ui_sketch_us": 1.2675
+    }
+  }
+}

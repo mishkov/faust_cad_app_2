@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:faust_cad_app_2/cad_scene/rendering/gpu/gpu_scene_renderer.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/vertex.dart';
 import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
 import 'package:faust_cad_app_2/cad_scene/rendering/shaded_scene_renderer.dart';
@@ -19,8 +20,14 @@ class ViewportProfilePainter extends CustomPainter {
     this.scene,
     this.sketch,
     this.operation,
-    this.baseline,
-  ) : super(repaint: clock);
+    this.baseline, {
+    this.gpuRenderer,
+  }) : super(
+         repaint: gpuRenderer == null
+             ? clock
+             : Listenable.merge([clock, gpuRenderer]),
+       );
+  final GpuSceneRenderer? gpuRenderer;
   final ValueNotifier<double> clock;
   final TessellatedScene scene;
   final SketchGeometry? sketch;
@@ -61,7 +68,37 @@ class ViewportProfilePainter extends CustomPainter {
     }
     // Count only one in thirty frames to keep instrumentation off the hot path.
     final layers = _paints++ % 30 == 0 ? ViewportLayerCounts() : null;
-    if (baseline) {
+    if (gpuRenderer != null) {
+      ui.Image? image;
+      try {
+        image = gpuRenderer!.failure == null
+            ? gpuRenderer!.render(
+                camera,
+                size,
+                ui.PlatformDispatcher.instance.views.first.devicePixelRatio,
+                scene,
+              )
+            : null;
+      } catch (_) {
+        if (gpuRenderer!.failure == null) rethrow;
+      }
+      if (image != null) {
+        canvas.drawImageRect(
+          image,
+          Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+          Offset.zero & size,
+          Paint()..filterQuality = FilterQuality.none,
+        );
+        image.dispose();
+      } else if (gpuRenderer!.waitingForGpu) {
+        ShadedSceneRenderer(
+          camera,
+          devicePixelRatio:
+              ui.PlatformDispatcher.instance.views.first.devicePixelRatio,
+          layerCounts: layers,
+        ).paint(canvas, size, scene);
+      }
+    } else if (baseline) {
       BaselineShadedSceneRenderer(
         camera,
         layerCounts: layers,

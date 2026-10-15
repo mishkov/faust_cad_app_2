@@ -18,6 +18,8 @@ def summarize(report):
     for (scene, operation, baseline), runs in groups.items():
         ui = [v for run in runs for v in run["raw_ui_us"]]
         raster = [v for run in runs for v in run["raw_raster_us"]]
+        intervals = [b-a for run in runs
+                     for a, b in zip(run["raw_vsync_us"], run["raw_vsync_us"][1:])]
         assert len(ui) == len(raster) == sum(run["frames"] for run in runs)
         samples = [sample for run in runs for sample in run["layers"]]
 
@@ -38,6 +40,7 @@ def summarize(report):
             "fps": len(ui) / sum(run["capture_seconds"] for run in runs),
             "ui": timings(ui),
             "raster": timings(raster),
+            "vsync_interval": timings(intervals),
             "either_over_16_7_ms_percent": sum(
                 a > 16700 or b > 16700 for a, b in zip(ui, raster)
             ) * 100 / len(ui),

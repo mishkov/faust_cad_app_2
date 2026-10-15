@@ -1,0 +1,648 @@
+[
+  {
+    "scene": "blank",
+    "environment": {
+      "session_available": true,
+      "session_locked": false,
+      "on_console": true,
+      "gpu": "Apple M1",
+      "os": "Version 26.6.2 (Build 25G83)",
+      "foreground": true
+    },
+    "phase": "idle",
+    "cycle": 0,
+    "rss": 150913024,
+    "max_rss": 154648576,
+    "paints": null,
+    "viewport": null,
+    "dpr": 1.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 9005136,
+      "heapCapacity": 9699328,
+      "externalUsage": 1376
+    },
+    "allocation_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 6751968,
+      "heapCapacity": 9699328,
+      "externalUsage": 576
+    },
+    "live_renderer_classes": [
+      {
+        "name": "Vector3",
+        "instances": 144,
+        "bytes": 2304
+      },
+      {
+        "name": "ShadedSceneRenderer",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedMeshBatch",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedFaceIndex",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedFace",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "CurvedTriangleVisibility",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "Vertices",
+        "instances": 0,
+        "bytes": 0
+      }
+    ],
+    "heap_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 6853488,
+      "heapCapacity": 8912896,
+      "externalUsage": 576
+    },
+    "rss_after_probe_kib": 152608,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 1.9170152090009651
+  },
+  {
+    "scene": "default",
+    "environment": {
+      "on_console": true,
+      "session_available": true,
+      "session_locked": false,
+      "foreground": true,
+      "os": "Version 26.6.2 (Build 25G83)",
+      "gpu": "Apple M1"
+    },
+    "phase": "idle",
+    "cycle": 0,
+    "rss": 197066752,
+    "max_rss": 197066752,
+    "paints": 1,
+    "viewport": [
+      1064.0,
+      784.0
+    ],
+    "dpr": 1.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 9698576,
+      "heapCapacity": 10485760,
+      "externalUsage": 36032
+    },
+    "allocation_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7034720,
+      "heapCapacity": 10485760,
+      "externalUsage": 576
+    },
+    "live_renderer_classes": [
+      {
+        "name": "Vector3",
+        "instances": 1309,
+        "bytes": 20944
+      },
+      {
+        "name": "ShadedSceneRenderer",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedMeshBatch",
+        "instances": 1,
+        "bytes": 32
+      },
+      {
+        "name": "ProjectedFaceIndex",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedFace",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "CurvedTriangleVisibility",
+        "instances": 1,
+        "bytes": 176
+      },
+      {
+        "name": "Vertices",
+        "instances": 0,
+        "bytes": 0
+      }
+    ],
+    "heap_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7106672,
+      "heapCapacity": 10485760,
+      "externalUsage": 576
+    },
+    "rss_after_probe_kib": 194768,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 1.6457763750004233
+  },
+  {
+    "scene": "default",
+    "environment": {
+      "gpu": "Apple M1",
+      "session_available": true,
+      "session_locked": false,
+      "os": "Version 26.6.2 (Build 25G83)",
+      "on_console": true,
+      "foreground": true
+    },
+    "phase": "rotation",
+    "cycle": 1,
+    "rss": 194084864,
+    "max_rss": 214810624,
+    "paints": 250,
+    "viewport": [
+      1064.0,
+      784.0
+    ],
+    "dpr": 1.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 9783712,
+      "heapCapacity": 11010048,
+      "externalUsage": 61152
+    },
+    "rss_after_probe_kib": 182224,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 2.088115292001021
+  },
+  {
+    "scene": "default",
+    "environment": {
+      "foreground": true,
+      "gpu": "Apple M1",
+      "on_console": true,
+      "session_available": true,
+      "os": "Version 26.6.2 (Build 25G83)",
+      "session_locked": false
+    },
+    "phase": "rotation",
+    "cycle": 2,
+    "rss": 196804608,
+    "max_rss": 214810624,
+    "paints": 491,
+    "viewport": [
+      1064.0,
+      784.0
+    ],
+    "dpr": 1.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 13479376,
+      "heapCapacity": 14680064,
+      "externalUsage": 119456
+    },
+    "rss_after_probe_kib": 189072,
+    "probe_seconds": 0.01716804100033187
+  },
+  {
+    "scene": "default",
+    "environment": {
+      "os": "Version 26.6.2 (Build 25G83)",
+      "session_available": true,
+      "session_locked": false,
+      "foreground": true,
+      "gpu": "Apple M1",
+      "on_console": true
+    },
+    "phase": "rotation",
+    "cycle": 3,
+    "rss": 198393856,
+    "max_rss": 214810624,
+    "paints": 719,
+    "viewport": [
+      1064.0,
+      784.0
+    ],
+    "dpr": 1.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 12536240,
+      "heapCapacity": 13631488,
+      "externalUsage": 98592
+    },
+    "rss_after_probe_kib": 189136,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 2.809462999999596
+  },
+  {
+    "scene": "default",
+    "environment": {
+      "gpu": "Apple M1",
+      "os": "Version 26.6.2 (Build 25G83)",
+      "session_available": true,
+      "foreground": true,
+      "session_locked": false,
+      "on_console": true
+    },
+    "phase": "rest",
+    "cycle": 3,
+    "rss": 190152704,
+    "max_rss": 214810624,
+    "paints": 719,
+    "viewport": [
+      1064.0,
+      784.0
+    ],
+    "dpr": 1.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 10292128,
+      "heapCapacity": 11534336,
+      "externalUsage": 5120
+    },
+    "allocation_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7033792,
+      "heapCapacity": 11534336,
+      "externalUsage": 576
+    },
+    "live_renderer_classes": [
+      {
+        "name": "Vector3",
+        "instances": 1309,
+        "bytes": 20944
+      },
+      {
+        "name": "ShadedSceneRenderer",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedMeshBatch",
+        "instances": 1,
+        "bytes": 32
+      },
+      {
+        "name": "ProjectedFaceIndex",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedFace",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "CurvedTriangleVisibility",
+        "instances": 1,
+        "bytes": 176
+      },
+      {
+        "name": "Vertices",
+        "instances": 0,
+        "bytes": 0
+      }
+    ],
+    "heap_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7102448,
+      "heapCapacity": 11534336,
+      "externalUsage": 576
+    },
+    "rss_after_probe_kib": 189200,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 3.050669124999331
+  },
+  {
+    "scene": "partial_extrusion",
+    "environment": {
+      "session_available": true,
+      "os": "Version 26.6.2 (Build 25G83)",
+      "session_locked": false,
+      "foreground": true,
+      "on_console": true,
+      "gpu": "Apple M1"
+    },
+    "phase": "idle",
+    "cycle": 0,
+    "rss": 193413120,
+    "max_rss": 214810624,
+    "paints": 1,
+    "viewport": [
+      1064.0,
+      784.0
+    ],
+    "dpr": 1.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 9080032,
+      "heapCapacity": 10485760,
+      "externalUsage": 10048
+    },
+    "allocation_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7151056,
+      "heapCapacity": 9961472,
+      "externalUsage": 576
+    },
+    "live_renderer_classes": [
+      {
+        "name": "Vector3",
+        "instances": 2229,
+        "bytes": 35664
+      },
+      {
+        "name": "ShadedSceneRenderer",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedMeshBatch",
+        "instances": 1,
+        "bytes": 32
+      },
+      {
+        "name": "ProjectedFaceIndex",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedFace",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "CurvedTriangleVisibility",
+        "instances": 1,
+        "bytes": 176
+      },
+      {
+        "name": "Vertices",
+        "instances": 0,
+        "bytes": 0
+      }
+    ],
+    "heap_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7195808,
+      "heapCapacity": 9961472,
+      "externalUsage": 576
+    },
+    "rss_after_probe_kib": 189568,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 2.561435834000804
+  },
+  {
+    "scene": "partial_extrusion",
+    "environment": {
+      "os": "Version 26.6.2 (Build 25G83)",
+      "session_available": true,
+      "on_console": true,
+      "gpu": "Apple M1",
+      "foreground": true,
+      "session_locked": false
+    },
+    "phase": "rotation",
+    "cycle": 1,
+    "rss": 215416832,
+    "max_rss": 215433216,
+    "paints": 168,
+    "viewport": [
+      1064.0,
+      784.0
+    ],
+    "dpr": 1.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 8500672,
+      "heapCapacity": 9437184,
+      "externalUsage": 25312
+    },
+    "rss_after_probe_kib": 199584,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 1.3612260000008973
+  },
+  {
+    "scene": "partial_extrusion",
+    "environment": {
+      "on_console": true,
+      "os": "Version 26.6.2 (Build 25G83)",
+      "session_locked": false,
+      "foreground": true,
+      "session_available": true,
+      "gpu": "Apple M1"
+    },
+    "phase": "rotation",
+    "cycle": 2,
+    "rss": 217432064,
+    "max_rss": 217448448,
+    "paints": 339,
+    "viewport": [
+      1064.0,
+      784.0
+    ],
+    "dpr": 1.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 15175568,
+      "heapCapacity": 16252928,
+      "externalUsage": 146656
+    },
+    "rss_after_probe_kib": 212336,
+    "probe_seconds": 0.007754291000310332
+  },
+  {
+    "scene": "partial_extrusion",
+    "environment": {
+      "gpu": "Apple M1",
+      "foreground": true,
+      "session_available": true,
+      "session_locked": false,
+      "on_console": true,
+      "os": "Version 26.6.2 (Build 25G83)"
+    },
+    "phase": "rotation",
+    "cycle": 3,
+    "rss": 220479488,
+    "max_rss": 220692480,
+    "paints": 513,
+    "viewport": [
+      1064.0,
+      784.0
+    ],
+    "dpr": 1.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 15506048,
+      "heapCapacity": 17301504,
+      "externalUsage": 144192
+    },
+    "rss_after_probe_kib": 215360,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 1.376461500000005
+  },
+  {
+    "scene": "partial_extrusion",
+    "environment": {
+      "session_locked": false,
+      "foreground": true,
+      "session_available": true,
+      "on_console": true,
+      "gpu": "Apple M1",
+      "os": "Version 26.6.2 (Build 25G83)"
+    },
+    "phase": "rest",
+    "cycle": 3,
+    "rss": 213270528,
+    "max_rss": 220692480,
+    "paints": 513,
+    "viewport": [
+      1064.0,
+      784.0
+    ],
+    "dpr": 1.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 10405584,
+      "heapCapacity": 13107200,
+      "externalUsage": 576
+    },
+    "allocation_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7150112,
+      "heapCapacity": 11534336,
+      "externalUsage": 576
+    },
+    "live_renderer_classes": [
+      {
+        "name": "Vector3",
+        "instances": 2229,
+        "bytes": 35664
+      },
+      {
+        "name": "ShadedSceneRenderer",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedMeshBatch",
+        "instances": 1,
+        "bytes": 32
+      },
+      {
+        "name": "ProjectedFaceIndex",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedFace",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "CurvedTriangleVisibility",
+        "instances": 1,
+        "bytes": 176
+      },
+      {
+        "name": "Vertices",
+        "instances": 0,
+        "bytes": 0
+      }
+    ],
+    "heap_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7187536,
+      "heapCapacity": 11534336,
+      "externalUsage": 576
+    },
+    "rss_after_probe_kib": 207008,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 1.4603742500003136
+  },
+  {
+    "scene": "unmounted",
+    "environment": {
+      "session_locked": false,
+      "foreground": true,
+      "session_available": true,
+      "on_console": true,
+      "gpu": "Apple M1",
+      "os": "Version 26.6.2 (Build 25G83)"
+    },
+    "phase": "rest",
+    "cycle": 3,
+    "rss": 201310208,
+    "max_rss": 220692480,
+    "paints": null,
+    "viewport": null,
+    "dpr": 1.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 12441248,
+      "heapCapacity": 13631488,
+      "externalUsage": 736
+    },
+    "allocation_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 6926832,
+      "heapCapacity": 13631488,
+      "externalUsage": 576
+    },
+    "live_renderer_classes": [
+      {
+        "name": "Vector3",
+        "instances": 145,
+        "bytes": 2320
+      },
+      {
+        "name": "ShadedSceneRenderer",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedMeshBatch",
+        "instances": 1,
+        "bytes": 32
+      },
+      {
+        "name": "ProjectedFaceIndex",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedFace",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "CurvedTriangleVisibility",
+        "instances": 1,
+        "bytes": 176
+      },
+      {
+        "name": "Vertices",
+        "instances": 0,
+        "bytes": 0
+      }
+    ],
+    "heap_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7032336,
+      "heapCapacity": 13631488,
+      "externalUsage": 576
+    },
+    "rss_after_probe_kib": 196992,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 1.2130880419990717
+  }
+]
