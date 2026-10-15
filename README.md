@@ -2,6 +2,34 @@
 
 A Flutter CAD viewer with wireframe and shaded rendering.
 
+## STEP export
+
+Click **Export STEP** below **Model edits** and choose a destination in the native
+save dialog. The file contains the document's current valid solid bodies. Sketches,
+the ground grid, viewer fixtures, and failed-feature diagnostic geometry are
+excluded. Export is disabled when the document has no solids. Canceling the dialog
+leaves the model unchanged; save errors appear in the CAD window.
+
+The exporter writes STEP AP214 (`.step` or `.stp`) with **one model unit interpreted
+as one millimeter**. It preserves analytic lines, circular arcs, planes, cylinders,
+shared boundary topology, face holes, and cavity shells. It does not export feature
+history or sketch constraints. Unsupported curve/surface types and invalidated
+topology fail before a file is saved. As with `Solid`, geometric validity and
+material-side orientation remain the geometry builder's responsibility.
+
+The platform-independent serializer is also available directly:
+
+```dart
+final solids = document.evaluation.materializeGeometry().geometry.whereType<Solid>();
+final stepText = const StepExporter().exportSolids(solids);
+```
+
+Import `step_export/step_exporter.dart` and `cad_scene/cad_primitivies/solid.dart`.
+Exporter and save-flow tests run with `flutter test test/step_export`. Interoperability
+was checked using Open Cascade imports of cubes, cylinders, tubes, cavities,
+multiple bodies, and tilted/reversed extrusions with overlapping arcs and holes;
+all imported as valid solids with the expected volumes.
+
 ## Render modes
 
 `CadScene.renderMode` accepts `CadRenderMode.frame` (the default) or

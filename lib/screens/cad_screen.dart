@@ -1,5 +1,8 @@
 import 'dart:math' as math;
 
+import '../cad_scene/cad_primitivies/solid.dart';
+import '../step_export/step_export_button.dart';
+
 import '../document/features/extrude_feature.dart';
 import '../feature_history/feature_history_panel.dart';
 import '../extrusion_editor/extrusion_editor_controller.dart';
@@ -394,6 +397,14 @@ class _CadScreenState extends State<CadScreen>
                             icon: const Icon(Icons.redo),
                           ),
                         ],
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                        child: StepExportButton(
+                          solids: evaluated.geometry
+                              .whereType<Solid>()
+                              .toList(),
+                        ),
                       ),
                       Expanded(
                         flex: 3,
