@@ -1,0 +1,1024 @@
+{
+  "performance": {
+    "default_canvas_orbit": {
+      "environment": {
+        "activeRenderers": 0,
+        "pid": 33044,
+        "desktopUnlocked": true,
+        "foregroundPid": 33044
+      },
+      "viewport": [
+        912.0,
+        602.0
+      ],
+      "dpr": 1.0,
+      "seconds": 6.012785,
+      "flutterFrames": 238,
+      "flutterFps": 39.58232333269857,
+      "uiMs": {
+        "p50": 11.419,
+        "p95": 14.608,
+        "p99": 15.527
+      },
+      "rasterMs": {
+        "p50": 25.696,
+        "p95": 35.608,
+        "p99": 38.153
+      }
+    },
+    "default_canvas_pan": {
+      "environment": {
+        "activeRenderers": 0,
+        "pid": 33044,
+        "desktopUnlocked": true,
+        "foregroundPid": 33044
+      },
+      "viewport": [
+        912.0,
+        602.0
+      ],
+      "dpr": 1.0,
+      "seconds": 6.001553,
+      "flutterFrames": 235,
+      "flutterFps": 39.15653165105765,
+      "uiMs": {
+        "p50": 11.561,
+        "p95": 13.319,
+        "p99": 13.682
+      },
+      "rasterMs": {
+        "p50": 24.944,
+        "p95": 34.17,
+        "p99": 36.003
+      }
+    },
+    "default_canvas_zoom": {
+      "environment": {
+        "foregroundPid": 33044,
+        "pid": 33044,
+        "desktopUnlocked": true,
+        "activeRenderers": 0
+      },
+      "viewport": [
+        912.0,
+        602.0
+      ],
+      "dpr": 1.0,
+      "seconds": 6.001609,
+      "flutterFrames": 230,
+      "flutterFps": 38.3230563670509,
+      "uiMs": {
+        "p50": 10.89,
+        "p95": 13.093,
+        "p99": 13.576
+      },
+      "rasterMs": {
+        "p50": 25.233,
+        "p95": 34.377,
+        "p99": 37.103
+      }
+    },
+    "default_metal_orbit": {
+      "environment": {
+        "activeRenderers": 1,
+        "pid": 33044,
+        "desktopUnlocked": true,
+        "foregroundPid": 33044
+      },
+      "viewport": [
+        912.0,
+        602.0
+      ],
+      "dpr": 1.0,
+      "seconds": 6.00312,
+      "flutterFrames": 864,
+      "flutterFps": 143.92515891736298,
+      "uiMs": {
+        "p50": 0.678,
+        "p95": 0.878,
+        "p99": 0.974
+      },
+      "rasterMs": {
+        "p50": 0.625,
+        "p95": 0.833,
+        "p99": 0.955
+      },
+      "deliveredFps": 59.963693232997905,
+      "deliveredFrames": 360,
+      "nativeCaptureSeconds": 6.003632874999312,
+      "gpuMs": {
+        "p50": 0.0920416641747579,
+        "p95": 3.129500000795815,
+        "p99": 5.000500001187902
+      },
+      "nativeRequestToPresentMs": {
+        "p50": 20.27254166750936,
+        "p95": 33.49716666707536,
+        "p99": 34.099458334821975
+      },
+      "presentIntervalMs": {
+        "p50": 13.89033333180123,
+        "p95": 20.835499999520835,
+        "p99": 27.780583332059905
+      },
+      "before": {
+        "error": null,
+        "precisionClipFrames": 0,
+        "presented": 240,
+        "geometryBytes": 82128,
+        "transientBytes": 256,
+        "targetGeneration": 2,
+        "metalAllocatedBytes": 43384832,
+        "peakInFlight": 1,
+        "geometryUploads": 1,
+        "lastPresented": 573,
+        "inFlight": 0,
+        "submitted": 242,
+        "nativeTime": 26609.291443250007,
+        "frameSlots": 2,
+        "maximumDrawables": 3,
+        "lastRequested": 578,
+        "device": "Apple M1",
+        "samples": 4,
+        "coalesced": 336,
+        "residentBytes": 180518912,
+        "gpuMilliseconds": {
+          "p50": 0.11787499897764064,
+          "p95": 3.487999998469604,
+          "p99": 5.853083333931863
+        },
+        "requestToPresentMilliseconds": {
+          "p50": 20.33787499749451,
+          "p95": 33.419916668208316,
+          "p99": 34.10687499854248
+        }
+      },
+      "after": {
+        "error": null,
+        "precisionClipFrames": 0,
+        "presented": 363,
+        "geometryBytes": 82128,
+        "transientBytes": 256,
+        "targetGeneration": 2,
+        "metalAllocatedBytes": 40599552,
+        "peakInFlight": 1,
+        "geometryUploads": 1,
+        "lastPresented": 1443,
+        "inFlight": 0,
+        "submitted": 362,
+        "nativeTime": 26616.300207166674,
+        "frameSlots": 2,
+        "maximumDrawables": 3,
+        "lastRequested": 1443,
+        "device": "Apple M1",
+        "samples": 4,
+        "coalesced": 504,
+        "residentBytes": 176570368,
+        "gpuMilliseconds": {
+          "p50": 0.0920416641747579,
+          "p95": 3.129500000795815,
+          "p99": 5.000500001187902
+        },
+        "requestToPresentMilliseconds": {
+          "p50": 20.27254166750936,
+          "p95": 33.49716666707536,
+          "p99": 34.099458334821975
+        }
+      }
+    },
+    "default_metal_pan": {
+      "environment": {
+        "foregroundPid": 33044,
+        "pid": 33044,
+        "desktopUnlocked": true,
+        "activeRenderers": 1
+      },
+      "viewport": [
+        912.0,
+        602.0
+      ],
+      "dpr": 1.0,
+      "seconds": 6.001924,
+      "flutterFrames": 864,
+      "flutterFps": 143.95383880235738,
+      "uiMs": {
+        "p50": 0.711,
+        "p95": 0.875,
+        "p99": 0.967
+      },
+      "rasterMs": {
+        "p50": 0.641,
+        "p95": 0.862,
+        "p99": 0.969
+      },
+      "deliveredFps": 59.97720241547593,
+      "deliveredFrames": 360,
+      "nativeCaptureSeconds": 6.002280624998093,
+      "gpuMs": {
+        "p50": 0.1019583323795814,
+        "p95": 2.993666668771766,
+        "p99": 4.951874998369021
+      },
+      "nativeRequestToPresentMs": {
+        "p50": 20.2095000022382,
+        "p95": 33.49458333104849,
+        "p99": 33.931833331735106
+      },
+      "presentIntervalMs": {
+        "p50": 13.890333335439209,
+        "p95": 27.78050000051735,
+        "p99": 27.780624997831183
+      },
+      "before": {
+        "error": null,
+        "precisionClipFrames": 0,
+        "presented": 602,
+        "geometryBytes": 82128,
+        "transientBytes": 256,
+        "targetGeneration": 2,
+        "metalAllocatedBytes": 43384832,
+        "peakInFlight": 1,
+        "geometryUploads": 1,
+        "lastPresented": 2014,
+        "inFlight": 1,
+        "submitted": 603,
+        "nativeTime": 26620.314135541674,
+        "frameSlots": 2,
+        "maximumDrawables": 3,
+        "lastRequested": 2019,
+        "device": "Apple M1",
+        "samples": 4,
+        "coalesced": 839,
+        "residentBytes": 175423488,
+        "gpuMilliseconds": {
+          "p50": 0.09575000149197876,
+          "p95": 3.571124998416053,
+          "p99": 5.000500001187902
+        },
+        "requestToPresentMilliseconds": {
+          "p50": 20.286833332647802,
+          "p95": 33.43529166522785,
+          "p99": 34.024291668174556
+        }
+      },
+      "after": {
+        "error": null,
+        "precisionClipFrames": 0,
+        "presented": 362,
+        "geometryBytes": 82128,
+        "transientBytes": 256,
+        "targetGeneration": 2,
+        "metalAllocatedBytes": 45645824,
+        "peakInFlight": 1,
+        "geometryUploads": 1,
+        "lastPresented": 2884,
+        "inFlight": 0,
+        "submitted": 361,
+        "nativeTime": 26627.323236875007,
+        "frameSlots": 2,
+        "maximumDrawables": 3,
+        "lastRequested": 2884,
+        "device": "Apple M1",
+        "samples": 4,
+        "coalesced": 504,
+        "residentBytes": 177717248,
+        "gpuMilliseconds": {
+          "p50": 0.1019583323795814,
+          "p95": 2.993666668771766,
+          "p99": 4.951874998369021
+        },
+        "requestToPresentMilliseconds": {
+          "p50": 20.2095000022382,
+          "p95": 33.49458333104849,
+          "p99": 33.931833331735106
+        }
+      }
+    },
+    "default_metal_zoom": {
+      "environment": {
+        "foregroundPid": 33044,
+        "pid": 33044,
+        "desktopUnlocked": true,
+        "activeRenderers": 1
+      },
+      "viewport": [
+        912.0,
+        602.0
+      ],
+      "dpr": 1.0,
+      "seconds": 6.00133,
+      "flutterFrames": 865,
+      "flutterFps": 144.13471680444167,
+      "uiMs": {
+        "p50": 0.688,
+        "p95": 0.873,
+        "p99": 0.985
+      },
+      "rasterMs": {
+        "p50": 0.62,
+        "p95": 0.846,
+        "p99": 0.978
+      },
+      "deliveredFps": 60.15232033826004,
+      "deliveredFrames": 361,
+      "nativeCaptureSeconds": 6.0014310000005935,
+      "gpuMs": {
+        "p50": 0.09458333443035372,
+        "p95": 2.940000002126908,
+        "p99": 4.868500000156928
+      },
+      "nativeRequestToPresentMs": {
+        "p50": 20.27783333323896,
+        "p95": 27.259791666438105,
+        "p99": 34.097916664904915
+      },
+      "presentIntervalMs": {
+        "p50": 13.890333335439209,
+        "p95": 27.78050000051735,
+        "p99": 27.780624997831183
+      },
+      "before": {
+        "error": null,
+        "precisionClipFrames": 0,
+        "presented": 601,
+        "geometryBytes": 82128,
+        "transientBytes": 256,
+        "targetGeneration": 2,
+        "metalAllocatedBytes": 45645824,
+        "peakInFlight": 1,
+        "geometryUploads": 1,
+        "lastPresented": 3457,
+        "inFlight": 0,
+        "submitted": 602,
+        "nativeTime": 26631.334394000005,
+        "frameSlots": 2,
+        "maximumDrawables": 3,
+        "lastRequested": 3461,
+        "device": "Apple M1",
+        "samples": 4,
+        "coalesced": 839,
+        "residentBytes": 178782208,
+        "gpuMilliseconds": {
+          "p50": 0.11354166417731903,
+          "p95": 3.2624583327560686,
+          "p99": 5.360375002055662
+        },
+        "requestToPresentMilliseconds": {
+          "p50": 20.2900000003865,
+          "p95": 33.47491666863789,
+          "p99": 33.80124999966938
+        }
+      },
+      "after": {
+        "error": null,
+        "precisionClipFrames": 0,
+        "presented": 362,
+        "geometryBytes": 82128,
+        "transientBytes": 256,
+        "targetGeneration": 2,
+        "metalAllocatedBytes": 45645824,
+        "peakInFlight": 1,
+        "geometryUploads": 1,
+        "lastPresented": 4326,
+        "inFlight": 0,
+        "submitted": 361,
+        "nativeTime": 26638.338554208338,
+        "frameSlots": 2,
+        "maximumDrawables": 3,
+        "lastRequested": 4326,
+        "device": "Apple M1",
+        "samples": 4,
+        "coalesced": 505,
+        "residentBytes": 174653440,
+        "gpuMilliseconds": {
+          "p50": 0.09458333443035372,
+          "p95": 2.940000002126908,
+          "p99": 4.868500000156928
+        },
+        "requestToPresentMilliseconds": {
+          "p50": 20.27783333323896,
+          "p95": 27.259791666438105,
+          "p99": 34.097916664904915
+        }
+      }
+    },
+    "partial_canvas_orbit": {
+      "environment": {
+        "activeRenderers": 0,
+        "pid": 33044,
+        "desktopUnlocked": true,
+        "foregroundPid": 33044
+      },
+      "viewport": [
+        912.0,
+        602.0
+      ],
+      "dpr": 1.0,
+      "seconds": 6.002554,
+      "flutterFrames": 161,
+      "flutterFps": 26.821916137697386,
+      "uiMs": {
+        "p50": 16.537,
+        "p95": 19.938,
+        "p99": 22.421
+      },
+      "rasterMs": {
+        "p50": 36.461,
+        "p95": 47.238,
+        "p99": 54.882
+      }
+    },
+    "partial_canvas_pan": {
+      "environment": {
+        "activeRenderers": 0,
+        "pid": 33044,
+        "desktopUnlocked": true,
+        "foregroundPid": 33044
+      },
+      "viewport": [
+        912.0,
+        602.0
+      ],
+      "dpr": 1.0,
+      "seconds": 6.002895,
+      "flutterFrames": 161,
+      "flutterFps": 26.820392493955,
+      "uiMs": {
+        "p50": 17.648,
+        "p95": 19.572,
+        "p99": 20.327
+      },
+      "rasterMs": {
+        "p50": 36.614,
+        "p95": 42.97,
+        "p99": 47.286
+      }
+    },
+    "partial_canvas_zoom": {
+      "environment": {
+        "activeRenderers": 0,
+        "pid": 33044,
+        "desktopUnlocked": true,
+        "foregroundPid": 33044
+      },
+      "viewport": [
+        912.0,
+        602.0
+      ],
+      "dpr": 1.0,
+      "seconds": 6.018593,
+      "flutterFrames": 163,
+      "flutterFps": 27.082741763731157,
+      "uiMs": {
+        "p50": 18.072,
+        "p95": 21.766,
+        "p99": 29.573
+      },
+      "rasterMs": {
+        "p50": 35.056,
+        "p95": 43.561,
+        "p99": 46.698
+      }
+    },
+    "partial_metal_orbit": {
+      "environment": {
+        "activeRenderers": 1,
+        "pid": 33044,
+        "desktopUnlocked": true,
+        "foregroundPid": 33044
+      },
+      "viewport": [
+        912.0,
+        602.0
+      ],
+      "dpr": 1.0,
+      "seconds": 6.002327,
+      "flutterFrames": 864,
+      "flutterFps": 143.9441736513189,
+      "uiMs": {
+        "p50": 0.487,
+        "p95": 0.898,
+        "p99": 0.985
+      },
+      "rasterMs": {
+        "p50": 0.439,
+        "p95": 0.814,
+        "p99": 0.915
+      },
+      "deliveredFps": 60.13812444460415,
+      "deliveredFrames": 361,
+      "nativeCaptureSeconds": 6.002847666666639,
+      "gpuMs": {
+        "p50": 0.10441666381666437,
+        "p95": 2.8322916659817565,
+        "p99": 4.704708331701113
+      },
+      "nativeRequestToPresentMs": {
+        "p50": 20.202583331411006,
+        "p95": 33.375958333635936,
+        "p99": 33.88454166633892
+      },
+      "presentIntervalMs": {
+        "p50": 13.89000000199303,
+        "p95": 27.77987499939627,
+        "p99": 27.779916668805527
+      },
+      "before": {
+        "error": null,
+        "precisionClipFrames": 0,
+        "presented": 240,
+        "geometryBytes": 235392,
+        "transientBytes": 256,
+        "targetGeneration": 2,
+        "metalAllocatedBytes": 45826048,
+        "peakInFlight": 1,
+        "geometryUploads": 1,
+        "lastPresented": 574,
+        "inFlight": 0,
+        "submitted": 242,
+        "nativeTime": 26675.901092000007,
+        "frameSlots": 2,
+        "maximumDrawables": 3,
+        "lastRequested": 578,
+        "device": "Apple M1",
+        "samples": 4,
+        "coalesced": 336,
+        "residentBytes": 209551360,
+        "gpuMilliseconds": {
+          "p50": 0.12737499855575152,
+          "p95": 3.531541664415272,
+          "p99": 5.785833331174217
+        },
+        "requestToPresentMilliseconds": {
+          "p50": 20.275291666621342,
+          "p95": 33.298791666311445,
+          "p99": 33.88029166671913
+        }
+      },
+      "after": {
+        "error": null,
+        "precisionClipFrames": 0,
+        "presented": 363,
+        "geometryBytes": 235392,
+        "transientBytes": 256,
+        "targetGeneration": 2,
+        "metalAllocatedBytes": 45826048,
+        "peakInFlight": 1,
+        "geometryUploads": 1,
+        "lastPresented": 1443,
+        "inFlight": 0,
+        "submitted": 362,
+        "nativeTime": 26682.908466791672,
+        "frameSlots": 2,
+        "maximumDrawables": 3,
+        "lastRequested": 1443,
+        "device": "Apple M1",
+        "samples": 4,
+        "coalesced": 504,
+        "residentBytes": 197918720,
+        "gpuMilliseconds": {
+          "p50": 0.10441666381666437,
+          "p95": 2.8322916659817565,
+          "p99": 4.704708331701113
+        },
+        "requestToPresentMilliseconds": {
+          "p50": 20.202583331411006,
+          "p95": 33.375958333635936,
+          "p99": 33.88454166633892
+        }
+      }
+    },
+    "partial_metal_pan": {
+      "environment": {
+        "foregroundPid": 33044,
+        "pid": 33044,
+        "desktopUnlocked": true,
+        "activeRenderers": 1
+      },
+      "viewport": [
+        912.0,
+        602.0
+      ],
+      "dpr": 1.0,
+      "seconds": 6.002591,
+      "flutterFrames": 864,
+      "flutterFps": 143.93784284153293,
+      "uiMs": {
+        "p50": 0.74,
+        "p95": 0.927,
+        "p99": 1.014
+      },
+      "rasterMs": {
+        "p50": 0.632,
+        "p95": 0.859,
+        "p99": 0.948
+      },
+      "deliveredFps": 60.13819457253494,
+      "deliveredFrames": 361,
+      "nativeCaptureSeconds": 6.0028406666679075,
+      "gpuMs": {
+        "p50": 0.11370833453838713,
+        "p95": 3.2173750005313195,
+        "p99": 5.622249998850748
+      },
+      "nativeRequestToPresentMs": {
+        "p50": 20.18099999986589,
+        "p95": 33.1158333356143,
+        "p99": 33.98400000151014
+      },
+      "presentIntervalMs": {
+        "p50": 13.890041667764308,
+        "p95": 20.8350833345321,
+        "p99": 27.78004166611936
+      },
+      "before": {
+        "error": null,
+        "precisionClipFrames": 0,
+        "presented": 602,
+        "geometryBytes": 235392,
+        "transientBytes": 256,
+        "targetGeneration": 2,
+        "metalAllocatedBytes": 45826048,
+        "peakInFlight": 1,
+        "geometryUploads": 1,
+        "lastPresented": 2016,
+        "inFlight": 0,
+        "submitted": 603,
+        "nativeTime": 26686.915436500007,
+        "frameSlots": 2,
+        "maximumDrawables": 3,
+        "lastRequested": 2020,
+        "device": "Apple M1",
+        "samples": 4,
+        "coalesced": 839,
+        "residentBytes": 196198400,
+        "gpuMilliseconds": {
+          "p50": 0.11499999891384505,
+          "p95": 3.1859166665526573,
+          "p99": 4.786375000549015
+        },
+        "requestToPresentMilliseconds": {
+          "p50": 20.226458331308095,
+          "p95": 33.43125000174041,
+          "p99": 33.88454166633892
+        }
+      },
+      "after": {
+        "error": null,
+        "precisionClipFrames": 0,
+        "presented": 362,
+        "geometryBytes": 235392,
+        "transientBytes": 256,
+        "targetGeneration": 2,
+        "metalAllocatedBytes": 45826048,
+        "peakInFlight": 1,
+        "geometryUploads": 1,
+        "lastPresented": 2885,
+        "inFlight": 0,
+        "submitted": 361,
+        "nativeTime": 26693.924531875007,
+        "frameSlots": 2,
+        "maximumDrawables": 3,
+        "lastRequested": 2885,
+        "device": "Apple M1",
+        "samples": 4,
+        "coalesced": 505,
+        "residentBytes": 201998336,
+        "gpuMilliseconds": {
+          "p50": 0.11370833453838713,
+          "p95": 3.2173750005313195,
+          "p99": 5.622249998850748
+        },
+        "requestToPresentMilliseconds": {
+          "p50": 20.18099999986589,
+          "p95": 33.1158333356143,
+          "p99": 33.98400000151014
+        }
+      }
+    },
+    "partial_metal_zoom": {
+      "environment": {
+        "foregroundPid": 33044,
+        "pid": 33044,
+        "desktopUnlocked": true,
+        "activeRenderers": 1
+      },
+      "viewport": [
+        912.0,
+        602.0
+      ],
+      "dpr": 1.0,
+      "seconds": 6.002463,
+      "flutterFrames": 864,
+      "flutterFps": 143.94091225551912,
+      "uiMs": {
+        "p50": 0.718,
+        "p95": 0.895,
+        "p99": 0.985
+      },
+      "rasterMs": {
+        "p50": 0.616,
+        "p95": 0.841,
+        "p99": 0.925
+      },
+      "deliveredFps": 59.97304295017231,
+      "deliveredFrames": 360,
+      "nativeCaptureSeconds": 6.002696916664718,
+      "gpuMs": {
+        "p50": 0.11699999959091656,
+        "p95": 3.3720833307597786,
+        "p99": 5.552666669245809
+      },
+      "nativeRequestToPresentMs": {
+        "p50": 20.23616666701855,
+        "p95": 27.272125000308733,
+        "p99": 33.60866666480433
+      },
+      "presentIntervalMs": {
+        "p50": 13.890083333535586,
+        "p95": 20.83512500030338,
+        "p99": 27.780083331890637
+      },
+      "before": {
+        "error": null,
+        "precisionClipFrames": 0,
+        "presented": 600,
+        "geometryBytes": 235392,
+        "transientBytes": 256,
+        "targetGeneration": 2,
+        "metalAllocatedBytes": 45826048,
+        "peakInFlight": 1,
+        "geometryUploads": 1,
+        "lastPresented": 3457,
+        "inFlight": 0,
+        "submitted": 602,
+        "nativeTime": 26697.932614916674,
+        "frameSlots": 2,
+        "maximumDrawables": 3,
+        "lastRequested": 3461,
+        "device": "Apple M1",
+        "samples": 4,
+        "coalesced": 839,
+        "residentBytes": 199671808,
+        "gpuMilliseconds": {
+          "p50": 0.12362500274321064,
+          "p95": 3.4746666678984184,
+          "p99": 5.39487499918323
+        },
+        "requestToPresentMilliseconds": {
+          "p50": 20.20795833232114,
+          "p95": 33.33287500208826,
+          "p99": 33.590999999432825
+        }
+      },
+      "after": {
+        "error": null,
+        "precisionClipFrames": 0,
+        "presented": 362,
+        "geometryBytes": 235392,
+        "transientBytes": 256,
+        "targetGeneration": 2,
+        "metalAllocatedBytes": 45826048,
+        "peakInFlight": 1,
+        "geometryUploads": 1,
+        "lastPresented": 4326,
+        "inFlight": 0,
+        "submitted": 361,
+        "nativeTime": 26704.93936216667,
+        "frameSlots": 2,
+        "maximumDrawables": 3,
+        "lastRequested": 4326,
+        "device": "Apple M1",
+        "samples": 4,
+        "coalesced": 504,
+        "residentBytes": 204062720,
+        "gpuMilliseconds": {
+          "p50": 0.11699999959091656,
+          "p95": 3.3720833307597786,
+          "p99": 5.552666669245809
+        },
+        "requestToPresentMilliseconds": {
+          "p50": 20.23616666701855,
+          "p95": 27.272125000308733,
+          "p99": 33.60866666480433
+        }
+      }
+    }
+  },
+  "resourceSoak": {
+    "note": "Three-minute continuous orbit on the same bounded ownership path before final depth/overlay tuning. Final revision separately passes 171 images and six disposal cycles.",
+    "durationSeconds": 180,
+    "before": {
+      "inFlight": 0,
+      "maximumDrawables": 3,
+      "targetGeneration": 3,
+      "metalAllocatedBytes": 175587328,
+      "frameSlots": 2,
+      "submitted": 360,
+      "presented": 302,
+      "samples": 4,
+      "transientBytes": 256,
+      "lastPresented": 3586,
+      "precisionClipFrames": 0,
+      "geometryBytes": 235392,
+      "device": "Apple M1",
+      "peakInFlight": 1,
+      "residentBytes": 169328640,
+      "error": null,
+      "lastRequested": 3586,
+      "coalesced": 0,
+      "gpuMilliseconds": {
+        "p50": 0.5780000028607901,
+        "p95": 2.956125001219334,
+        "p99": 3.3434583310736343
+      },
+      "requestToPresentMilliseconds": {
+        "p50": 48.391625001386274,
+        "p95": 48.92041666607838,
+        "p99": 49.22541666746838
+      }
+    },
+    "samples": [
+      {
+        "inFlight": 1,
+        "maximumDrawables": 3,
+        "targetGeneration": 3,
+        "metalAllocatedBytes": 175587328,
+        "frameSlots": 2,
+        "submitted": 2161,
+        "presented": 2079,
+        "samples": 4,
+        "transientBytes": 256,
+        "lastPresented": 5384,
+        "precisionClipFrames": 0,
+        "geometryBytes": 235392,
+        "device": "Apple M1",
+        "peakInFlight": 1,
+        "residentBytes": 124944384,
+        "error": null,
+        "lastRequested": 5387,
+        "coalesced": 0,
+        "gpuMilliseconds": {
+          "p50": 0.46624999959021807,
+          "p95": 1.509958332462702,
+          "p99": 3.054624998185318
+        },
+        "requestToPresentMilliseconds": {
+          "p50": 48.57541666569887,
+          "p95": 49.39854166514124,
+          "p99": 49.4499166670721
+        }
+      },
+      {
+        "inFlight": 0,
+        "maximumDrawables": 3,
+        "targetGeneration": 3,
+        "metalAllocatedBytes": 175587328,
+        "frameSlots": 2,
+        "submitted": 3961,
+        "presented": 3877,
+        "samples": 4,
+        "transientBytes": 256,
+        "lastPresented": 7184,
+        "precisionClipFrames": 0,
+        "geometryBytes": 235392,
+        "device": "Apple M1",
+        "peakInFlight": 1,
+        "residentBytes": 121683968,
+        "error": null,
+        "lastRequested": 7187,
+        "coalesced": 0,
+        "gpuMilliseconds": {
+          "p50": 0.37666666685254313,
+          "p95": 1.1904999992111698,
+          "p99": 2.6478333347768057
+        },
+        "requestToPresentMilliseconds": {
+          "p50": 48.52112500157091,
+          "p95": 49.3910416662402,
+          "p99": 49.44920833440847
+        }
+      },
+      {
+        "inFlight": 0,
+        "maximumDrawables": 3,
+        "targetGeneration": 3,
+        "metalAllocatedBytes": 175587328,
+        "frameSlots": 2,
+        "submitted": 5762,
+        "presented": 5678,
+        "samples": 4,
+        "transientBytes": 256,
+        "lastPresented": 8985,
+        "precisionClipFrames": 0,
+        "geometryBytes": 235392,
+        "device": "Apple M1",
+        "peakInFlight": 1,
+        "residentBytes": 106201088,
+        "error": null,
+        "lastRequested": 8988,
+        "coalesced": 0,
+        "gpuMilliseconds": {
+          "p50": 0.31524999940302223,
+          "p95": 0.7600833341712132,
+          "p99": 1.3850833347532898
+        },
+        "requestToPresentMilliseconds": {
+          "p50": 48.28529166843509,
+          "p95": 49.240791668125894,
+          "p99": 49.435083332355134
+        }
+      },
+      {
+        "inFlight": 0,
+        "maximumDrawables": 3,
+        "targetGeneration": 3,
+        "metalAllocatedBytes": 175587328,
+        "frameSlots": 2,
+        "submitted": 7561,
+        "presented": 7473,
+        "samples": 4,
+        "transientBytes": 512,
+        "lastPresented": 10784,
+        "precisionClipFrames": 0,
+        "geometryBytes": 235392,
+        "device": "Apple M1",
+        "peakInFlight": 2,
+        "residentBytes": 117833728,
+        "error": null,
+        "lastRequested": 10787,
+        "coalesced": 0,
+        "gpuMilliseconds": {
+          "p50": 0.2964166669698898,
+          "p95": 0.6848749981145374,
+          "p99": 1.27749999955995
+        },
+        "requestToPresentMilliseconds": {
+          "p50": 48.23887499878765,
+          "p95": 48.9036250000936,
+          "p99": 49.40600000190898
+        }
+      },
+      {
+        "inFlight": 0,
+        "maximumDrawables": 3,
+        "targetGeneration": 3,
+        "metalAllocatedBytes": 175587328,
+        "frameSlots": 2,
+        "submitted": 9362,
+        "presented": 9274,
+        "samples": 4,
+        "transientBytes": 512,
+        "lastPresented": 12585,
+        "precisionClipFrames": 0,
+        "geometryBytes": 235392,
+        "device": "Apple M1",
+        "peakInFlight": 2,
+        "residentBytes": 125288448,
+        "error": null,
+        "lastRequested": 12588,
+        "coalesced": 0,
+        "gpuMilliseconds": {
+          "p50": 0.3022499986400362,
+          "p95": 0.6943749976926483,
+          "p99": 1.297750000958331
+        },
+        "requestToPresentMilliseconds": {
+          "p50": 48.24945833388483,
+          "p95": 49.09304166358197,
+          "p99": 49.418375001550885
+        }
+      },
+      {
+        "inFlight": 0,
+        "maximumDrawables": 3,
+        "targetGeneration": 3,
+        "metalAllocatedBytes": 175587328,
+        "frameSlots": 2,
+        "submitted": 11163,
+        "presented": 11075,
+        "samples": 4,
+        "transientBytes": 512,
+        "lastPresented": 14386,
+        "precisionClipFrames": 0,
+        "geometryBytes": 235392,
+        "device": "Apple M1",
+        "peakInFlight": 2,
+        "residentBytes": 119717888,
+        "error": null,
+        "lastRequested": 14389,
+        "coalesced": 0,
+        "gpuMilliseconds": {
+          "p50": 0.3085416683461517,
+          "p95": 0.7066666694299784,
+          "p99": 1.3465000010910444
+        },
+        "requestToPresentMilliseconds": {
+          "p50": 48.25958333458402,
+          "p95": 49.14387500321027,
+          "p99": 49.415583333029645
+        }
+      }
+    ]
+  }
+}

@@ -18,8 +18,6 @@ import 'package:faust_cad_app_2/document/features/sketch_feature.dart';
 import 'package:faust_cad_app_2/sketch/sketch_geometry.dart';
 import 'package:faust_cad_app_2/sketch_editor/sketch_editor_controller.dart';
 import 'package:faust_cad_app_2/sketch_editor/sketch_workspace.dart';
-import 'package:faust_cad_app_2/sketch_editor/presentation/sketch_scene_painter.dart';
-import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/scene_tessellator.dart';
 import 'package:faust_cad_app_2/document/feature_definition.dart';
 import 'package:faust_cad_app_2/document/feature_id.dart';
 import 'package:faust_cad_app_2/document/features/cube_feature.dart';
@@ -70,7 +68,6 @@ class _CadScreenState extends State<CadScreen>
   late final _editor = SketchEditorController(_document);
   late final _extrusionEditor = ExtrusionEditorController(_document);
   CameraConfig? _previousCamera;
-  final _sketchTessellator = SceneTessellator();
   var _plane = PrincipalPlane.xy;
   OutputReference? _selectedReference;
   FeatureId? _selectedFeature;
@@ -470,6 +467,12 @@ class _CadScreenState extends State<CadScreen>
                         children: [
                           CadScene(
                             cameraConfig: _cameraPosition,
+                            sketches: [
+                              for (final output
+                                  in _document.evaluation.dataOutputs)
+                                if (output.data is SketchGeometry)
+                                  output.data as SketchGeometry,
+                            ],
                             renderMode: CadRenderMode.shaded,
                             geometry: _geometry,
                             evaluatedGeometry: evaluated,
@@ -477,24 +480,6 @@ class _CadScreenState extends State<CadScreen>
                             onSelected: _select,
                             selectedReference: _selectedReference,
                             geometryRevision: _document.evaluation.revision,
-                          ),
-                          IgnorePointer(
-                            child: CustomPaint(
-                              painter: SketchScenePainter(
-                                camera: _cameraPosition,
-                                sketches: [
-                                  for (final output
-                                      in _document.evaluation.dataOutputs)
-                                    if (output.data is SketchGeometry)
-                                      output.data as SketchGeometry,
-                                ],
-                                occluders: _sketchTessellator.buildGeometry(
-                                  [...evaluated.geometry, ..._geometry],
-                                  geometryRevision:
-                                      _document.evaluation.revision,
-                                ),
-                              ),
-                            ),
                           ),
                         ],
                       ),
