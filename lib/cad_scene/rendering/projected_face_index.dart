@@ -31,9 +31,19 @@ class ProjectedFaceIndex {
     }
   }
 
+  final _matches = <int>[];
+
   Iterable<ProjectedFace> query(Rect bounds) {
+    final result = <ProjectedFace>[];
+    queryInto(bounds, result);
+    return result;
+  }
+
+  // Caller owns the result; the index scratch stores only integer indices.
+  bool queryInto(Rect bounds, List<ProjectedFace> result, {int? limit}) {
+    result.clear();
     final queryId = ++_queryId;
-    final matches = <int>[];
+    final matches = _matches..clear();
     final left = (bounds.left / size.width * divisions).floor().clamp(
       0,
       divisions - 1,
@@ -58,12 +68,16 @@ class ProjectedFaceIndex {
           _visited[index] = queryId;
           // Reject cell neighbours before sorting/allocating query results.
           if (!bounds.overlaps(faces[index].bounds)) continue;
+          if (limit != null && matches.length >= limit) return false;
           matches.add(index);
         }
       }
     }
     // Keep subtraction order deterministic regardless of visited grid cells.
     matches.sort();
-    return matches.map((i) => faces[i]);
+    for (final i in matches) {
+      result.add(faces[i]);
+    }
+    return true;
   }
 }

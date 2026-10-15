@@ -12,6 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
 
+import '../../support/transform_recording_canvas.dart';
+
 void main() {
   test('shared point transforms are refreshed between paints', () {
     final camera = CameraConfig(
@@ -47,13 +49,15 @@ void main() {
     ], []);
     final renderer = ShadedSceneRenderer(camera);
     void expectBounds(Rect expected) {
+      final canvas = TransformRecordingCanvas();
+      renderer.paint(canvas, const Size(200, 200), scene);
+      final paths = canvas.invocations.where(
+        (call) => call.invocation.memberName == #drawPath,
+      );
+      expect(paths, hasLength(1));
       expect(
-        (Canvas canvas) => renderer.paint(canvas, const Size(200, 200), scene),
-        paints..something((method, arguments) {
-          if (method != #drawPath) return false;
-          expect((arguments[0] as Path).getBounds(), expected);
-          return true;
-        }),
+        (paths.single.invocation.positionalArguments[0] as Path).getBounds(),
+        expected,
       );
     }
 
@@ -62,5 +66,7 @@ void main() {
       point.x += 1;
     }
     expectBounds(const Rect.fromLTRB(100, 80, 140, 120));
+    camera.position.vector.x += 1;
+    expectBounds(const Rect.fromLTRB(80, 80, 120, 120));
   });
 }

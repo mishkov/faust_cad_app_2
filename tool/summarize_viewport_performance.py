@@ -25,6 +25,7 @@ def summarize(report):
             ordered = sorted(values)
             return {
                 "mean_ms": statistics.mean(values) / 1000,
+                "p50_ms": ordered[math.ceil(len(ordered) * .50) - 1] / 1000,
                 "p95_ms": ordered[math.ceil(len(ordered) * .95) - 1] / 1000,
                 "p99_ms": ordered[math.ceil(len(ordered) * .99) - 1] / 1000,
                 "over_16_7_ms_percent": sum(v > 16700 for v in values)
@@ -41,10 +42,12 @@ def summarize(report):
                 a > 16700 or b > 16700 for a, b in zip(ui, raster)
             ) * 100 / len(ui),
             "layer_ranges": {
-                key: [min(s[key] for s in samples), max(s[key] for s in samples)]
+                key: [min(s.get(key, 0) for s in samples), max(s.get(key, 0) for s in samples)]
                 for key in ["planar_faces", "curved_triangles", "edges",
                             "sketch_overlays", "hidden_edges", "hidden_triangles",
-                            "mesh_batches"]
+                            "mesh_batches", "cad_draws", "mesh_draws", "mesh_vertices", "planar_draws",
+                            "edge_draws", "mask_draws", "resolved_triangles",
+                            "visibility_fallbacks", "visibility_work"]
             },
             "total_layer_range": [
                 function(sum(s[key] for key in ["planar_faces", "curved_triangles",
@@ -52,8 +55,14 @@ def summarize(report):
                          for s in samples)
                 for function in [min, max]
             ],
+            "count_medians": {
+                key: statistics.median(s.get(key, 0) for s in samples)
+                for key in ["planar_faces", "curved_triangles", "edges", "sketch_overlays",
+                            "mesh_batches", "cad_draws", "mesh_draws", "mesh_vertices",
+                            "mask_draws", "resolved_triangles", "visibility_fallbacks"]
+            },
             "sampled_cpu_median_ms": {
-                key: statistics.median(s[key] for s in samples) / 1000
+                key: statistics.median(s.get(key, 0) for s in samples) / 1000
                 for key in ["ui_projection_us", "ui_faces_us", "ui_edges_us",
                             "ui_sketch_us"]
             },

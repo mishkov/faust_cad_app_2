@@ -129,6 +129,27 @@ void main() {
     }
   });
 
+  testWidgets('DPR changes refresh the painter raster coverage configuration', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CadScene(cameraConfig: camera, renderMode: CadRenderMode.shaded),
+      ),
+    );
+    CadScenePainter painter() => tester
+        .widgetList<CustomPaint>(find.byType(CustomPaint))
+        .map((w) => w.painter)
+        .whereType<CadScenePainter>()
+        .single;
+    expect(painter().devicePixelRatio, 1);
+    tester.view.devicePixelRatio = 2;
+    await tester.pump();
+    expect(painter().devicePixelRatio, 2);
+  });
+
   test(
     'shaded cube is opaque while frame retains its empty interior',
     () async {

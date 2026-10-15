@@ -1,5 +1,4 @@
-// Rendering reference from PR #32 (e7af918), with optional layer counters.
-// Keep this frozen so visual and native profile comparisons remain reproducible.
+// Frozen main 193114a / PR #33 renderer for matched visibility comparisons.
 import 'dart:math' as math;
 
 import 'dart:ui' as ui;
@@ -8,10 +7,11 @@ import 'package:faust_cad_app_2/cad_scene/cad_surfaces/plane_surface.dart';
 import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
 import 'package:faust_cad_app_2/cad_scene/rendering/camera_projection.dart';
 import 'package:faust_cad_app_2/cad_scene/rendering/projected_face.dart';
-
-import 'baseline_projected_face_index.dart';
+import 'package:faust_cad_app_2/cad_scene/rendering/projected_face_index.dart';
 
 import 'package:faust_cad_app_2/cad_scene/rendering/viewport_layer_counts.dart';
+import 'package:faust_cad_app_2/cad_scene/rendering/projected_edge_visibility.dart';
+
 import 'package:flutter/material.dart';
 import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/tessellated_scene.dart';
 import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/tessellated_face.dart';
@@ -79,9 +79,25 @@ class BaselineShadedSceneRenderer {
     // Stable compositing also makes antialiased boundary pixels independent
     // of object order when two visible surfaces meet.
     faces.sort(_compareFaces);
-    final index = BaselineProjectedFaceIndex(faces, size);
+    final index = ProjectedFaceIndex(faces, size);
     if (layerCounts != null) {
       layerCounts!.projectionMicroseconds = timer!.elapsedMicroseconds;
+    }
+
+    final meshPoints = <Offset>[];
+    final meshColors = <Color>[];
+    void flushMesh() {
+      if (meshPoints.isEmpty) return;
+      canvas.drawVertices(
+        ui.Vertices(ui.VertexMode.triangles, meshPoints, colors: meshColors),
+        BlendMode.modulate,
+        _meshPaint,
+      );
+      layerCounts?.meshBatches++;
+      layerCounts?.meshDraws++;
+      layerCounts?.meshVertices += meshPoints.length;
+      meshPoints.clear();
+      meshColors.clear();
     }
 
     for (final face in faces) {
@@ -90,7 +106,7 @@ class BaselineShadedSceneRenderer {
         face.inverseDepth,
         index,
         skip: face,
-        bias: face.vertices == null
+        bias: !face.isMesh
             ? 0
             : face.inverseDepth
                       .dot(
@@ -103,10 +119,34 @@ class BaselineShadedSceneRenderer {
                       .abs() *
                   1e-10,
       );
+      if (face.isMesh &&
+          masks.isNotEmpty &&
+          masks.length <= 2 &&
+          _completelyErased(face.path, masks)) {
+        layerCounts?.hiddenTriangles++;
+        continue;
+      }
+      if (masks.isEmpty && face.meshPoints != null) {
+        final points = face.meshPoints!, colors = face.meshColors!;
+        for (var i = 1; i < points.length - 1; i++) {
+          meshPoints
+            ..add(points[0])
+            ..add(points[i])
+            ..add(points[i + 1]);
+          meshColors
+            ..add(colors[0])
+            ..add(colors[i])
+            ..add(colors[i + 1]);
+        }
+        continue;
+      }
+      // Every local depth comparison is complete before a cell is batched.
+      // Flush at incompatible draws to retain the original compositing order.
+      flushMesh();
       // Erasing requires an isolated layer; unmasked draws can use the shared
       // canvas directly without changing depth order or antialiasing.
       if (masks.isNotEmpty) {
-        if (face.vertices == null) {
+        if (!face.isMesh) {
           layerCounts?.planarFaces++;
         } else {
           layerCounts?.curvedTriangles++;
@@ -114,20 +154,32 @@ class BaselineShadedSceneRenderer {
         canvas.saveLayer(face.bounds.inflate(1), _layerPaint);
       }
       try {
-        if (face.vertices case final vertices?) {
+        if (face.isMesh) {
+          final vertices =
+              face.vertices ??
+              ui.Vertices(
+                ui.VertexMode.triangleFan,
+                face.meshPoints!,
+                colors: face.meshColors,
+              );
           // Mesh cells share samples. Disable per-cell antialiasing to avoid
           // translucent hairlines along artificial internal boundaries.
+          layerCounts?.meshDraws++;
+          layerCounts?.meshVertices += face.meshPoints?.length ?? 0;
           canvas.drawVertices(vertices, BlendMode.modulate, _meshPaint);
         } else {
+          layerCounts?.planarDraws++;
           canvas.drawPath(face.path, Paint()..color = face.color);
         }
         for (final mask in masks) {
+          layerCounts?.maskDraws++;
           canvas.drawPath(mask, _erasePaint);
         }
       } finally {
         if (masks.isNotEmpty) canvas.restore();
       }
     }
+    flushMesh();
 
     if (layerCounts != null) {
       layerCounts!.facesMicroseconds =
@@ -163,21 +215,48 @@ class BaselineShadedSceneRenderer {
           delta.dy * gradient,
           1 / clipped.begin.y - gradient * (delta.dx * p.dx + delta.dy * p.dy),
         );
+        final bias = math.max(1 / clipped.begin.y, 1 / clipped.end.y) * 1e-6;
         final bounds = Rect.fromPoints(p, q).inflate(1.5);
-        final masks = _occlusionMasks(
-          bounds,
+        final visibility = ProjectedEdgeVisibility.resolve(
+          p,
+          q,
           inverseDepth,
           index,
-          // A small relative bias retains boundaries on their own surfaces.
-          bias: math.max(1 / clipped.begin.y, 1 / clipped.end.y) * 1e-6,
+          bias: bias,
         );
+        if (visibility.coverage == EdgeCoverage.hidden) {
+          layerCounts?.hiddenEdges++;
+          continue;
+        }
+        final masks = visibility.coverage == EdgeCoverage.visible
+            ? const <Path>[]
+            : _occlusionMasks(
+                bounds,
+                inverseDepth,
+                index,
+                // A small relative bias retains boundaries on their own surfaces.
+                bias: bias,
+                candidates: visibility.occluders,
+              );
+        // Adjacent nearer mesh cells may jointly cover the full stroke even
+        // though each cell touches it. Only remove a draw when the padded
+        // stroke envelope is empty after the exact existing masks.
+        if (masks.isNotEmpty &&
+            masks.length <= 2 &&
+            masks.any((mask) => mask.contains((p + q) / 2)) &&
+            _completelyErased(_strokeEnvelope(p, q), masks)) {
+          layerCounts?.hiddenEdges++;
+          continue;
+        }
         if (masks.isNotEmpty) {
           layerCounts?.edges++;
           canvas.saveLayer(bounds, _layerPaint);
         }
         try {
+          layerCounts?.edgeDraws++;
           canvas.drawLine(p, q, boundary ? _boundaryPaint : _standalonePaint);
           for (final mask in masks) {
+            layerCounts?.maskDraws++;
             canvas.drawPath(mask, _erasePaint);
           }
         } finally {
@@ -192,6 +271,39 @@ class BaselineShadedSceneRenderer {
           layerCounts!.facesMicroseconds;
     }
     timer?.stop();
+  }
+
+  static bool _completelyErased(Path original, List<Path> masks) {
+    // A bounds rejection avoids native path work for clearly visible cells.
+    var coverageBounds = masks.first.getBounds();
+    for (var i = 1; i < masks.length; i++) {
+      coverageBounds = coverageBounds.expandToInclude(masks[i].getBounds());
+    }
+    final bounds = original.getBounds();
+    if (bounds.left < coverageBounds.left ||
+        bounds.top < coverageBounds.top ||
+        bounds.right > coverageBounds.right ||
+        bounds.bottom > coverageBounds.bottom) {
+      return false;
+    }
+    var remaining = original;
+    for (final mask in masks) {
+      remaining = Path.combine(PathOperation.difference, remaining, mask);
+      if (remaining.getBounds().isEmpty) return true;
+    }
+    return false;
+  }
+
+  static Path _strokeEnvelope(Offset p, Offset q) {
+    final direction = (q - p) / (q - p).distance;
+    final along = direction * 1.5;
+    final across = Offset(-direction.dy, direction.dx) * 1.5;
+    return Path()..addPolygon([
+      p - along - across,
+      q + along - across,
+      q + along + across,
+      p - along + across,
+    ], true);
   }
 
   ProjectedFace? _projectFace(TessellatedFace face, Size size, bool selected) {
@@ -286,19 +398,21 @@ class BaselineShadedSceneRenderer {
       ),
       Colors.white,
       contours: [points],
-      vertices: ui.Vertices(ui.VertexMode.triangleFan, points, colors: colors),
+      meshPoints: points,
+      meshColors: colors,
     );
   }
 
   List<Path> _occlusionMasks(
     Rect bounds,
     Vector3 inverseDepth,
-    BaselineProjectedFaceIndex index, {
+    ProjectedFaceIndex index, {
     ProjectedFace? skip,
     double bias = 0,
+    Iterable<ProjectedFace>? candidates,
   }) {
     final masks = <Path>[];
-    for (final occluder in index.query(bounds)) {
+    for (final occluder in candidates ?? index.query(bounds)) {
       if (identical(occluder, skip) || !bounds.overlaps(occluder.bounds)) {
         continue;
       }
@@ -330,10 +444,11 @@ class BaselineShadedSceneRenderer {
           _depthBoundsRelativeTolerance;
       // Wholly nearer contours need no clipping. Reuse their projected path;
       // holes retain the face's even-odd fill and mesh cells remain triangles.
-      final mask = minDx + minDy + difference.z > minTolerance
+      final whollyNearer = minDx + minDy + difference.z > minTolerance;
+      final mask = whollyNearer
           ? occluder.path
           : occluder.closerRegion(difference);
-      if (mask.getBounds().isEmpty) continue;
+      if ((whollyNearer ? occluder.bounds : mask.getBounds()).isEmpty) continue;
       // Each erase removes coverage from this layer only. Overlaps naturally
       // form a union without native path booleans or a growing clip stack.
       masks.add(mask);

@@ -1,5 +1,9 @@
 # Desktop viewport raster optimization
 
+Historical report for commit `693cb28` (PR #33). For the next visibility/batching
+iteration and current reference helpers, see [curved visibility](curved_visibility_performance.md).
+Reproduce this older report by checking out its recorded revision.
+
 ## Baseline and scope
 
 PR [#32](https://github.com/mishkov/faust_cad_app_2/pull/32) is present:

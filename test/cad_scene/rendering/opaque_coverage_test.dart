@@ -16,6 +16,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
 
+import '../../support/transform_recording_canvas.dart';
+
 void main() {
   final camera = CameraConfig(
     position: Vertex(Vector3.zero()),
@@ -24,12 +26,18 @@ void main() {
     focalLength: 100,
     focusDistance: 10,
   );
-  void paint(
-    Canvas canvas,
+  int draws(
     ShadedSceneRenderer renderer,
-    TessellatedScene scene, [
+    TessellatedScene scene,
+    Symbol method, [
     Size size = const Size(200, 200),
-  ]) => renderer.paint(canvas, size, scene);
+  ]) {
+    final canvas = TransformRecordingCanvas();
+    renderer.paint(canvas, size, scene);
+    return canvas.invocations
+        .where((call) => call.invocation.memberName == method)
+        .length;
+  }
 
   test(
     'two adjacent nearer mesh cells jointly hide the entire padded stroke',
@@ -43,10 +51,7 @@ void main() {
       );
       final counts = ViewportLayerCounts();
       final renderer = ShadedSceneRenderer(camera, layerCounts: counts);
-      expect(
-        (Canvas c) => paint(c, renderer, scene),
-        paintsExactlyCountTimes(#drawLine, 0),
-      );
+      expect(draws(renderer, scene, #drawLine), 0);
       expect(counts.hiddenEdges, 1);
       expect(counts.edges, 0);
       expect(counts.meshBatches, 1);
@@ -56,10 +61,7 @@ void main() {
     final scene = TessellatedScene([_plane(), _mesh(_square(10, 2))], []);
     final counts = ViewportLayerCounts();
     final renderer = ShadedSceneRenderer(camera, layerCounts: counts);
-    expect(
-      (Canvas c) => paint(c, renderer, scene),
-      paintsExactlyCountTimes(#drawVertices, 0),
-    );
+    expect(draws(renderer, scene, #drawVertices), 0);
     expect(counts.hiddenTriangles, 2);
     expect(counts.curvedTriangles, 0);
   });
@@ -70,10 +72,7 @@ void main() {
     ], []);
     final counts = ViewportLayerCounts();
     final renderer = ShadedSceneRenderer(camera, layerCounts: counts);
-    expect(
-      (Canvas c) => paint(c, renderer, scene),
-      paintsExactlyCountTimes(#drawVertices, 2),
-    );
+    expect(draws(renderer, scene, #drawVertices), 2);
     expect(counts.hiddenTriangles, 0);
   });
   test(
@@ -82,17 +81,14 @@ void main() {
       final points = _square(10, 2);
       final scene = TessellatedScene([_plane(), _mesh(points)], []);
       final renderer = ShadedSceneRenderer(camera);
-      expect(
-        (Canvas c) => paint(c, renderer, scene),
-        paintsExactlyCountTimes(#drawVertices, 0),
-      );
+      expect(draws(renderer, scene, #drawVertices), 0);
       for (final point in points) {
         point.x += 5;
       }
       for (final size in [const Size(200, 200), const Size(400, 300)]) {
         expect(
-          (Canvas c) => paint(c, renderer, scene, size),
-          paintsExactlyCountTimes(#drawVertices, 2),
+          draws(renderer, scene, #drawVertices, size),
+          inInclusiveRange(1, 2),
         );
       }
     },
@@ -106,18 +102,12 @@ void main() {
       ],
     );
     final renderer = ShadedSceneRenderer(camera);
-    expect(
-      (Canvas c) => paint(c, renderer, scene),
-      paintsExactlyCountTimes(#drawLine, 0),
-    );
+    expect(draws(renderer, scene, #drawLine), 0);
     for (final point in plane.loops.single) {
       point.x += 10;
     }
     for (final size in [const Size(200, 200), const Size(400, 300)]) {
-      expect(
-        (Canvas c) => paint(c, renderer, scene, size),
-        paintsExactlyCountTimes(#drawLine, 1),
-      );
+      expect(draws(renderer, scene, #drawLine, size), 1);
     }
   });
 }

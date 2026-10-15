@@ -1,0 +1,1000 @@
+{
+  "curved-memory-baseline": {
+    "scenes": {
+      "blank": {
+        "cycles": 0,
+        "first_rss_mib": 142.765625,
+        "last_rss_mib": 142.765625,
+        "peak_rss_mib": 145.71875,
+        "last_five_rotation_rss_mib": [],
+        "last_after_gc": {
+          "type": "MemoryUsage",
+          "heapUsage": 6715632,
+          "heapCapacity": 9175040,
+          "externalUsage": 576
+        }
+      },
+      "default": {
+        "cycles": 10,
+        "first_rss_mib": 182.546875,
+        "last_rss_mib": 235.84375,
+        "peak_rss_mib": 239.375,
+        "last_five_rotation_rss_mib": [
+          224.140625,
+          226.1875,
+          227.125,
+          228.921875,
+          230.984375
+        ],
+        "last_after_gc": {
+          "type": "MemoryUsage",
+          "heapUsage": 6869808,
+          "heapCapacity": 14155776,
+          "externalUsage": 576
+        }
+      },
+      "partial_extrusion": {
+        "cycles": 10,
+        "first_rss_mib": 238.21875,
+        "last_rss_mib": 245.765625,
+        "peak_rss_mib": 256.5,
+        "last_five_rotation_rss_mib": [
+          245.03125,
+          249.90625,
+          248.890625,
+          246.71875,
+          249.140625
+        ],
+        "last_after_gc": {
+          "type": "MemoryUsage",
+          "heapUsage": 6986128,
+          "heapCapacity": 9437184,
+          "externalUsage": 576
+        }
+      },
+      "unmounted": {
+        "cycles": 0,
+        "first_rss_mib": 201.9375,
+        "last_rss_mib": 201.9375,
+        "peak_rss_mib": 256.5,
+        "last_five_rotation_rss_mib": [],
+        "last_after_gc": {
+          "type": "MemoryUsage",
+          "heapUsage": 6762864,
+          "heapCapacity": 8388608,
+          "externalUsage": 576
+        }
+      }
+    },
+    "native_snapshots": [
+      {
+        "scene": "blank",
+        "phase": "idle",
+        "cycle": 0,
+        "Physical footprint": 128135987,
+        "Physical footprint (peak)": 128974848,
+        "regions": {
+          "IOAccelerator (graphics)": {
+            "virtual_bytes": 7831552,
+            "resident_bytes": 7667712,
+            "dirty_bytes": 7667712,
+            "regions": 51
+          },
+          "IOSurface": {
+            "virtual_bytes": 46242202,
+            "resident_bytes": 46242202,
+            "dirty_bytes": 46242202,
+            "regions": 5
+          },
+          "VM_ALLOCATE": {
+            "virtual_bytes": 42047898,
+            "resident_bytes": 17616077,
+            "dirty_bytes": 17616077,
+            "regions": 57
+          },
+          "owned unmapped (graphics)": {
+            "virtual_bytes": 5799936,
+            "resident_bytes": 5799936,
+            "dirty_bytes": 5799936,
+            "regions": 12
+          }
+        },
+        "malloc_zones": {
+          "virtual_bytes": 60502835,
+          "resident_bytes": 18874368,
+          "allocated_bytes": 12792627,
+          "fragmentation_bytes": 6091776
+        }
+      },
+      {
+        "scene": "default",
+        "phase": "idle",
+        "cycle": 0,
+        "Physical footprint": 341311488,
+        "Physical footprint (peak)": 341626061,
+        "regions": {
+          "IOAccelerator (graphics)": {
+            "virtual_bytes": 167772160,
+            "resident_bytes": 166723584,
+            "dirty_bytes": 166723584,
+            "regions": 1349
+          },
+          "IOSurface": {
+            "virtual_bytes": 61656269,
+            "resident_bytes": 61656269,
+            "dirty_bytes": 61656269,
+            "regions": 6
+          },
+          "VM_ALLOCATE": {
+            "virtual_bytes": 44669338,
+            "resident_bytes": 23802675,
+            "dirty_bytes": 23802675,
+            "regions": 62
+          },
+          "owned unmapped (graphics)": {
+            "virtual_bytes": 20342374,
+            "resident_bytes": 20342374,
+            "dirty_bytes": 20342374,
+            "regions": 96
+          }
+        },
+        "malloc_zones": {
+          "virtual_bytes": 77280051,
+          "resident_bytes": 34917581,
+          "allocated_bytes": 27472691,
+          "fragmentation_bytes": 7465984
+        }
+      },
+      {
+        "scene": "default",
+        "phase": "rotation",
+        "cycle": 1,
+        "Physical footprint": 341311488,
+        "Physical footprint (peak)": 447217664,
+        "regions": {
+          "IOAccelerator (graphics)": {
+            "virtual_bytes": 169554739,
+            "resident_bytes": 167038157,
+            "dirty_bytes": 167038157,
+            "regions": 1363
+          },
+          "IOSurface": {
+            "virtual_bytes": 46242202,
+            "resident_bytes": 46242202,
+            "dirty_bytes": 46242202,
+            "regions": 5
+          },
+          "VM_ALLOCATE": {
+            "virtual_bytes": 42047898,
+            "resident_bytes": 22858957,
+            "dirty_bytes": 22858957,
+            "regions": 57
+          },
+          "owned unmapped (graphics)": {
+            "virtual_bytes": 20761805,
+            "resident_bytes": 20761805,
+            "dirty_bytes": 20761805,
+            "regions": 97
+          }
+        },
+        "malloc_zones": {
+          "virtual_bytes": 85668659,
+          "resident_bytes": 46766490,
+          "allocated_bytes": 21495808,
+          "fragmentation_bytes": 25270682
+        }
+      },
+      {
+        "scene": "default",
+        "phase": "rotation",
+        "cycle": 10,
+        "Physical footprint": 366372454,
+        "Physical footprint (peak)": 476577792,
+        "regions": {
+          "IOAccelerator (graphics)": {
+            "virtual_bytes": 169869312,
+            "resident_bytes": 167143014,
+            "dirty_bytes": 167143014,
+            "regions": 1367
+          },
+          "IOSurface": {
+            "virtual_bytes": 46242202,
+            "resident_bytes": 46242202,
+            "dirty_bytes": 46242202,
+            "regions": 5
+          },
+          "VM_ALLOCATE": {
+            "virtual_bytes": 43620762,
+            "resident_bytes": 41209037,
+            "dirty_bytes": 41209037,
+            "regions": 60
+          },
+          "owned unmapped (graphics)": {
+            "virtual_bytes": 20761805,
+            "resident_bytes": 20761805,
+            "dirty_bytes": 20761805,
+            "regions": 97
+          }
+        },
+        "malloc_zones": {
+          "virtual_bytes": 85668659,
+          "resident_bytes": 47290778,
+          "allocated_bytes": 23802675,
+          "fragmentation_bytes": 23592960
+        }
+      },
+      {
+        "scene": "default",
+        "phase": "rest",
+        "cycle": 10,
+        "Physical footprint": 372768768,
+        "Physical footprint (peak)": 476577792,
+        "regions": {
+          "IOAccelerator (graphics)": {
+            "virtual_bytes": 169869312,
+            "resident_bytes": 167038157,
+            "dirty_bytes": 167038157,
+            "regions": 1367
+          },
+          "IOSurface": {
+            "virtual_bytes": 46242202,
+            "resident_bytes": 46242202,
+            "dirty_bytes": 46242202,
+            "regions": 5
+          },
+          "VM_ALLOCATE": {
+            "virtual_bytes": 48863642,
+            "resident_bytes": 46661632,
+            "dirty_bytes": 46661632,
+            "regions": 70
+          },
+          "owned unmapped (graphics)": {
+            "virtual_bytes": 20761805,
+            "resident_bytes": 20761805,
+            "dirty_bytes": 20761805,
+            "regions": 97
+          }
+        },
+        "malloc_zones": {
+          "virtual_bytes": 85668659,
+          "resident_bytes": 48024781,
+          "allocated_bytes": 25899827,
+          "fragmentation_bytes": 22124954
+        }
+      },
+      {
+        "scene": "partial_extrusion",
+        "phase": "idle",
+        "cycle": 0,
+        "Physical footprint": 381471949,
+        "Physical footprint (peak)": 476577792,
+        "regions": {
+          "IOAccelerator (graphics)": {
+            "virtual_bytes": 174063616,
+            "resident_bytes": 171442176,
+            "dirty_bytes": 171442176,
+            "regions": 1372
+          },
+          "IOSurface": {
+            "virtual_bytes": 46242202,
+            "resident_bytes": 46242202,
+            "dirty_bytes": 46242202,
+            "regions": 5
+          },
+          "VM_ALLOCATE": {
+            "virtual_bytes": 46242202,
+            "resident_bytes": 44145050,
+            "dirty_bytes": 44145050,
+            "regions": 65
+          },
+          "owned unmapped (graphics)": {
+            "virtual_bytes": 27682406,
+            "resident_bytes": 27682406,
+            "dirty_bytes": 27682406,
+            "regions": 111
+          }
+        },
+        "malloc_zones": {
+          "virtual_bytes": 85668659,
+          "resident_bytes": 48234496,
+          "allocated_bytes": 27158118,
+          "fragmentation_bytes": 21076378
+        }
+      },
+      {
+        "scene": "partial_extrusion",
+        "phase": "rotation",
+        "cycle": 1,
+        "Physical footprint": 399612314,
+        "Physical footprint (peak)": 559310438,
+        "regions": {
+          "IOAccelerator (graphics)": {
+            "virtual_bytes": 179725926,
+            "resident_bytes": 176999629,
+            "dirty_bytes": 176999629,
+            "regions": 1387
+          },
+          "IOSurface": {
+            "virtual_bytes": 46242202,
+            "resident_bytes": 46242202,
+            "dirty_bytes": 46242202,
+            "regions": 5
+          },
+          "VM_ALLOCATE": {
+            "virtual_bytes": 47290778,
+            "resident_bytes": 46032486,
+            "dirty_bytes": 46032486,
+            "regions": 67
+          },
+          "owned unmapped (graphics)": {
+            "virtual_bytes": 27996979,
+            "resident_bytes": 27996979,
+            "dirty_bytes": 27996979,
+            "regions": 108
+          }
+        },
+        "malloc_zones": {
+          "virtual_bytes": 94057267,
+          "resident_bytes": 53791949,
+          "allocated_bytes": 28940698,
+          "fragmentation_bytes": 24851251
+        }
+      },
+      {
+        "scene": "partial_extrusion",
+        "phase": "rotation",
+        "cycle": 10,
+        "Physical footprint": 402758042,
+        "Physical footprint (peak)": 560673587,
+        "regions": {
+          "IOAccelerator (graphics)": {
+            "virtual_bytes": 180355072,
+            "resident_bytes": 176894771,
+            "dirty_bytes": 176894771,
+            "regions": 1387
+          },
+          "IOSurface": {
+            "virtual_bytes": 46242202,
+            "resident_bytes": 46242202,
+            "dirty_bytes": 46242202,
+            "regions": 5
+          },
+          "VM_ALLOCATE": {
+            "virtual_bytes": 47290778,
+            "resident_bytes": 46032486,
+            "dirty_bytes": 46032486,
+            "regions": 67
+          },
+          "owned unmapped (graphics)": {
+            "virtual_bytes": 28101837,
+            "resident_bytes": 28101837,
+            "dirty_bytes": 28101837,
+            "regions": 109
+          }
+        },
+        "malloc_zones": {
+          "virtual_bytes": 94057267,
+          "resident_bytes": 54630810,
+          "allocated_bytes": 26633830,
+          "fragmentation_bytes": 27996979
+        }
+      },
+      {
+        "scene": "partial_extrusion",
+        "phase": "rest",
+        "cycle": 10,
+        "Physical footprint": 392272282,
+        "Physical footprint (peak)": 560673587,
+        "regions": {
+          "IOAccelerator (graphics)": {
+            "virtual_bytes": 180355072,
+            "resident_bytes": 176789914,
+            "dirty_bytes": 176789914,
+            "regions": 1387
+          },
+          "IOSurface": {
+            "virtual_bytes": 46242202,
+            "resident_bytes": 46242202,
+            "dirty_bytes": 46242202,
+            "regions": 5
+          },
+          "VM_ALLOCATE": {
+            "virtual_bytes": 43096474,
+            "resident_bytes": 41733325,
+            "dirty_bytes": 41733325,
+            "regions": 59
+          },
+          "owned unmapped (graphics)": {
+            "virtual_bytes": 28101837,
+            "resident_bytes": 28101837,
+            "dirty_bytes": 28101837,
+            "regions": 109
+          }
+        },
+        "malloc_zones": {
+          "virtual_bytes": 94057267,
+          "resident_bytes": 54735667,
+          "allocated_bytes": 27682406,
+          "fragmentation_bytes": 27053261
+        }
+      },
+      {
+        "scene": "unmounted",
+        "phase": "rest",
+        "cycle": 10,
+        "Physical footprint": 149422080,
+        "Physical footprint (peak)": 560673587,
+        "regions": {
+          "IOAccelerator (graphics)": {
+            "virtual_bytes": 160327270,
+            "resident_bytes": 9633792,
+            "dirty_bytes": 9633792,
+            "regions": 1344
+          },
+          "IOSurface": {
+            "virtual_bytes": 46242202,
+            "resident_bytes": 46242202,
+            "dirty_bytes": 46242202,
+            "regions": 5
+          },
+          "VM_ALLOCATE": {
+            "virtual_bytes": 44145050,
+            "resident_bytes": 42362470,
+            "dirty_bytes": 42362470,
+            "regions": 61
+          },
+          "owned unmapped (graphics)": {
+            "virtual_bytes": 6684672,
+            "resident_bytes": 6684672,
+            "dirty_bytes": 6684672,
+            "regions": 22
+          }
+        },
+        "malloc_zones": {
+          "virtual_bytes": 94057267,
+          "resident_bytes": 55364813,
+          "allocated_bytes": 22124954,
+          "fragmentation_bytes": 10011648
+        }
+      }
+    ]
+  },
+  "curved-memory-optimized": {
+    "scenes": {
+      "blank": {
+        "cycles": 0,
+        "first_rss_mib": 142.46875,
+        "last_rss_mib": 142.46875,
+        "peak_rss_mib": 145.359375,
+        "last_five_rotation_rss_mib": [],
+        "last_after_gc": {
+          "type": "MemoryUsage",
+          "heapUsage": 6730416,
+          "heapCapacity": 9175040,
+          "externalUsage": 576
+        }
+      },
+      "default": {
+        "cycles": 20,
+        "first_rss_mib": 187.234375,
+        "last_rss_mib": 233.875,
+        "peak_rss_mib": 238.8125,
+        "last_five_rotation_rss_mib": [
+          228.140625,
+          229.6875,
+          228.890625,
+          228.453125,
+          227.96875
+        ],
+        "last_after_gc": {
+          "type": "MemoryUsage",
+          "heapUsage": 7012160,
+          "heapCapacity": 14680064,
+          "externalUsage": 576
+        }
+      },
+      "partial_extrusion": {
+        "cycles": 20,
+        "first_rss_mib": 237.0,
+        "last_rss_mib": 245.71875,
+        "peak_rss_mib": 256.25,
+        "last_five_rotation_rss_mib": [
+          253.625,
+          254.109375,
+          253.5,
+          254.390625,
+          253.546875
+        ],
+        "last_after_gc": {
+          "type": "MemoryUsage",
+          "heapUsage": 7128480,
+          "heapCapacity": 10485760,
+          "externalUsage": 576
+        }
+      },
+      "unmounted": {
+        "cycles": 0,
+        "first_rss_mib": 203.609375,
+        "last_rss_mib": 203.609375,
+        "peak_rss_mib": 256.25,
+        "last_five_rotation_rss_mib": [],
+        "last_after_gc": {
+          "type": "MemoryUsage",
+          "heapUsage": 6905216,
+          "heapCapacity": 9437184,
+          "externalUsage": 576
+        }
+      }
+    },
+    "native_snapshots": [
+      {
+        "scene": "blank",
+        "phase": "idle",
+        "cycle": 0,
+        "Physical footprint": 127821414,
+        "Physical footprint (peak)": 128660275,
+        "regions": {
+          "IOAccelerator (graphics)": {
+            "virtual_bytes": 7831552,
+            "resident_bytes": 7667712,
+            "dirty_bytes": 7667712,
+            "regions": 51
+          },
+          "IOSurface": {
+            "virtual_bytes": 46242202,
+            "resident_bytes": 46242202,
+            "dirty_bytes": 46242202,
+            "regions": 5
+          },
+          "VM_ALLOCATE": {
+            "virtual_bytes": 42047898,
+            "resident_bytes": 17616077,
+            "dirty_bytes": 17616077,
+            "regions": 57
+          },
+          "owned unmapped (graphics)": {
+            "virtual_bytes": 5799936,
+            "resident_bytes": 5799936,
+            "dirty_bytes": 5799936,
+            "regions": 12
+          }
+        },
+        "malloc_zones": {
+          "virtual_bytes": 52114227,
+          "resident_bytes": 18664653,
+          "allocated_bytes": 12792627,
+          "fragmentation_bytes": 5852160
+        }
+      },
+      {
+        "scene": "default",
+        "phase": "idle",
+        "cycle": 0,
+        "Physical footprint": 339214336,
+        "Physical footprint (peak)": 339738624,
+        "regions": {
+          "IOAccelerator (graphics)": {
+            "virtual_bytes": 166199296,
+            "resident_bytes": 165045862,
+            "dirty_bytes": 165045862,
+            "regions": 1332
+          },
+          "IOSurface": {
+            "virtual_bytes": 61656269,
+            "resident_bytes": 61656269,
+            "dirty_bytes": 61656269,
+            "regions": 6
+          },
+          "VM_ALLOCATE": {
+            "virtual_bytes": 44669338,
+            "resident_bytes": 24326963,
+            "dirty_bytes": 24326963,
+            "regions": 62
+          },
+          "owned unmapped (graphics)": {
+            "virtual_bytes": 20342374,
+            "resident_bytes": 20342374,
+            "dirty_bytes": 20342374,
+            "regions": 96
+          }
+        },
+        "malloc_zones": {
+          "virtual_bytes": 73085747,
+          "resident_bytes": 33659290,
+          "allocated_bytes": 27053261,
+          "fragmentation_bytes": 6603776
+        }
+      },
+      {
+        "scene": "default",
+        "phase": "rotation",
+        "cycle": 1,
+        "Physical footprint": 351797248,
+        "Physical footprint (peak)": 442289357,
+        "regions": {
+          "IOAccelerator (graphics)": {
+            "virtual_bytes": 169345024,
+            "resident_bytes": 166723584,
+            "dirty_bytes": 166723584,
+            "regions": 1361
+          },
+          "IOSurface": {
+            "virtual_bytes": 61656269,
+            "resident_bytes": 61656269,
+            "dirty_bytes": 61656269,
+            "regions": 6
+          },
+          "VM_ALLOCATE": {
+            "virtual_bytes": 42047898,
+            "resident_bytes": 23068672,
+            "dirty_bytes": 23068672,
+            "regions": 57
+          },
+          "owned unmapped (graphics)": {
+            "virtual_bytes": 20971520,
+            "resident_bytes": 20971520,
+            "dirty_bytes": 20971520,
+            "regions": 95
+          }
+        },
+        "malloc_zones": {
+          "virtual_bytes": 77280051,
+          "resident_bytes": 45088768,
+          "allocated_bytes": 22858957,
+          "fragmentation_bytes": 22229811
+        }
+      },
+      {
+        "scene": "default",
+        "phase": "rotation",
+        "cycle": 10,
+        "Physical footprint": 382625382,
+        "Physical footprint (peak)": 472593203,
+        "regions": {
+          "IOAccelerator (graphics)": {
+            "virtual_bytes": 170183885,
+            "resident_bytes": 168296448,
+            "dirty_bytes": 168296448,
+            "regions": 1364
+          },
+          "IOSurface": {
+            "virtual_bytes": 61656269,
+            "resident_bytes": 61656269,
+            "dirty_bytes": 61656269,
+            "regions": 6
+          },
+          "VM_ALLOCATE": {
+            "virtual_bytes": 43620762,
+            "resident_bytes": 41628467,
+            "dirty_bytes": 41628467,
+            "regions": 60
+          },
+          "owned unmapped (graphics)": {
+            "virtual_bytes": 20761805,
+            "resident_bytes": 20761805,
+            "dirty_bytes": 20761805,
+            "regions": 97
+          }
+        },
+        "malloc_zones": {
+          "virtual_bytes": 77280051,
+          "resident_bytes": 45613056,
+          "allocated_bytes": 23173530,
+          "fragmentation_bytes": 22439526
+        }
+      },
+      {
+        "scene": "default",
+        "phase": "rotation",
+        "cycle": 20,
+        "Physical footprint": 381576806,
+        "Physical footprint (peak)": 475319501,
+        "regions": {
+          "IOAccelerator (graphics)": {
+            "virtual_bytes": 170183885,
+            "resident_bytes": 166723584,
+            "dirty_bytes": 166723584,
+            "regions": 1364
+          },
+          "IOSurface": {
+            "virtual_bytes": 61656269,
+            "resident_bytes": 61656269,
+            "dirty_bytes": 61656269,
+            "regions": 6
+          },
+          "VM_ALLOCATE": {
+            "virtual_bytes": 42572186,
+            "resident_bytes": 40055603,
+            "dirty_bytes": 40055603,
+            "regions": 58
+          },
+          "owned unmapped (graphics)": {
+            "virtual_bytes": 21181235,
+            "resident_bytes": 21181235,
+            "dirty_bytes": 21181235,
+            "regions": 97
+          }
+        },
+        "malloc_zones": {
+          "virtual_bytes": 77280051,
+          "resident_bytes": 45717914,
+          "allocated_bytes": 23802675,
+          "fragmentation_bytes": 21915238
+        }
+      },
+      {
+        "scene": "default",
+        "phase": "rest",
+        "cycle": 20,
+        "Physical footprint": 389336269,
+        "Physical footprint (peak)": 475319501,
+        "regions": {
+          "IOAccelerator (graphics)": {
+            "virtual_bytes": 170183885,
+            "resident_bytes": 168191590,
+            "dirty_bytes": 168191590,
+            "regions": 1364
+          },
+          "IOSurface": {
+            "virtual_bytes": 61656269,
+            "resident_bytes": 61656269,
+            "dirty_bytes": 61656269,
+            "regions": 6
+          },
+          "VM_ALLOCATE": {
+            "virtual_bytes": 48339354,
+            "resident_bytes": 46347059,
+            "dirty_bytes": 46347059,
+            "regions": 69
+          },
+          "owned unmapped (graphics)": {
+            "virtual_bytes": 21181235,
+            "resident_bytes": 21181235,
+            "dirty_bytes": 21181235,
+            "regions": 97
+          }
+        },
+        "malloc_zones": {
+          "virtual_bytes": 77280051,
+          "resident_bytes": 45717914,
+          "allocated_bytes": 25794970,
+          "fragmentation_bytes": 19922944
+        }
+      },
+      {
+        "scene": "partial_extrusion",
+        "phase": "idle",
+        "cycle": 0,
+        "Physical footprint": 383569101,
+        "Physical footprint (peak)": 475319501,
+        "regions": {
+          "IOAccelerator (graphics)": {
+            "virtual_bytes": 174378189,
+            "resident_bytes": 171022746,
+            "dirty_bytes": 171022746,
+            "regions": 1370
+          },
+          "IOSurface": {
+            "virtual_bytes": 46242202,
+            "resident_bytes": 46242202,
+            "dirty_bytes": 46242202,
+            "regions": 5
+          },
+          "VM_ALLOCATE": {
+            "virtual_bytes": 47815066,
+            "resident_bytes": 46242202,
+            "dirty_bytes": 46242202,
+            "regions": 68
+          },
+          "owned unmapped (graphics)": {
+            "virtual_bytes": 27996979,
+            "resident_bytes": 27996979,
+            "dirty_bytes": 27996979,
+            "regions": 110
+          }
+        },
+        "malloc_zones": {
+          "virtual_bytes": 77280051,
+          "resident_bytes": 45927629,
+          "allocated_bytes": 29255270,
+          "fragmentation_bytes": 16672358
+        }
+      },
+      {
+        "scene": "partial_extrusion",
+        "phase": "rotation",
+        "cycle": 1,
+        "Physical footprint": 394788864,
+        "Physical footprint (peak)": 554067558,
+        "regions": {
+          "IOAccelerator (graphics)": {
+            "virtual_bytes": 175846195,
+            "resident_bytes": 172281037,
+            "dirty_bytes": 172281037,
+            "regions": 1380
+          },
+          "IOSurface": {
+            "virtual_bytes": 46242202,
+            "resident_bytes": 46242202,
+            "dirty_bytes": 46242202,
+            "regions": 5
+          },
+          "VM_ALLOCATE": {
+            "virtual_bytes": 45193626,
+            "resident_bytes": 44354765,
+            "dirty_bytes": 44354765,
+            "regions": 63
+          },
+          "owned unmapped (graphics)": {
+            "virtual_bytes": 28521267,
+            "resident_bytes": 28521267,
+            "dirty_bytes": 28521267,
+            "regions": 108
+          }
+        },
+        "malloc_zones": {
+          "virtual_bytes": 85668659,
+          "resident_bytes": 53372518,
+          "allocated_bytes": 25480397,
+          "fragmentation_bytes": 27892122
+        }
+      },
+      {
+        "scene": "partial_extrusion",
+        "phase": "rotation",
+        "cycle": 10,
+        "Physical footprint": 392586854,
+        "Physical footprint (peak)": 557527859,
+        "regions": {
+          "IOAccelerator (graphics)": {
+            "virtual_bytes": 175741338,
+            "resident_bytes": 172176179,
+            "dirty_bytes": 172176179,
+            "regions": 1379
+          },
+          "IOSurface": {
+            "virtual_bytes": 46242202,
+            "resident_bytes": 46242202,
+            "dirty_bytes": 46242202,
+            "regions": 5
+          },
+          "VM_ALLOCATE": {
+            "virtual_bytes": 47290778,
+            "resident_bytes": 45193626,
+            "dirty_bytes": 45193626,
+            "regions": 67
+          },
+          "owned unmapped (graphics)": {
+            "virtual_bytes": 28311552,
+            "resident_bytes": 28311552,
+            "dirty_bytes": 28311552,
+            "regions": 110
+          }
+        },
+        "malloc_zones": {
+          "virtual_bytes": 85668659,
+          "resident_bytes": 54316237,
+          "allocated_bytes": 25060966,
+          "fragmentation_bytes": 29255270
+        }
+      },
+      {
+        "scene": "partial_extrusion",
+        "phase": "rotation",
+        "cycle": 20,
+        "Physical footprint": 403387187,
+        "Physical footprint (peak)": 560463872,
+        "regions": {
+          "IOAccelerator (graphics)": {
+            "virtual_bytes": 175741338,
+            "resident_bytes": 172176179,
+            "dirty_bytes": 172176179,
+            "regions": 1379
+          },
+          "IOSurface": {
+            "virtual_bytes": 46242202,
+            "resident_bytes": 46242202,
+            "dirty_bytes": 46242202,
+            "regions": 5
+          },
+          "VM_ALLOCATE": {
+            "virtual_bytes": 48339354,
+            "resident_bytes": 47500493,
+            "dirty_bytes": 47500493,
+            "regions": 69
+          },
+          "owned unmapped (graphics)": {
+            "virtual_bytes": 28730982,
+            "resident_bytes": 28730982,
+            "dirty_bytes": 28730982,
+            "regions": 109
+          }
+        },
+        "malloc_zones": {
+          "virtual_bytes": 85668659,
+          "resident_bytes": 54525952,
+          "allocated_bytes": 27472691,
+          "fragmentation_bytes": 27053261
+        }
+      },
+      {
+        "scene": "partial_extrusion",
+        "phase": "rest",
+        "cycle": 20,
+        "Physical footprint": 391328563,
+        "Physical footprint (peak)": 560463872,
+        "regions": {
+          "IOAccelerator (graphics)": {
+            "virtual_bytes": 175741338,
+            "resident_bytes": 172071322,
+            "dirty_bytes": 172071322,
+            "regions": 1379
+          },
+          "IOSurface": {
+            "virtual_bytes": 46242202,
+            "resident_bytes": 46242202,
+            "dirty_bytes": 46242202,
+            "regions": 5
+          },
+          "VM_ALLOCATE": {
+            "virtual_bytes": 44145050,
+            "resident_bytes": 43096474,
+            "dirty_bytes": 43096474,
+            "regions": 61
+          },
+          "owned unmapped (graphics)": {
+            "virtual_bytes": 28730982,
+            "resident_bytes": 28730982,
+            "dirty_bytes": 28730982,
+            "regions": 109
+          }
+        },
+        "malloc_zones": {
+          "virtual_bytes": 85668659,
+          "resident_bytes": 54525952,
+          "allocated_bytes": 28206694,
+          "fragmentation_bytes": 26319258
+        }
+      },
+      {
+        "scene": "unmounted",
+        "phase": "rest",
+        "cycle": 20,
+        "Physical footprint": 150470656,
+        "Physical footprint (peak)": 560463872,
+        "regions": {
+          "IOAccelerator (graphics)": {
+            "virtual_bytes": 160327270,
+            "resident_bytes": 9601024,
+            "dirty_bytes": 9601024,
+            "regions": 1344
+          },
+          "IOSurface": {
+            "virtual_bytes": 46242202,
+            "resident_bytes": 46242202,
+            "dirty_bytes": 46242202,
+            "regions": 5
+          },
+          "VM_ALLOCATE": {
+            "virtual_bytes": 44145050,
+            "resident_bytes": 42677043,
+            "dirty_bytes": 42677043,
+            "regions": 61
+          },
+          "owned unmapped (graphics)": {
+            "virtual_bytes": 7258112,
+            "resident_bytes": 7258112,
+            "dirty_bytes": 7258112,
+            "regions": 22
+          }
+        },
+        "malloc_zones": {
+          "virtual_bytes": 85668659,
+          "resident_bytes": 55259955,
+          "allocated_bytes": 22544384,
+          "fragmentation_bytes": 8685568
+        }
+      }
+    ]
+  }
+}

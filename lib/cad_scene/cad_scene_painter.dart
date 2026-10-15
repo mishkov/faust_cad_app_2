@@ -22,6 +22,7 @@ class CadScenePainter extends CustomPainter {
     SceneTessellator? tessellator,
     TessellatedScene? evaluatedScene,
     this.selectedFaces = const {},
+    this.devicePixelRatio = 1,
   }) : tessellator = tessellator ?? SceneTessellator() {
     // Build render data once before painting. Camera-only paints reuse it.
     scene =
@@ -41,13 +42,16 @@ class CadScenePainter extends CustomPainter {
   final SceneTessellator tessellator;
   late final TessellatedScene scene;
   final Set<Face> selectedFaces;
+  final double devicePixelRatio;
 
   @override
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
     if (renderMode == CadRenderMode.shaded) {
-      ShadedSceneRenderer(cameraConfig)
-          .paint(canvas, size, scene, selectedFaces: selectedFaces);
+      ShadedSceneRenderer(
+        cameraConfig,
+        devicePixelRatio: devicePixelRatio,
+      ).paint(canvas, size, scene, selectedFaces: selectedFaces);
       return;
     }
     final projection = CameraProjection(cameraConfig);
