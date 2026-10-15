@@ -1,0 +1,786 @@
+[
+  {
+    "scene": "blank",
+    "phase": "idle",
+    "cycle": 0,
+    "rss": 149700608,
+    "max_rss": 152797184,
+    "paints": null,
+    "viewport": null,
+    "dpr": 2.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 8820064,
+      "heapCapacity": 9175040,
+      "externalUsage": 1376
+    },
+    "allocation_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 6715632,
+      "heapCapacity": 9175040,
+      "externalUsage": 576
+    },
+    "live_renderer_classes": [
+      {
+        "name": "Vector3",
+        "instances": 144,
+        "bytes": 2304
+      },
+      {
+        "name": "ProjectedFaceIndex",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedFace",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "BaselineShadedSceneRenderer",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "Vertices",
+        "instances": 0,
+        "bytes": 0
+      }
+    ],
+    "heap_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 6816512,
+      "heapCapacity": 8912896,
+      "externalUsage": 576
+    },
+    "rss_after_probe_kib": 151168,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 6.3895701250003185
+  },
+  {
+    "scene": "default",
+    "phase": "idle",
+    "cycle": 0,
+    "rss": 191414272,
+    "max_rss": 196460544,
+    "paints": 1,
+    "viewport": [
+      560.0,
+      600.0
+    ],
+    "dpr": 2.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 9571248,
+      "heapCapacity": 10485760,
+      "externalUsage": 29600
+    },
+    "allocation_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 6870736,
+      "heapCapacity": 10485760,
+      "externalUsage": 576
+    },
+    "live_renderer_classes": [
+      {
+        "name": "Vector3",
+        "instances": 1309,
+        "bytes": 20944
+      },
+      {
+        "name": "ProjectedFaceIndex",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedFace",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "BaselineShadedSceneRenderer",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "Vertices",
+        "instances": 0,
+        "bytes": 0
+      }
+    ],
+    "heap_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 6915488,
+      "heapCapacity": 10485760,
+      "externalUsage": 576
+    },
+    "rss_after_probe_kib": 190528,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 6.013328250000086
+  },
+  {
+    "scene": "default",
+    "phase": "rotation",
+    "cycle": 1,
+    "rss": 214089728,
+    "max_rss": 222658560,
+    "paints": 323,
+    "viewport": [
+      560.0,
+      600.0
+    ],
+    "dpr": 2.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7110528,
+      "heapCapacity": 8912896,
+      "externalUsage": 5120
+    },
+    "rss_after_probe_kib": 208864,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 5.989925083000344
+  },
+  {
+    "scene": "default",
+    "phase": "rotation",
+    "cycle": 2,
+    "rss": 224591872,
+    "max_rss": 234061824,
+    "paints": 643,
+    "viewport": [
+      560.0,
+      600.0
+    ],
+    "dpr": 2.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7124928,
+      "heapCapacity": 8912896,
+      "externalUsage": 5120
+    },
+    "rss_after_probe_kib": 219104,
+    "probe_seconds": 0.005626416999803041
+  },
+  {
+    "scene": "default",
+    "phase": "rotation",
+    "cycle": 3,
+    "rss": 228048896,
+    "max_rss": 236781568,
+    "paints": 963,
+    "viewport": [
+      560.0,
+      600.0
+    ],
+    "dpr": 2.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7138928,
+      "heapCapacity": 8912896,
+      "externalUsage": 5120
+    },
+    "rss_after_probe_kib": 222512,
+    "probe_seconds": 0.006026625000231434
+  },
+  {
+    "scene": "default",
+    "phase": "rotation",
+    "cycle": 4,
+    "rss": 230146048,
+    "max_rss": 238501888,
+    "paints": 1284,
+    "viewport": [
+      560.0,
+      600.0
+    ],
+    "dpr": 2.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7152272,
+      "heapCapacity": 8912896,
+      "externalUsage": 5120
+    },
+    "rss_after_probe_kib": 224576,
+    "probe_seconds": 0.005548417000227346
+  },
+  {
+    "scene": "default",
+    "phase": "rotation",
+    "cycle": 5,
+    "rss": 231227392,
+    "max_rss": 241041408,
+    "paints": 1606,
+    "viewport": [
+      560.0,
+      600.0
+    ],
+    "dpr": 2.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7166272,
+      "heapCapacity": 8912896,
+      "externalUsage": 5120
+    },
+    "rss_after_probe_kib": 225632,
+    "probe_seconds": 0.005068500000106724
+  },
+  {
+    "scene": "default",
+    "phase": "rotation",
+    "cycle": 6,
+    "rss": 235028480,
+    "max_rss": 243695616,
+    "paints": 1928,
+    "viewport": [
+      560.0,
+      600.0
+    ],
+    "dpr": 2.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7180592,
+      "heapCapacity": 8912896,
+      "externalUsage": 5120
+    },
+    "rss_after_probe_kib": 229584,
+    "probe_seconds": 0.005068333000053826
+  },
+  {
+    "scene": "default",
+    "phase": "rotation",
+    "cycle": 7,
+    "rss": 237174784,
+    "max_rss": 245432320,
+    "paints": 2250,
+    "viewport": [
+      560.0,
+      600.0
+    ],
+    "dpr": 2.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7193856,
+      "heapCapacity": 8912896,
+      "externalUsage": 5120
+    },
+    "rss_after_probe_kib": 231424,
+    "probe_seconds": 0.005604500000117696
+  },
+  {
+    "scene": "default",
+    "phase": "rotation",
+    "cycle": 8,
+    "rss": 238157824,
+    "max_rss": 247103488,
+    "paints": 2573,
+    "viewport": [
+      560.0,
+      600.0
+    ],
+    "dpr": 2.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7208176,
+      "heapCapacity": 8912896,
+      "externalUsage": 5120
+    },
+    "rss_after_probe_kib": 232640,
+    "probe_seconds": 0.005254249999779859
+  },
+  {
+    "scene": "default",
+    "phase": "rotation",
+    "cycle": 9,
+    "rss": 240041984,
+    "max_rss": 249708544,
+    "paints": 2895,
+    "viewport": [
+      560.0,
+      600.0
+    ],
+    "dpr": 2.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7222576,
+      "heapCapacity": 8912896,
+      "externalUsage": 5120
+    },
+    "rss_after_probe_kib": 234208,
+    "probe_seconds": 0.00520395900002768
+  },
+  {
+    "scene": "default",
+    "phase": "rotation",
+    "cycle": 10,
+    "rss": 242204672,
+    "max_rss": 251002880,
+    "paints": 3215,
+    "viewport": [
+      560.0,
+      600.0
+    ],
+    "dpr": 2.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7236576,
+      "heapCapacity": 8912896,
+      "externalUsage": 5120
+    },
+    "rss_after_probe_kib": 236592,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 5.894904666999992
+  },
+  {
+    "scene": "default",
+    "phase": "rest",
+    "cycle": 10,
+    "rss": 247300096,
+    "max_rss": 251002880,
+    "paints": 3215,
+    "viewport": [
+      560.0,
+      600.0
+    ],
+    "dpr": 2.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 12518704,
+      "heapCapacity": 14155776,
+      "externalUsage": 5120
+    },
+    "allocation_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 6869808,
+      "heapCapacity": 14155776,
+      "externalUsage": 576
+    },
+    "live_renderer_classes": [
+      {
+        "name": "Vector3",
+        "instances": 1309,
+        "bytes": 20944
+      },
+      {
+        "name": "ProjectedFaceIndex",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedFace",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "BaselineShadedSceneRenderer",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "Vertices",
+        "instances": 0,
+        "bytes": 0
+      }
+    ],
+    "heap_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 6907232,
+      "heapCapacity": 14155776,
+      "externalUsage": 576
+    },
+    "rss_after_probe_kib": 242480,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 3.914056832999904
+  },
+  {
+    "scene": "partial_extrusion",
+    "phase": "idle",
+    "cycle": 0,
+    "rss": 249790464,
+    "max_rss": 252887040,
+    "paints": 1,
+    "viewport": [
+      560.0,
+      600.0
+    ],
+    "dpr": 2.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 11256416,
+      "heapCapacity": 12582912,
+      "externalUsage": 33984
+    },
+    "allocation_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 6987072,
+      "heapCapacity": 12582912,
+      "externalUsage": 576
+    },
+    "live_renderer_classes": [
+      {
+        "name": "Vector3",
+        "instances": 2229,
+        "bytes": 35664
+      },
+      {
+        "name": "ProjectedFaceIndex",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedFace",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "BaselineShadedSceneRenderer",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "Vertices",
+        "instances": 0,
+        "bytes": 0
+      }
+    ],
+    "heap_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7051664,
+      "heapCapacity": 12582912,
+      "externalUsage": 576
+    },
+    "rss_after_probe_kib": 244240,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 1.061387624999952
+  },
+  {
+    "scene": "partial_extrusion",
+    "phase": "rotation",
+    "cycle": 1,
+    "rss": 260259840,
+    "max_rss": 265502720,
+    "paints": 234,
+    "viewport": [
+      560.0,
+      600.0
+    ],
+    "dpr": 2.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 11645440,
+      "heapCapacity": 12582912,
+      "externalUsage": 73632
+    },
+    "rss_after_probe_kib": 254224,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 1.0145990419996451
+  },
+  {
+    "scene": "partial_extrusion",
+    "phase": "rotation",
+    "cycle": 2,
+    "rss": 256737280,
+    "max_rss": 267665408,
+    "paints": 467,
+    "viewport": [
+      560.0,
+      600.0
+    ],
+    "dpr": 2.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 6998992,
+      "heapCapacity": 9437184,
+      "externalUsage": 576
+    },
+    "rss_after_probe_kib": 250720,
+    "probe_seconds": 0.006291832999977487
+  },
+  {
+    "scene": "partial_extrusion",
+    "phase": "rotation",
+    "cycle": 3,
+    "rss": 261668864,
+    "max_rss": 267665408,
+    "paints": 700,
+    "viewport": [
+      560.0,
+      600.0
+    ],
+    "dpr": 2.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 10724592,
+      "heapCapacity": 13107200,
+      "externalUsage": 51584
+    },
+    "rss_after_probe_kib": 255536,
+    "probe_seconds": 0.005658833000325103
+  },
+  {
+    "scene": "partial_extrusion",
+    "phase": "rotation",
+    "cycle": 4,
+    "rss": 260341760,
+    "max_rss": 267665408,
+    "paints": 932,
+    "viewport": [
+      560.0,
+      600.0
+    ],
+    "dpr": 2.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 11620112,
+      "heapCapacity": 13107200,
+      "externalUsage": 77440
+    },
+    "rss_after_probe_kib": 254320,
+    "probe_seconds": 0.005746750000071188
+  },
+  {
+    "scene": "partial_extrusion",
+    "phase": "rotation",
+    "cycle": 5,
+    "rss": 261734400,
+    "max_rss": 267665408,
+    "paints": 1164,
+    "viewport": [
+      560.0,
+      600.0
+    ],
+    "dpr": 2.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 10750736,
+      "heapCapacity": 13107200,
+      "externalUsage": 52512
+    },
+    "rss_after_probe_kib": 255664,
+    "probe_seconds": 0.005446791999929701
+  },
+  {
+    "scene": "partial_extrusion",
+    "phase": "rotation",
+    "cycle": 6,
+    "rss": 256933888,
+    "max_rss": 267665408,
+    "paints": 1397,
+    "viewport": [
+      560.0,
+      600.0
+    ],
+    "dpr": 2.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7008544,
+      "heapCapacity": 9961472,
+      "externalUsage": 576
+    },
+    "rss_after_probe_kib": 251120,
+    "probe_seconds": 0.0060199580002517905
+  },
+  {
+    "scene": "partial_extrusion",
+    "phase": "rotation",
+    "cycle": 7,
+    "rss": 262045696,
+    "max_rss": 267698176,
+    "paints": 1629,
+    "viewport": [
+      560.0,
+      600.0
+    ],
+    "dpr": 2.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 11039072,
+      "heapCapacity": 13107200,
+      "externalUsage": 59552
+    },
+    "rss_after_probe_kib": 255984,
+    "probe_seconds": 0.005332582999926672
+  },
+  {
+    "scene": "partial_extrusion",
+    "phase": "rotation",
+    "cycle": 8,
+    "rss": 260980736,
+    "max_rss": 267698176,
+    "paints": 1861,
+    "viewport": [
+      560.0,
+      600.0
+    ],
+    "dpr": 2.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 11621008,
+      "heapCapacity": 13107200,
+      "externalUsage": 76512
+    },
+    "rss_after_probe_kib": 254960,
+    "probe_seconds": 0.005137209000167786
+  },
+  {
+    "scene": "partial_extrusion",
+    "phase": "rotation",
+    "cycle": 9,
+    "rss": 258703360,
+    "max_rss": 268959744,
+    "paints": 2092,
+    "viewport": [
+      560.0,
+      600.0
+    ],
+    "dpr": 2.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 6998032,
+      "heapCapacity": 9437184,
+      "externalUsage": 576
+    },
+    "rss_after_probe_kib": 252704,
+    "probe_seconds": 0.005553832999794395
+  },
+  {
+    "scene": "partial_extrusion",
+    "phase": "rotation",
+    "cycle": 10,
+    "rss": 261242880,
+    "max_rss": 268959744,
+    "paints": 2324,
+    "viewport": [
+      560.0,
+      600.0
+    ],
+    "dpr": 2.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 10846816,
+      "heapCapacity": 13107200,
+      "externalUsage": 54080
+    },
+    "rss_after_probe_kib": 255184,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 1.0064646249998077
+  },
+  {
+    "scene": "partial_extrusion",
+    "phase": "rest",
+    "cycle": 10,
+    "rss": 257703936,
+    "max_rss": 268959744,
+    "paints": 2324,
+    "viewport": [
+      560.0,
+      600.0
+    ],
+    "dpr": 2.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 8066848,
+      "heapCapacity": 10485760,
+      "externalUsage": 576
+    },
+    "allocation_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 6986128,
+      "heapCapacity": 9437184,
+      "externalUsage": 576
+    },
+    "live_renderer_classes": [
+      {
+        "name": "Vector3",
+        "instances": 2229,
+        "bytes": 35664
+      },
+      {
+        "name": "ProjectedFaceIndex",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedFace",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "BaselineShadedSceneRenderer",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "Vertices",
+        "instances": 0,
+        "bytes": 0
+      }
+    ],
+    "heap_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7023552,
+      "heapCapacity": 9437184,
+      "externalUsage": 576
+    },
+    "rss_after_probe_kib": 250880,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 1.0468869579999591
+  },
+  {
+    "scene": "unmounted",
+    "phase": "rest",
+    "cycle": 10,
+    "rss": 211746816,
+    "max_rss": 268959744,
+    "paints": null,
+    "viewport": null,
+    "dpr": 2.0,
+    "heap_before_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 7917408,
+      "heapCapacity": 8912896,
+      "externalUsage": 736
+    },
+    "allocation_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 6762864,
+      "heapCapacity": 8388608,
+      "externalUsage": 576
+    },
+    "live_renderer_classes": [
+      {
+        "name": "Vector3",
+        "instances": 145,
+        "bytes": 2320
+      },
+      {
+        "name": "ProjectedFaceIndex",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "ProjectedFace",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "BaselineShadedSceneRenderer",
+        "instances": 0,
+        "bytes": 0
+      },
+      {
+        "name": "Vertices",
+        "instances": 0,
+        "bytes": 0
+      }
+    ],
+    "heap_after_gc": {
+      "type": "MemoryUsage",
+      "heapUsage": 6834880,
+      "heapCapacity": 8912896,
+      "externalUsage": 576
+    },
+    "rss_after_probe_kib": 207088,
+    "vmmap_exit_code": 0,
+    "probe_seconds": 1.0767740419996699
+  }
+]

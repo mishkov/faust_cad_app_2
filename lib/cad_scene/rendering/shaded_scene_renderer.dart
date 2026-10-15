@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'dart:ui' as ui;
 
@@ -9,6 +10,8 @@ import 'package:faust_cad_app_2/cad_scene/rendering/projected_face.dart';
 import 'package:faust_cad_app_2/cad_scene/rendering/projected_face_index.dart';
 
 import 'viewport_layer_counts.dart';
+import 'curved_triangle_visibility.dart';
+import 'projected_mesh_batch.dart';
 import 'projected_edge_visibility.dart';
 
 import 'package:flutter/material.dart';
@@ -25,13 +28,20 @@ import '../cad_primitivies/face.dart';
 /// the closer part of each occluder handles intersecting faces and cyclic
 /// overlaps that cannot be resolved by sorting whole faces or objects.
 class ShadedSceneRenderer {
-  ShadedSceneRenderer(CameraConfig camera, {this.layerCounts})
-    : _projection = CameraProjection(camera);
+  ShadedSceneRenderer(
+    CameraConfig camera, {
+    this.layerCounts,
+    this.devicePixelRatio = 1,
+  }) : _projection = CameraProjection(camera);
 
   final ViewportLayerCounts? layerCounts;
+  final double devicePixelRatio;
 
   final CameraProjection _projection;
   final _cameraPoints = Map<Vector3, Vector3>.identity();
+  // Synchronous UI-isolate scratch. No model/camera references survive paint.
+  static final _visibility = CurvedTriangleVisibility();
+  static final _meshBatch = ProjectedMeshBatch();
   static final _light = Vector3(0.55, -0.65, 0.8).normalized();
   static const _depthBoundsRelativeTolerance = 1e-6;
   static final _layerPaint = Paint();
@@ -53,6 +63,21 @@ class ShadedSceneRenderer {
     Size size,
     TessellatedScene scene, {
     Set<Face> selectedFaces = const {},
+  }) {
+    try {
+      _paintFrame(canvas, size, scene, selectedFaces: selectedFaces);
+    } finally {
+      _cameraPoints.clear();
+      _meshBatch.clear();
+      _visibility.endFrame();
+    }
+  }
+
+  void _paintFrame(
+    Canvas canvas,
+    Size size,
+    TessellatedScene scene, {
+    required Set<Face> selectedFaces,
   }) {
     // Shared mesh and edge samples are transformed once per paint. Clear the
     // cache between frames because model coordinates can be mutable.
@@ -83,38 +108,70 @@ class ShadedSceneRenderer {
       layerCounts!.projectionMicroseconds = timer!.elapsedMicroseconds;
     }
 
-    final meshPoints = <Offset>[];
-    final meshColors = <Color>[];
-    void flushMesh() {
-      if (meshPoints.isEmpty) return;
-      canvas.drawVertices(
-        ui.Vertices(ui.VertexMode.triangles, meshPoints, colors: meshColors),
-        BlendMode.modulate,
-        _meshPaint,
-      );
-      layerCounts?.meshBatches++;
-      meshPoints.clear();
-      meshColors.clear();
-    }
+    Float64List? transform;
+    var supportedTransform = true;
+    _visibility.beginFrame();
+    _meshBatch.clear();
+    void flushMesh() => _meshBatch.flush(canvas, layerCounts);
 
     for (final face in faces) {
+      final bias = !face.isMesh
+          ? 0.0
+          : (face.inverseDepth.x * face.bounds.center.dx +
+                        face.inverseDepth.y * face.bounds.center.dy +
+                        face.inverseDepth.z)
+                    .abs() *
+                1e-10;
+      if (face.meshPoints != null) {
+        if (transform == null) {
+          transform = canvas.getTransform();
+          supportedTransform =
+              transform[1] == 0 &&
+              transform[4] == 0 &&
+              transform[0].isFinite &&
+              transform[0] != 0 &&
+              transform[5] != 0 &&
+              transform[5].isFinite &&
+              transform[12].isFinite &&
+              transform[13].isFinite &&
+              devicePixelRatio.isFinite &&
+              devicePixelRatio > 0 &&
+              transform[3] == 0 &&
+              transform[7] == 0 &&
+              transform[15] == 1;
+        }
+
+        final coverage = !supportedTransform
+            ? TriangleCoverage.fallback
+            : _visibility.resolve(
+                face,
+                index,
+                bias: bias,
+                pixelScaleX: transform[0] * devicePixelRatio,
+                pixelScaleY: transform[5] * devicePixelRatio,
+                pixelTranslateX: transform[12] * devicePixelRatio,
+                pixelTranslateY: transform[13] * devicePixelRatio,
+              );
+        if (coverage == TriangleCoverage.hidden) {
+          layerCounts?.hiddenTriangles++;
+          continue;
+        }
+        if (coverage == TriangleCoverage.visible ||
+            coverage == TriangleCoverage.partial) {
+          if (coverage == TriangleCoverage.partial) {
+            layerCounts?.resolvedTriangles++;
+          }
+          _meshBatch.addVisible(canvas, _visibility, layerCounts);
+          continue;
+        }
+        layerCounts?.visibilityFallbacks++;
+      }
       final masks = _occlusionMasks(
         face.bounds,
         face.inverseDepth,
         index,
         skip: face,
-        bias: !face.isMesh
-            ? 0
-            : face.inverseDepth
-                      .dot(
-                        Vector3(
-                          face.bounds.center.dx,
-                          face.bounds.center.dy,
-                          1,
-                        ),
-                      )
-                      .abs() *
-                  1e-10,
+        bias: bias,
       );
       if (face.isMesh &&
           masks.isNotEmpty &&
@@ -124,17 +181,7 @@ class ShadedSceneRenderer {
         continue;
       }
       if (masks.isEmpty && face.meshPoints != null) {
-        final points = face.meshPoints!, colors = face.meshColors!;
-        for (var i = 1; i < points.length - 1; i++) {
-          meshPoints
-            ..add(points[0])
-            ..add(points[i])
-            ..add(points[i + 1]);
-          meshColors
-            ..add(colors[0])
-            ..add(colors[i])
-            ..add(colors[i + 1]);
-        }
+        _meshBatch.addFace(canvas, face, layerCounts);
         continue;
       }
       // Every local depth comparison is complete before a cell is batched.
@@ -161,11 +208,19 @@ class ShadedSceneRenderer {
               );
           // Mesh cells share samples. Disable per-cell antialiasing to avoid
           // translucent hairlines along artificial internal boundaries.
-          canvas.drawVertices(vertices, BlendMode.modulate, _meshPaint);
+          layerCounts?.meshDraws++;
+          layerCounts?.meshVertices += face.meshPoints?.length ?? 0;
+          try {
+            canvas.drawVertices(vertices, BlendMode.modulate, _meshPaint);
+          } finally {
+            if (face.vertices == null) vertices.dispose();
+          }
         } else {
+          layerCounts?.planarDraws++;
           canvas.drawPath(face.path, Paint()..color = face.color);
         }
         for (final mask in masks) {
+          layerCounts?.maskDraws++;
           canvas.drawPath(mask, _erasePaint);
         }
       } finally {
@@ -246,8 +301,10 @@ class ShadedSceneRenderer {
           canvas.saveLayer(bounds, _layerPaint);
         }
         try {
+          layerCounts?.edgeDraws++;
           canvas.drawLine(p, q, boundary ? _boundaryPaint : _standalonePaint);
           for (final mask in masks) {
+            layerCounts?.maskDraws++;
             canvas.drawPath(mask, _erasePaint);
           }
         } finally {
@@ -261,6 +318,7 @@ class ShadedSceneRenderer {
           layerCounts!.projectionMicroseconds -
           layerCounts!.facesMicroseconds;
     }
+    layerCounts?.visibilityWork = _visibility.frameWork;
     timer?.stop();
   }
 

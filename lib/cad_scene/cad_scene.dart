@@ -90,6 +90,7 @@ class _CadSceneState extends State<CadScene> {
     final paint = CustomPaint(
       painter: CadScenePainter(
         cameraConfig: widget.cameraConfig,
+        devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
         evaluatedScene: picker?.scene,
         selectedFaces: selectedFaces,
         cadObjects: widget.cadObjects,

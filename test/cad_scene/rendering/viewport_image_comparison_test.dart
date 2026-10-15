@@ -9,6 +9,7 @@ import 'package:faust_cad_app_2/cad_scene/cad_primitivies/vertex.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_surfaces/plane_surface.dart';
 import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
 import 'package:faust_cad_app_2/cad_scene/rendering/shaded_scene_renderer.dart';
+import 'package:faust_cad_app_2/cad_scene/rendering/camera_projection.dart';
 import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/scene_tessellator.dart';
 import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/tessellated_scene.dart';
 import 'package:faust_cad_app_2/sketch/sketch.dart';
@@ -73,18 +74,31 @@ Future<List<Map<String, Object>>> compareViewportImages() async {
           dpr,
           false,
         );
+        final boundaries = _meshBoundaries(camera, scene, size, dpr);
         var changedPixels = 0, maximumDelta = 0, pixelsOverTwo = 0;
+        var maximumBrightening = 0, offBoundaryChanges = 0;
         for (var i = 0; i < baseline.length; i += 4) {
           var changed = false;
           var pixelDelta = 0;
           for (var c = 0; c < 4; c++) {
             final delta = (baseline[i + c] - optimized[i + c]).abs();
+            maximumBrightening = math.max(
+              maximumBrightening,
+              optimized[i + c] - baseline[i + c],
+            );
             maximumDelta = math.max(maximumDelta, delta);
             pixelDelta = math.max(pixelDelta, delta);
             changed |= delta != 0;
           }
           if (changed) changedPixels++;
           if (pixelDelta > 2) pixelsOverTwo++;
+          if (pixelDelta > 4) {
+            final width = (size.width * dpr).round();
+            final p = Offset((i ~/ 4 % width) + 0.5, (i ~/ 4 ~/ width) + 0.5);
+            if (!boundaries.any((edge) => _nearSegment(p, edge.$1, edge.$2))) {
+              offBoundaryChanges++;
+            }
+          }
         }
         final result = <String, Object>{
           'scene': partial ? 'partial_extrusion' : 'default',
@@ -94,23 +108,34 @@ Future<List<Map<String, Object>>> compareViewportImages() async {
           'maximum_channel_delta': maximumDelta,
           'pixels': baseline.length ~/ 4,
           'pixels_over_two': pixelsOverTwo,
+          'maximum_brightening': maximumBrightening,
+          'off_boundary_changes_over_four': offBoundaryChanges,
         };
         results.add(result);
       }
     }
   }
+  if (const bool.fromEnvironment('VIEWPORT_IMAGE_STATS')) {
+    debugPrint('VIEWPORT_IMAGES ${jsonEncode(results)}');
+  }
   final output = Platform.environment['VIEWPORT_IMAGE_REPORT'];
   if (output != null) await File(output).writeAsString(jsonEncode(results));
   for (final result in results) {
-    // Impeller accumulates a few rounding units at overlapping AA rims.
-    // Allow sparse contact-pixel rounding while tightly bounding the changed
-    // area; coverage/silhouette regressions produce much larger differences.
+    // A shared Impeller MSAA submission removes light seams introduced by
+    // separately resolving translucent cell edges in the reference layers.
+    // Permit only bounded darkening within one physical pixel of a sampled
+    // mesh edge. New bright holes and changes to interiors retain tight limits.
     expect(
       result['maximum_channel_delta'],
+      lessThanOrEqualTo(32),
+      reason: '$result',
+    );
+    expect(
+      result['maximum_brightening'],
       lessThanOrEqualTo(4),
       reason: '$result',
     );
-    expect(result['pixels_over_two'], lessThanOrEqualTo(32), reason: '$result');
+    expect(result['off_boundary_changes_over_four'], 0, reason: '$result');
     expect(
       (result['changed_pixels'] as int) / (result['pixels'] as int),
       lessThan(0.005),
@@ -118,6 +143,46 @@ Future<List<Map<String, Object>>> compareViewportImages() async {
     );
   }
   return results;
+}
+
+List<(Offset, Offset)> _meshBoundaries(
+  CameraConfig camera,
+  TessellatedScene scene,
+  Size size,
+  double dpr,
+) {
+  final projection = CameraProjection(camera);
+  final result = <(Offset, Offset)>[];
+  for (final face in scene.faces) {
+    if (face.source.surface is PlaneSurface) continue;
+    for (final triangle in face.triangles) {
+      final clipped = projection.clipLoop(
+        triangle.points.map(projection.toCameraSpace).toList(),
+        screen: size,
+      );
+      final points = [
+        for (final p in clipped) projection.project(p, screen: size),
+      ];
+      for (var i = 0; i < points.length; i++) {
+        final p = points[i], q = points[(i + 1) % points.length];
+        result.add((
+          Offset(p.x * dpr, p.y * dpr),
+          Offset(q.x * dpr, q.y * dpr),
+        ));
+      }
+    }
+  }
+  return result;
+}
+
+bool _nearSegment(Offset p, Offset a, Offset b) {
+  final delta = b - a;
+  final t = delta.distanceSquared == 0
+      ? 0.0
+      : (((p - a).dx * delta.dx + (p - a).dy * delta.dy) /
+                delta.distanceSquared)
+            .clamp(0.0, 1.0);
+  return (p - a - delta * t).distance <= 1;
 }
 
 Future<Uint8List> _render(
@@ -162,7 +227,7 @@ Future<Uint8List> _render(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   test(
-    'PR 32 reference matches default and partial extrusion at nine angles and DPR 1/2',
+    'Latest main reference matches default and partial extrusion at nine angles and DPR 1/2',
     compareViewportImages,
   );
   test(

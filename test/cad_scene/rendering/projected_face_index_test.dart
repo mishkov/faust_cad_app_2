@@ -41,4 +41,27 @@ void main() {
       orderedEquals(faces),
     );
   });
+  test('bounded scratch query releases partial results and can be reused', () {
+    final faces = [
+      face(const Rect.fromLTRB(0, 0, 100, 100)),
+      face(const Rect.fromLTRB(10, 10, 90, 90)),
+    ];
+    final index = ProjectedFaceIndex(faces, const Size(100, 100));
+    final scratch = <ProjectedFace>[];
+    expect(
+      index.queryInto(const Rect.fromLTRB(0, 0, 100, 100), scratch, limit: 1),
+      false,
+    );
+    expect(scratch, isEmpty);
+    expect(
+      index.queryInto(const Rect.fromLTRB(0, 0, 100, 100), scratch, limit: 2),
+      true,
+    );
+    expect(scratch, orderedEquals(faces));
+    expect(
+      index.queryInto(const Rect.fromLTRB(95, 95, 100, 100), scratch, limit: 1),
+      true,
+    );
+    expect(scratch, orderedEquals(faces.take(1)));
+  });
 }
