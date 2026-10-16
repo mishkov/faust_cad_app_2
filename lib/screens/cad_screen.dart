@@ -1,35 +1,31 @@
 import 'dart:math' as math;
 
-import '../cad_scene/cad_primitivies/solid.dart';
-import '../step_export/step_export_button.dart';
-
-import '../document/features/extrude_feature.dart';
-import '../feature_history/feature_history_panel.dart';
-import '../extrusion_editor/extrusion_editor_controller.dart';
-import '../extrusion_editor/extrusion_workspace.dart';
-
-import 'package:faust_cad_app_2/cad_scene/cad_objects/cylinder.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_objects/ground_grid.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/cad_primitive.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/vertex.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_scene.dart';
-import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
-import 'package:faust_cad_app_2/cad_scene/geometry/planar_frame.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_surfaces/plane_surface.dart';
+import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
 import 'package:faust_cad_app_2/document/document_controller.dart';
-import 'package:faust_cad_app_2/document/features/sketch_feature.dart';
-import 'package:faust_cad_app_2/sketch/sketch_geometry.dart';
-import 'package:faust_cad_app_2/sketch_editor/sketch_editor_controller.dart';
-import 'package:faust_cad_app_2/sketch_editor/sketch_workspace.dart';
-import 'package:faust_cad_app_2/document/feature_definition.dart';
 import 'package:faust_cad_app_2/document/feature_id.dart';
 import 'package:faust_cad_app_2/document/features/cube_feature.dart';
+import 'package:faust_cad_app_2/document/features/sketch_feature.dart';
 import 'package:faust_cad_app_2/document/output_reference.dart';
 import 'package:faust_cad_app_2/document/planar_support.dart';
 import 'package:faust_cad_app_2/document/planar_support_resolution.dart';
+import 'package:faust_cad_app_2/sketch/sketch_geometry.dart';
+import 'package:faust_cad_app_2/sketch_editor/sketch_editor_controller.dart';
+import 'package:faust_cad_app_2/sketch_editor/sketch_workspace.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
+
+import '../cad_scene/cad_primitivies/solid.dart';
+import '../document/features/extrude_feature.dart';
+import '../extrusion_editor/extrusion_editor_controller.dart';
+import '../extrusion_editor/extrusion_workspace.dart';
+import '../feature_history/feature_history_panel.dart';
+import '../step_export/step_export_button.dart';
 
 class CadScreen extends StatefulWidget {
   const new({super.key, this.controller});
@@ -54,18 +50,6 @@ class _CadScreenState extends State<CadScreen>
           SketchFeature.type: SketchFeature.evaluate,
           ExtrudeFeature.type: ExtrudeFeature.evaluate,
         },
-        features: [
-          FeatureDefinition(
-            id: FeatureId('cube-a'),
-            type: CubeFeature.type,
-            parameters: {'x': 15, 'y': 16, 'z': 19, 'size': 20},
-          ),
-          FeatureDefinition(
-            id: FeatureId('cube-b'),
-            type: CubeFeature.type,
-            parameters: {'x': 40, 'y': 16, 'z': 15, 'size': 30},
-          ),
-        ],
       );
   late var _evaluated = _document.evaluation.materializeGeometry();
   late final _editor = SketchEditorController(_document);
@@ -77,14 +61,7 @@ class _CadScreenState extends State<CadScreen>
   PlanarSupport? _inspectedSupport;
   var _selectionMode = ViewportSelectionMode.planarFace;
 
-  final List<CadPrimitive> _geometry = [
-    ...GroundGrid(100, 100).build(),
-    ...Cylinder(
-      frame: PlanarFrame.xy(origin: Vector3(60, 60, 0)),
-      radius: 8,
-      height: 15,
-    ).build(),
-  ];
+  final List<CadPrimitive> _geometry = [...GroundGrid(100, 100).build()];
 
   static final _initialCameraPosition = CameraConfig(
     position: Vertex(Vector3(0, -50, 100)),
