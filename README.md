@@ -2,6 +2,12 @@
 
 A Flutter CAD viewer with wireframe and shaded rendering.
 
+## AI control through MCP
+
+Click **Enable MCP** in the desktop app to allow local modeling tools to connect.
+AI sessions lock model editing while retaining camera inspection and **Stop AI**.
+See [MCP setup, tool contract and gear demonstration](docs/mcp_control.md).
+
 ## STEP export
 
 Click **Export STEP** below **Model edits** and choose a destination in the native

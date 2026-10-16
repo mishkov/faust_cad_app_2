@@ -6,6 +6,8 @@ import 'evaluation_snapshot.dart';
 import 'feature_definition.dart';
 import 'feature_evaluation_context.dart';
 import 'feature_id.dart';
+import 'feature_result.dart';
+import 'feature_evaluation_failure.dart';
 
 /// Document model edits and undo/redo state for future UI actions.
 ///
@@ -19,7 +21,102 @@ final class DocumentController extends ChangeNotifier {
   }) : _document = CadDocument(evaluators: evaluators, features: features),
        _issuedIds = {for (final feature in features) feature.id};
 
-  final CadDocument _document;
+  CadDocument _document;
+  Object? _editOwner;
+  Object? _actingOwner;
+
+  /// Whether document mutations belong exclusively to an external editor.
+  bool get isEditLocked => _editOwner != null;
+
+  /// Reserves mutations while leaving document inspection available.
+  void acquireEditLock(Object owner) => _run(() {
+    _requireNoTransaction();
+    _editOwner = owner;
+    notifyListeners();
+  });
+
+  /// Runs a synchronous command with the current editor's authority.
+  T asEditOwner<T>(Object owner, T Function() action) {
+    if (!identical(owner, _editOwner)) throw StateError('AI control has ended');
+    final previous = _actingOwner;
+    _actingOwner = owner;
+    try {
+      return action();
+    } finally {
+      _actingOwner = previous;
+    }
+  }
+
+  /// Releases exclusive editing after the owner's pending work is revoked.
+  void releaseEditLock(Object owner) => asEditOwner(
+    owner,
+    () => _run(() {
+      _editOwner = null;
+      notifyListeners();
+    }),
+  );
+
+  /// Evaluates an isolated draft off the UI thread before publishing one edit.
+  ///
+  /// Invalid evaluations leave definitions and history unchanged. Losing the
+  /// edit lock or changing the revision discards the draft before publication.
+  Future<bool> editValidated(
+    String label,
+    List<FeatureDefinition> features, {
+    required Object owner,
+  }) async {
+    asEditOwner(owner, _requireNoTransaction);
+    final base = _document;
+    final revision = evaluation.revision;
+    final before = this.features;
+    final after = List<FeatureDefinition>.unmodifiable(features);
+    if (listEquals(before, after)) return false;
+    final prepared = await compute(_evaluateDraft, (base, after));
+    return asEditOwner(
+      owner,
+      () => _run(() {
+        if (!identical(base, _document) || evaluation.revision != revision) {
+          throw StateError('Document changed while preparing the edit');
+        }
+        _document = prepared;
+        _issuedIds.addAll(after.map((f) => f.id));
+        _record(label, before, after);
+        notifyListeners();
+        return true;
+      }),
+    );
+  }
+
+  /// Restores one history step in a worker while retaining revocable authority.
+  Future<bool> restoreHistory({
+    required bool redo,
+    required Object owner,
+  }) async {
+    asEditOwner(owner, _requireNoTransaction);
+    final source = redo ? _redo : _undo;
+    if (source.isEmpty) return false;
+    final entry = source.last;
+    final base = _document;
+    final revision = evaluation.revision;
+    final prepared = await compute(_evaluateDraft, (
+      base,
+      redo ? entry.after : entry.before,
+    ));
+    return asEditOwner(
+      owner,
+      () => _run(() {
+        if (!identical(base, _document) || evaluation.revision != revision) {
+          throw StateError('Document changed while restoring history');
+        }
+        _document = prepared;
+        source.removeLast();
+        (redo ? _undo : _redo).add(entry);
+        notifyListeners();
+        return true;
+      }),
+    );
+  }
+
   final Set<FeatureId> _issuedIds;
   final Map<String, int> _idSerials = {};
 
@@ -220,6 +317,9 @@ final class DocumentController extends ChangeNotifier {
 
   T _run<T>(T Function() action) {
     if (_disposed) throw StateError('Document controller is disposed');
+    if (_editOwner != null && !identical(_actingOwner, _editOwner)) {
+      throw StateError('Document is controlled by AI');
+    }
     if (_busy) throw StateError('Document edits are not reentrant');
     _busy = true;
     try {
@@ -238,6 +338,27 @@ final class DocumentController extends ChangeNotifier {
     _transaction = null;
     super.dispose();
   }
+}
+
+CadDocument _evaluateDraft((CadDocument, List<FeatureDefinition>) input) {
+  final (document, features) = input;
+  document.replaceFeatures(features);
+  final failures = {
+    for (final entry in document.evaluation.features.entries)
+      if (entry.value.state != FeatureState.valid)
+        entry.key.value: {
+          'state': entry.value.state.name,
+          'message': entry.value.message,
+          'diagnostics': entry.value.diagnostics,
+        },
+  };
+  if (failures.isNotEmpty) {
+    throw FeatureEvaluationFailure(
+      message: 'Draft evaluation failed; the document is unchanged.',
+      diagnostics: failures,
+    );
+  }
+  return document;
 }
 
 typedef _UndoEntry = ({
