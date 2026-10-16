@@ -1,4 +1,10 @@
 import 'dart:math' as math;
+import 'dart:async';
+
+import '../automation/ai_control_bar.dart';
+import '../automation/automation_controller.dart';
+import '../automation/automation_renderer.dart';
+import '../automation/automation_server.dart';
 
 import 'package:faust_cad_app_2/cad_scene/cad_objects/ground_grid.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/cad_primitive.dart';
@@ -28,9 +34,10 @@ import '../feature_history/feature_history_panel.dart';
 import '../step_export/step_export_button.dart';
 
 class CadScreen extends StatefulWidget {
-  const new({super.key, this.controller});
+  const new({super.key, this.controller, this.automation});
 
   final DocumentController? controller;
+  final AutomationController? automation;
 
   @override
   State<CadScreen> createState() => _CadScreenState();
@@ -54,6 +61,19 @@ class _CadScreenState extends State<CadScreen>
   late var _evaluated = _document.evaluation.materializeGeometry();
   late final _editor = SketchEditorController(_document);
   late final _extrusionEditor = ExtrusionEditorController(_document);
+  late final _automation =
+      widget.automation ??
+      AutomationController(
+        _document,
+        canBegin: () =>
+            _editor.activeId == null &&
+            _extrusionEditor.activeId == null &&
+            (ModalRoute.of(context)?.isCurrent ?? true),
+        render: AutomationRenderer(_document).render,
+      );
+  late final _automationServer = AutomationServer(_automation);
+  bool _startingAutomation = false;
+  String? _automationError;
   CameraConfig? _previousCamera;
   var _plane = PrincipalPlane.xy;
   OutputReference? _selectedReference;
@@ -81,10 +101,36 @@ class _CadScreenState extends State<CadScreen>
     _document.addListener(_documentChanged);
     _editor.addListener(_editorChanged);
     _extrusionEditor.addListener(_extrusionChanged);
+    _automation.addListener(_automationChanged);
     _resetController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 350),
     )..addListener(_animateCameraReset);
+    const token = String.fromEnvironment('FAUST_MCP_TOKEN');
+    if (token.isNotEmpty) unawaited(_enableAutomation(token: token));
+  }
+
+  void _automationChanged() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _enableAutomation({String? token}) async {
+    if (_startingAutomation) return;
+    setState(() {
+      _startingAutomation = true;
+      _automationError = null;
+    });
+    try {
+      await _automationServer.start(
+        token: token,
+        port: const int.fromEnvironment('FAUST_MCP_PORT', defaultValue: 47831),
+      );
+      if (mounted) _automation.enable();
+    } catch (_) {
+      if (mounted) _automationError = 'MCP connection unavailable. Check whether another app instance is using its port.';
+    } finally {
+      if (mounted) setState(() => _startingAutomation = false);
+    }
   }
 
   void _resetCamera() {
@@ -125,6 +171,9 @@ class _CadScreenState extends State<CadScreen>
 
   @override
   void dispose() {
+    _automation.removeListener(_automationChanged);
+    unawaited(_automationServer.close());
+    if (widget.automation == null) _automation.dispose();
     _document.removeListener(_documentChanged);
     _editor.removeListener(_editorChanged);
     _editor.dispose();
@@ -190,6 +239,7 @@ class _CadScreenState extends State<CadScreen>
   }
 
   void _enterSketch({FeatureId? id, PlanarSupport? support}) {
+    if (_document.isEditLocked) return;
     _resetController.stop();
     final previous = _previousCamera ?? _cameraPosition;
     if (id != null) {
@@ -220,6 +270,7 @@ class _CadScreenState extends State<CadScreen>
     FeatureId sketchId, {
     Iterable<String> regions = const [],
   }) {
+    if (_document.isEditLocked) return;
     _editor.close();
     _extrusionEditor.create(sketchId, regionIds: regions);
   }
@@ -258,17 +309,21 @@ class _CadScreenState extends State<CadScreen>
                 for (final p in PrincipalPlane.values)
                   DropdownMenuItem(value: p, child: Text(p.name.toUpperCase())),
               ],
-              onChanged: (p) => setState(() => _plane = p!),
+              onChanged: _document.isEditLocked
+                  ? null
+                  : (p) => setState(() => _plane = p!),
             ),
             FilledButton(
               key: const Key('new-sketch'),
-              onPressed: () =>
-                  _enterSketch(support: PlanarSupport.principal(_plane)),
+              onPressed: _document.isEditLocked
+                  ? null
+                  : () =>
+                        _enterSketch(support: PlanarSupport.principal(_plane)),
               child: const Text('New sketch'),
             ),
             OutlinedButton(
               key: const Key('sketch-on-face'),
-              onPressed: _inspectedSupport == null
+              onPressed: _inspectedSupport == null || _document.isEditLocked
                   ? null
                   : () => _enterSketch(support: _inspectedSupport),
               child: const Text('Sketch on selected face'),
@@ -336,146 +391,193 @@ class _CadScreenState extends State<CadScreen>
       bindings: {
         const SingleActivator(LogicalKeyboardKey.digit1, meta: true):
             _resetCamera,
-        const SingleActivator(LogicalKeyboardKey.keyZ, meta: true):
-            _editor.undo,
-        const SingleActivator(LogicalKeyboardKey.keyZ, meta: true, shift: true):
-            _editor.redo,
-        const SingleActivator(LogicalKeyboardKey.keyZ, control: true):
-            _editor.undo,
-        const SingleActivator(
-          LogicalKeyboardKey.keyZ,
-          control: true,
-          shift: true,
-        ): _editor.redo,
+        if (!_document.isEditLocked) ...{
+          const SingleActivator(LogicalKeyboardKey.keyZ, meta: true):
+              _editor.undo,
+          const SingleActivator(
+            LogicalKeyboardKey.keyZ,
+            meta: true,
+            shift: true,
+          ): _editor.redo,
+          const SingleActivator(LogicalKeyboardKey.keyZ, control: true):
+              _editor.undo,
+          const SingleActivator(
+            LogicalKeyboardKey.keyZ,
+            control: true,
+            shift: true,
+          ): _editor.redo,
+        },
       },
       child: Focus(
         autofocus: true,
         child: Scaffold(
-          body: Center(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(
-                  width: 300,
-                  child: Column(
+          body: Column(
+            children: [
+              AiControlBar(
+                active: _automation.isActive,
+                paused: _automation.paused,
+                connected: _automationServer.endpoint != null,
+                operation: _automation.operation,
+                error: _automationError,
+                onEnable: _startingAutomation
+                    ? null
+                    : () => unawaited(_enableAutomation()),
+                onStop: _automation.stop,
+                onCopy: () => unawaited(
+                  Clipboard.setData(
+                    ClipboardData(text: _automationServer.endpoint!),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Center(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Row(
-                        children: [
-                          const SizedBox(width: 12),
-                          const Text('Model edits'),
-                          IconButton(
-                            tooltip: 'Undo',
-                            onPressed: _document.canUndo ? _editor.undo : null,
-                            icon: const Icon(Icons.undo),
-                          ),
-                          IconButton(
-                            tooltip: 'Redo',
-                            onPressed: _document.canRedo ? _editor.redo : null,
-                            icon: const Icon(Icons.redo),
-                          ),
-                        ],
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                        child: StepExportButton(
-                          solids: evaluated.geometry
-                              .whereType<Solid>()
-                              .toList(),
+                      SizedBox(
+                        width: 300,
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                const SizedBox(width: 12),
+                                const Text('Model edits'),
+                                IconButton(
+                                  tooltip: 'Undo',
+                                  onPressed:
+                                      !_document.isEditLocked &&
+                                          _document.canUndo
+                                      ? _editor.undo
+                                      : null,
+                                  icon: const Icon(Icons.undo),
+                                ),
+                                IconButton(
+                                  tooltip: 'Redo',
+                                  onPressed:
+                                      !_document.isEditLocked &&
+                                          _document.canRedo
+                                      ? _editor.redo
+                                      : null,
+                                  icon: const Icon(Icons.redo),
+                                ),
+                              ],
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                              child: IgnorePointer(
+                                ignoring: _document.isEditLocked,
+                                child: ExcludeFocus(
+                                  excluding: _document.isEditLocked,
+                                  child: StepExportButton(
+                                    solids: evaluated.geometry
+                                        .whereType<Solid>()
+                                        .toList(),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 3,
+                              child: FeatureHistoryPanel(
+                                document: _document,
+                                selectedId: _selectedFeature,
+                                onSelected: _selectFeature,
+                                onOpenSketch: (id) => _enterSketch(id: id),
+                                onEditExtrusion: _extrusionEditor.open,
+                                onExtrudeSketch: _enterExtrusion,
+                              ),
+                            ),
+                            const Divider(height: 1),
+                            Expanded(flex: 2, child: _inspectionPanel()),
+                          ],
                         ),
                       ),
                       Expanded(
-                        flex: 3,
-                        child: FeatureHistoryPanel(
-                          document: _document,
-                          selectedId: _selectedFeature,
-                          onSelected: _selectFeature,
-                          onOpenSketch: (id) => _enterSketch(id: id),
-                          onEditExtrusion: _extrusionEditor.open,
-                          onExtrudeSketch: _enterExtrusion,
+                        child: LayoutBuilder(
+                          builder: (context, constraints) => Listener(
+                            behavior: HitTestBehavior.opaque,
+                            onPointerPanZoomStart: (_) {
+                              _resetController.stop();
+                              _previousGestureScale = 1.0;
+                            },
+                            onPointerPanZoomUpdate: (event) {
+                              _resetController.stop();
+                              final scaleFactor =
+                                  event.scale / _previousGestureScale;
+                              if (event.scale.isFinite && event.scale > 0) {
+                                _previousGestureScale = event.scale;
+                              }
+
+                              setState(() {
+                                if (HardwareKeyboard.instance.isShiftPressed) {
+                                  _cameraPosition = _cameraPosition
+                                      .pan(event.panDelta)
+                                      .zoomTowardCursor(
+                                        cursor: event.localPosition,
+                                        viewport: constraints.biggest,
+                                        scaleFactor: scaleFactor,
+                                      );
+                                  return;
+                                }
+
+                                final yaw =
+                                    _cameraPosition.yaw -
+                                    event.panDelta.dx * 0.005;
+                                final pitch =
+                                    _cameraPosition.pitch -
+                                    event.panDelta.dy * 0.005;
+                                final orientationChanged =
+                                    yaw != _cameraPosition.yaw ||
+                                    pitch != _cameraPosition.pitch;
+                                final rotatedCamera = _cameraPosition.copyWith(
+                                  yaw: yaw,
+                                  pitch: pitch,
+                                  // Rotation starts looking along a different ray, so
+                                  // discard the depth accumulated by earlier zooms.
+                                  focusDistance: orientationChanged
+                                      ? _initialFocusDistance
+                                      : _cameraPosition.focusDistance,
+                                );
+                                _cameraPosition = rotatedCamera
+                                    .zoomTowardCursor(
+                                      cursor: event.localPosition,
+                                      viewport: constraints.biggest,
+                                      scaleFactor: scaleFactor,
+                                    );
+                              });
+                            },
+                            onPointerPanZoomEnd: (_) =>
+                                _previousGestureScale = 1.0,
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                CadScene(
+                                  cameraConfig: _cameraPosition,
+                                  sketches: [
+                                    for (final output
+                                        in _document.evaluation.dataOutputs)
+                                      if (output.data is SketchGeometry)
+                                        output.data as SketchGeometry,
+                                  ],
+                                  renderMode: CadRenderMode.shaded,
+                                  geometry: _geometry,
+                                  evaluatedGeometry: evaluated,
+                                  selectionMode: _selectionMode,
+                                  onSelected: _select,
+                                  selectedReference: _selectedReference,
+                                  geometryRevision:
+                                      _document.evaluation.revision,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
-                      const Divider(height: 1),
-                      Expanded(flex: 2, child: _inspectionPanel()),
                     ],
                   ),
                 ),
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) => Listener(
-                      behavior: HitTestBehavior.opaque,
-                      onPointerPanZoomStart: (_) {
-                        _resetController.stop();
-                        _previousGestureScale = 1.0;
-                      },
-                      onPointerPanZoomUpdate: (event) {
-                        _resetController.stop();
-                        final scaleFactor = event.scale / _previousGestureScale;
-                        if (event.scale.isFinite && event.scale > 0) {
-                          _previousGestureScale = event.scale;
-                        }
-
-                        setState(() {
-                          if (HardwareKeyboard.instance.isShiftPressed) {
-                            _cameraPosition = _cameraPosition
-                                .pan(event.panDelta)
-                                .zoomTowardCursor(
-                                  cursor: event.localPosition,
-                                  viewport: constraints.biggest,
-                                  scaleFactor: scaleFactor,
-                                );
-                            return;
-                          }
-
-                          final yaw =
-                              _cameraPosition.yaw - event.panDelta.dx * 0.005;
-                          final pitch =
-                              _cameraPosition.pitch - event.panDelta.dy * 0.005;
-                          final orientationChanged =
-                              yaw != _cameraPosition.yaw ||
-                              pitch != _cameraPosition.pitch;
-                          final rotatedCamera = _cameraPosition.copyWith(
-                            yaw: yaw,
-                            pitch: pitch,
-                            // Rotation starts looking along a different ray, so
-                            // discard the depth accumulated by earlier zooms.
-                            focusDistance: orientationChanged
-                                ? _initialFocusDistance
-                                : _cameraPosition.focusDistance,
-                          );
-                          _cameraPosition = rotatedCamera.zoomTowardCursor(
-                            cursor: event.localPosition,
-                            viewport: constraints.biggest,
-                            scaleFactor: scaleFactor,
-                          );
-                        });
-                      },
-                      onPointerPanZoomEnd: (_) => _previousGestureScale = 1.0,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          CadScene(
-                            cameraConfig: _cameraPosition,
-                            sketches: [
-                              for (final output
-                                  in _document.evaluation.dataOutputs)
-                                if (output.data is SketchGeometry)
-                                  output.data as SketchGeometry,
-                            ],
-                            renderMode: CadRenderMode.shaded,
-                            geometry: _geometry,
-                            evaluatedGeometry: evaluated,
-                            selectionMode: _selectionMode,
-                            onSelected: _select,
-                            selectedReference: _selectedReference,
-                            geometryRevision: _document.evaluation.revision,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
