@@ -30,6 +30,22 @@ was checked using Open Cascade imports of cubes, cylinders, tubes, cavities,
 multiple bodies, and tilted/reversed extrusions with overlapping arcs and holes;
 all imported as valid solids with the expected volumes.
 
+On macOS, Flutter controls use Skia through the documented `FLTEnableImpeller`
+override in `macos/Runner/Info.plist`. This is a compatibility workaround for
+reported persistent snackbar glyph corruption with Flutter 3.47.5; the exact
+intermittent engine trigger has not been reproduced locally. The CAD viewport
+continues to use its own native Metal renderer. Rebuild and fully restart the app
+after changing this setting; hot reload cannot apply an engine configuration.
+Recheck this workaround when upgrading Flutter.
+
+The native system-font pixel comparison checks repeated export success/error
+snackbars and confirms that the CAD Metal renderer remains active:
+
+```sh
+flutter drive --driver=test_driver/integration_test.dart \
+  --target=integration_test/step_export_rendering_test.dart -d macos --profile
+```
+
 ## Render modes
 
 `CadScene.renderMode` accepts `CadRenderMode.frame` (the default) or
