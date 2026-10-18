@@ -126,6 +126,7 @@ void main() {
     (tester) async {
       await tester.pumpWidget(const MainApp());
       await tester.pump();
+      final initial = camera(tester);
       tester
           .widget<ViewCube>(find.byType(ViewCube))
           .onSelected(CameraSide.right);
@@ -157,7 +158,7 @@ void main() {
       await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
       await tester.pumpAndSettle();
       expect(camera(tester).isOrthographic, isFalse);
-      expect(camera(tester).yaw, 0);
+      expect(camera(tester), initial);
     },
   );
 }

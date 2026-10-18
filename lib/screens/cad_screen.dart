@@ -73,8 +73,8 @@ class _CadScreenState extends State<CadScreen>
   ];
 
   static final _initialCameraPosition = CameraConfig(
-    position: Vertex(Vector3(0, -50, 100)),
-    yaw: 0.0,
+    position: Vertex(Vector3(150, -100, 135)),
+    yaw: math.pi / 4,
     pitch: -0.5,
     focalLength: 500.0,
     focusDistance: _initialFocusDistance,
