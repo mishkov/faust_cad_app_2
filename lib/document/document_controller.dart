@@ -42,6 +42,7 @@ final class DocumentController extends ChangeNotifier {
   final List<_UndoEntry> _undo = [];
   final List<_UndoEntry> _redo = [];
   ({String label, List<FeatureDefinition> before})? _transaction;
+  _EditSession? _editSession;
   bool _busy = false;
   bool _disposed = false;
 
@@ -123,6 +124,46 @@ final class DocumentController extends ChangeNotifier {
     List<FeatureDefinition> features, {
     String label = 'Replace features',
   }) => edit(label, (draft) => draft.replaceFeatures(features));
+
+  /// Starts a cancellable editing session while retaining ordinary undo/redo.
+  ///
+  /// Short transactions, such as a drag, may run within the session. The editor
+  /// owns all document edits until it commits or cancels the session.
+  void beginEditSession() => _run(() {
+    _requireNoTransaction();
+    if (_editSession != null) {
+      throw StateError('An edit session is already active');
+    }
+    _editSession = (
+      before: features,
+      undo: List.of(_undo),
+      redo: List.of(_redo),
+    );
+  });
+
+  /// Keeps the session's model changes and individual undo entries.
+  void commitEditSession() => _run(() {
+    _requireNoTransaction();
+    _requireEditSession();
+    _editSession = null;
+  });
+
+  /// Restores the model and both history stacks from before the session.
+  void cancelEditSession() => _run(() {
+    _requireNoTransaction();
+    final session = _requireEditSession();
+    if (!listEquals(session.before, features)) {
+      _document.replaceFeatures(session.before);
+    }
+    _undo
+      ..clear()
+      ..addAll(session.undo);
+    _redo
+      ..clear()
+      ..addAll(session.redo);
+    _editSession = null;
+    notifyListeners();
+  });
 
   /// Starts coalescing evaluated previews into a single labeled undo entry.
   ///
@@ -212,6 +253,9 @@ final class DocumentController extends ChangeNotifier {
   ({String label, List<FeatureDefinition> before}) _requireTransaction() =>
       _transaction ?? (throw StateError('No transaction is active'));
 
+  _EditSession _requireEditSession() =>
+      _editSession ?? (throw StateError('No edit session is active'));
+
   void _requireNoTransaction() {
     if (hasActiveTransaction) {
       throw StateError('Finish the active transaction first');
@@ -236,6 +280,7 @@ final class DocumentController extends ChangeNotifier {
     _undo.clear();
     _redo.clear();
     _transaction = null;
+    _editSession = null;
     super.dispose();
   }
 }
@@ -244,4 +289,10 @@ typedef _UndoEntry = ({
   String label,
   List<FeatureDefinition> before,
   List<FeatureDefinition> after,
+});
+
+typedef _EditSession = ({
+  List<FeatureDefinition> before,
+  List<_UndoEntry> undo,
+  List<_UndoEntry> redo,
 });

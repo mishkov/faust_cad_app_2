@@ -46,6 +46,7 @@ final class SketchEditorController extends ChangeNotifier {
   SketchDefinition? _dragBefore;
   SketchEntityId? _dragId;
   Vector2? _dragOrigin;
+  bool _ownsEditSession = false;
   int _serial = 0;
 
   List<FeatureDefinition> get sketches =>
@@ -82,7 +83,8 @@ final class SketchEditorController extends ChangeNotifier {
   }
 
   FeatureId create(PlanarSupport plane) {
-    cancel();
+    close();
+    _beginEditSession();
     final id = document.allocateFeatureId('sketch');
     _serial++;
     document.addFeature(
@@ -92,15 +94,25 @@ final class SketchEditorController extends ChangeNotifier {
       ),
       label: 'Create sketch',
     );
-    open(id);
+    _open(id);
     return id;
   }
 
   void open(FeatureId id) {
-    cancel();
     if (!sketches.any((f) => f.id == id)) {
       throw ArgumentError('Unknown sketch: $id');
     }
+    close();
+    _beginEditSession();
+    _open(id);
+  }
+
+  void _beginEditSession() {
+    document.beginEditSession();
+    _ownsEditSession = true;
+  }
+
+  void _open(FeatureId id) {
     activeId = id;
     tool = SketchTool.select;
     interaction = SketchInteraction.idle;
@@ -111,8 +123,13 @@ final class SketchEditorController extends ChangeNotifier {
     _refresh();
   }
 
+  /// Keeps the sketch session's edits and leaves the editor.
   void close() {
     cancel();
+    if (_ownsEditSession) {
+      document.commitEditSession();
+      _ownsEditSession = false;
+    }
     activeId = null;
     definition = null;
     solution = null;
@@ -123,6 +140,16 @@ final class SketchEditorController extends ChangeNotifier {
     _profiles.clear();
     selectedRegionIds = {};
     notifyListeners();
+  }
+
+  /// Discards the sketch session's edits and leaves the editor.
+  void cancelSketch() {
+    cancel();
+    if (_ownsEditSession) {
+      document.cancelEditSession();
+      _ownsEditSession = false;
+    }
+    close();
   }
 
   void _refresh() {
@@ -662,6 +689,7 @@ final class SketchEditorController extends ChangeNotifier {
   @override
   void dispose() {
     cancel();
+    if (_ownsEditSession) document.commitEditSession();
     document.removeListener(_refresh);
     super.dispose();
   }

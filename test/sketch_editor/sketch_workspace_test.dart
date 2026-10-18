@@ -38,6 +38,58 @@ Future<void> dimension(WidgetTester tester, String value) async {
 }
 
 void main() {
+  for (final draw in [false, true]) {
+    testWidgets(
+      'Cancel sketch discards ${draw ? 'drawn' : 'empty'} sketch and restores camera',
+      (tester) async {
+        final document = DocumentController(
+          evaluators: {SketchFeature.type: SketchFeature.evaluate},
+        );
+        addTearDown(document.dispose);
+        await tester.pumpWidget(
+          MaterialApp(home: CadScreen(controller: document)),
+        );
+        final camera = tester
+            .widget<CadScene>(find.byType(CadScene))
+            .cameraConfig;
+        await startSketch(tester);
+        final editor = editorOf(tester);
+        if (draw) {
+          await tester.tap(find.byKey(const Key('tool-line')));
+          await tester.pump();
+          await point(tester, -20, 0);
+          await point(tester, 20, 0);
+          await point(tester, 0, 20);
+          await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+          await tester.pump();
+          expect(editor.definition!.segments, hasLength(1));
+          expect(editor.anchor, isNull);
+          expect(find.byType(SketchWorkspace), findsOneWidget);
+        }
+        await tester.tap(find.byKey(const Key('cancel-sketch')));
+        await tester.pumpAndSettle();
+        expect(find.byType(SketchWorkspace), findsNothing);
+        expect(find.byKey(const Key('start-sketch')), findsOneWidget);
+        expect(document.features, isEmpty);
+        expect(document.canUndo, isFalse);
+        expect(document.canRedo, isFalse);
+        expect(
+          tester.widget<CadScene>(find.byType(CadScene)).cameraConfig,
+          camera,
+        );
+
+        await startSketch(tester);
+        final savedId = editorOf(tester).activeId!;
+        await tester.tap(find.byKey(const Key('finish-sketch')));
+        await tester.pumpAndSettle();
+        expect(document.features.single.id, savedId);
+        expect(document.canUndo, isTrue);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox());
+      },
+    );
+  }
+
   testWidgets(
     'drawing stages keep the canvas fixed at a compact desktop size',
     (tester) async {

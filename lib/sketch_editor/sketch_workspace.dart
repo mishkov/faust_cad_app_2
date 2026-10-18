@@ -486,7 +486,7 @@ class _SketchWorkspaceState extends State<SketchWorkspace> {
                   ),
                 TextButton(
                   onPressed: editor.cancel,
-                  child: const Text('Cancel (Esc)'),
+                  child: const Text('Cancel drawing (Esc)'),
                 ),
                 IconButton(
                   tooltip: 'Undo',
@@ -550,6 +550,11 @@ class _SketchWorkspaceState extends State<SketchWorkspace> {
                     onPressed: editor.editable ? widget.onExtrude : null,
                     child: const Text('Extrude regions'),
                   ),
+                OutlinedButton(
+                  key: const Key('cancel-sketch'),
+                  onPressed: editor.cancelSketch,
+                  child: const Text('Cancel sketch'),
+                ),
                 FilledButton(
                   key: const Key('finish-sketch'),
                   onPressed: widget.onClose,
