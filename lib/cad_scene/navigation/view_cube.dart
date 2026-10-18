@@ -19,44 +19,53 @@ class _ViewCubeState extends State<ViewCube> {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    width: 132,
-    height: 132,
-    child: LayoutBuilder(
-      builder: (context, constraints) {
-        final geometry = ViewCubeGeometry(widget.camera, constraints.biggest);
-        final brightness = Theme.of(context).brightness;
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            IgnorePointer(
-              child: CustomPaint(
-                painter: ViewCubePainter(geometry, brightness: brightness),
-              ),
-            ),
-            for (final side in geometry.visibleSides)
-              MouseRegion(
-                cursor: SystemMouseCursors.click,
-                hitTestBehavior: HitTestBehavior.deferToChild,
-                onEnter: (_) => setState(() => _hovered = side),
-                onExit: (_) => setState(() => _hovered = null),
-                child: GestureDetector(
-                  key: ValueKey('view-cube-${side.name}'),
-                  excludeFromSemantics: true,
-                  onTap: () => widget.onSelected(side),
+    width: 99,
+    height: 99,
+    child: FittedBox(
+      child: SizedBox(
+        width: 132,
+        height: 132,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final geometry = ViewCubeGeometry(
+              widget.camera,
+              constraints.biggest,
+            );
+            final brightness = Theme.of(context).brightness;
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                IgnorePointer(
                   child: CustomPaint(
-                    painter: ViewCubePainter(
-                      geometry,
-                      brightness: brightness,
-                      side: side,
-                      highlighted: _hovered == side,
-                      onSelected: () => widget.onSelected(side),
-                    ),
+                    painter: ViewCubePainter(geometry, brightness: brightness),
                   ),
                 ),
-              ),
-          ],
-        );
-      },
+                for (final side in geometry.visibleSides)
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    hitTestBehavior: HitTestBehavior.deferToChild,
+                    onEnter: (_) => setState(() => _hovered = side),
+                    onExit: (_) => setState(() => _hovered = null),
+                    child: GestureDetector(
+                      key: ValueKey('view-cube-${side.name}'),
+                      excludeFromSemantics: true,
+                      onTap: () => widget.onSelected(side),
+                      child: CustomPaint(
+                        painter: ViewCubePainter(
+                          geometry,
+                          brightness: brightness,
+                          side: side,
+                          highlighted: _hovered == side,
+                          onSelected: () => widget.onSelected(side),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+      ),
     ),
   );
 }

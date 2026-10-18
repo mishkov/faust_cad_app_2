@@ -67,7 +67,10 @@ void main() {
         closeTo(tester.getTopRight(find.byType(CadScene)).dx - 12, 1e-9),
       );
       // The first transition is driven by an actual visible face click.
-      final top = tester.getTopLeft(cube) + const Offset(66, 34);
+      final cubeRect = tester.getRect(cube);
+      final top =
+          cubeRect.topLeft +
+          Offset(cubeRect.width * 0.5, cubeRect.height * 0.26);
       await tester.tapAt(top);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 175));

@@ -29,7 +29,10 @@ void main() {
         ),
       );
       final origin = tester.getTopLeft(find.byType(ViewCube));
-      final geometry = ViewCubeGeometry(camera, const Size(132, 132));
+      final geometry = ViewCubeGeometry(
+        camera,
+        tester.getSize(find.byType(ViewCube)),
+      );
       final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
       await mouse.addPointer(location: Offset.zero);
       addTearDown(mouse.removePointer);
