@@ -166,6 +166,7 @@ class _CadSceneState extends State<CadScene> {
         ? CustomPaint(
             foregroundPainter: SceneGuidesPainter(
               camera: widget.cameraConfig,
+              occluders: scene,
               showPlanes: widget.showPrincipalPlanes,
             ),
             child: contents,

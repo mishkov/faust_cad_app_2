@@ -22,6 +22,8 @@ or reversed planar supports. Sketch pan and zoom also move the scene camera so
 model geometry and local sketch coordinates remain aligned. Face trims and
 holes remain visible in the model; they never clip the sketch. Permanent red X,
 green Y, and blue Z axes extend from the origin in their positive directions.
+Solid surfaces hide the portions of axes behind them; holes keep those axes
+visible through the openings.
 The active plane canvas takes interaction priority and deliberately removes
 solid occlusion so geometry beyond a support boundary remains editable. Leaving
 with **Finish sketch** cancels unfinished interaction and restores the entire

@@ -55,6 +55,7 @@ class CadScenePainter extends CustomPainter {
     if (showGuides) {
       SceneGuidesPainter(
         camera: cameraConfig,
+        showAxes: false,
         showPlanes: showPrincipalPlanes,
       ).paint(canvas, size);
     }
@@ -63,6 +64,7 @@ class CadScenePainter extends CustomPainter {
         cameraConfig,
         devicePixelRatio: devicePixelRatio,
       ).paint(canvas, size, scene, selectedFaces: selectedFaces);
+      _paintAxes(canvas, size);
       return;
     }
     final projection = CameraProjection(cameraConfig);
@@ -81,6 +83,16 @@ class CadScenePainter extends CustomPainter {
         final end = projection.project(clipped.end, screen: size);
         canvas.drawLine(Offset(begin.x, begin.y), Offset(end.x, end.y), paint);
       }
+    }
+    _paintAxes(canvas, size);
+  }
+
+  void _paintAxes(Canvas canvas, Size size) {
+    if (showGuides) {
+      SceneGuidesPainter(
+        camera: cameraConfig,
+        occluders: scene,
+      ).paint(canvas, size);
     }
   }
 
