@@ -21,6 +21,9 @@ import 'package:flutter/services.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 import '../cad_scene/cad_primitivies/solid.dart';
+import '../cad_scene/navigation/camera_side.dart';
+import '../cad_scene/navigation/view_cube.dart';
+import '../cad_scene/rendering/tessellation/scene_tessellator.dart';
 import '../document/features/extrude_feature.dart';
 import '../extrusion_editor/extrusion_editor_controller.dart';
 import '../extrusion_editor/extrusion_workspace.dart';
@@ -72,8 +75,9 @@ class _CadScreenState extends State<CadScreen>
   );
 
   late CameraConfig _cameraPosition = _initialCameraPosition;
-  late CameraConfig _resetStart;
-  late final AnimationController _resetController;
+  late CameraConfig _cameraStart;
+  late CameraConfig _cameraTarget;
+  late final AnimationController _cameraAnimation;
 
   @override
   void initState() {
@@ -81,43 +85,86 @@ class _CadScreenState extends State<CadScreen>
     _document.addListener(_documentChanged);
     _editor.addListener(_editorChanged);
     _extrusionEditor.addListener(_extrusionChanged);
-    _resetController = AnimationController(
+    _cameraAnimation = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 350),
-    )..addListener(_animateCameraReset);
+    )..addListener(_animateCamera);
   }
 
   void _resetCamera() {
-    _resetStart = _cameraPosition;
-    _resetController.forward(from: 0);
+    _animateTo(_initialCameraPosition);
   }
 
-  void _animateCameraReset() {
-    final t = Curves.easeInOut.transform(_resetController.value);
+  void _animateTo(CameraConfig target) {
+    _cameraStart = _cameraPosition;
+    _cameraTarget = target;
+    _cameraAnimation.forward(from: 0);
+  }
+
+  void _selectSide(CameraSide side) {
+    final scene = SceneTessellator().buildGeometry([
+      ..._geometry,
+      ..._evaluated.geometry,
+    ]);
+    final points = <Vector3>[
+      for (final edge in scene.edges) ...edge.points,
+      for (final face in scene.faces)
+        for (final triangle in face.triangles) ...triangle.points,
+    ];
+    for (final output in _document.evaluation.dataOutputs) {
+      final data = output.data;
+      if (data is! SketchGeometry) continue;
+      final frame = data.frame;
+      for (final point in data.solved.points.values) {
+        points.add(frame.localToWorld(point.position));
+      }
+      for (final circle in data.solved.circles.values) {
+        final center = frame.localToWorld(
+          data.solved.points[circle.centerPointId]!.position,
+        );
+        final extent = Vector3.zero();
+        for (var i = 0; i < 3; i++) {
+          extent[i] =
+              circle.radius *
+              math.sqrt(
+                frame.xAxis[i] * frame.xAxis[i] +
+                    frame.yAxis[i] * frame.yAxis[i],
+              );
+        }
+        points.addAll([center - extent, center + extent]);
+      }
+    }
+    final target = side.cameraFor(_cameraPosition, points);
+    // Take the shortest yaw path, including when the user has made full turns.
+    final turn =
+        (target.yaw - _cameraPosition.yaw + math.pi) % (2 * math.pi) - math.pi;
+    _animateTo(target.copyWith(yaw: _cameraPosition.yaw + turn));
+  }
+
+  void _animateCamera() {
+    final t = Curves.easeInOut.transform(_cameraAnimation.value);
     double interpolate(double start, double end) => start + (end - start) * t;
 
     setState(() {
-      _cameraPosition = _resetController.isCompleted
-          ? _initialCameraPosition
+      _cameraPosition = _cameraAnimation.isCompleted
+          ? _cameraTarget
           : CameraConfig(
+              isOrthographic: _cameraStart.isOrthographic,
               position: Vertex(
-                _resetStart.position.vector +
-                    (_initialCameraPosition.position.vector -
-                            _resetStart.position.vector) *
+                _cameraStart.position.vector +
+                    (_cameraTarget.position.vector -
+                            _cameraStart.position.vector) *
                         t,
               ),
-              yaw: interpolate(_resetStart.yaw, _initialCameraPosition.yaw),
-              pitch: interpolate(
-                _resetStart.pitch,
-                _initialCameraPosition.pitch,
-              ),
+              yaw: interpolate(_cameraStart.yaw, _cameraTarget.yaw),
+              pitch: interpolate(_cameraStart.pitch, _cameraTarget.pitch),
               focalLength: interpolate(
-                _resetStart.focalLength,
-                _initialCameraPosition.focalLength,
+                _cameraStart.focalLength,
+                _cameraTarget.focalLength,
               ),
               focusDistance: interpolate(
-                _resetStart.focusDistance,
-                _initialCameraPosition.focusDistance,
+                _cameraStart.focusDistance,
+                _cameraTarget.focusDistance,
               ),
             );
     });
@@ -131,7 +178,7 @@ class _CadScreenState extends State<CadScreen>
     _extrusionEditor.removeListener(_extrusionChanged);
     _extrusionEditor.dispose();
     if (widget.controller == null) _document.dispose();
-    _resetController.dispose();
+    _cameraAnimation.dispose();
     super.dispose();
   }
 
@@ -190,7 +237,7 @@ class _CadScreenState extends State<CadScreen>
   }
 
   void _enterSketch({FeatureId? id, PlanarSupport? support}) {
-    _resetController.stop();
+    _cameraAnimation.stop();
     final previous = _previousCamera ?? _cameraPosition;
     if (id != null) {
       _editor.open(id);
@@ -404,11 +451,11 @@ class _CadScreenState extends State<CadScreen>
                     builder: (context, constraints) => Listener(
                       behavior: HitTestBehavior.opaque,
                       onPointerPanZoomStart: (_) {
-                        _resetController.stop();
+                        _cameraAnimation.stop();
                         _previousGestureScale = 1.0;
                       },
                       onPointerPanZoomUpdate: (event) {
-                        _resetController.stop();
+                        _cameraAnimation.stop();
                         final scaleFactor = event.scale / _previousGestureScale;
                         if (event.scale.isFinite && event.scale > 0) {
                           _previousGestureScale = event.scale;
@@ -436,6 +483,9 @@ class _CadScreenState extends State<CadScreen>
                           final rotatedCamera = _cameraPosition.copyWith(
                             yaw: yaw,
                             pitch: pitch,
+                            isOrthographic: orientationChanged
+                                ? false
+                                : _cameraPosition.isOrthographic,
                             // Rotation starts looking along a different ray, so
                             // discard the depth accumulated by earlier zooms.
                             focusDistance: orientationChanged
@@ -468,6 +518,14 @@ class _CadScreenState extends State<CadScreen>
                             onSelected: _select,
                             selectedReference: _selectedReference,
                             geometryRevision: _document.evaluation.revision,
+                          ),
+                          Positioned(
+                            top: 12,
+                            right: 12,
+                            child: ViewCube(
+                              camera: _cameraPosition,
+                              onSelected: _selectSide,
+                            ),
                           ),
                         ],
                       ),

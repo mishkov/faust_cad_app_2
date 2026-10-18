@@ -12,6 +12,7 @@ import 'package:faust_cad_app_2/cad_scene/geometry/planar_frame.dart';
 import 'package:faust_cad_app_2/cad_scene/rendering/camera_projection.dart';
 import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/scene_tessellator.dart';
 import 'package:faust_cad_app_2/document/cad_document.dart';
+import 'package:faust_cad_app_2/document/document_controller.dart';
 import 'package:faust_cad_app_2/document/feature_definition.dart';
 import 'package:faust_cad_app_2/document/feature_id.dart';
 import 'package:faust_cad_app_2/document/features/cube_feature.dart';
@@ -93,7 +94,20 @@ void main() {
   testWidgets(
     'existing viewer exposes face reference and resolved local plane',
     (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: CadScreen()));
+      final document = DocumentController(
+        evaluators: {CubeFeature.type: CubeFeature.evaluate},
+        features: [
+          FeatureDefinition(
+            id: FeatureId('cube'),
+            type: CubeFeature.type,
+            parameters: {'x': 15, 'y': 16, 'z': 19, 'size': 20},
+          ),
+        ],
+      );
+      addTearDown(document.dispose);
+      await tester.pumpWidget(
+        MaterialApp(home: CadScreen(controller: document)),
+      );
       final finder = find.byType(CadScene);
       final widget = tester.widget<CadScene>(finder);
       final viewport = tester.getRect(finder);

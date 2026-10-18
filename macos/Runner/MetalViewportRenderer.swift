@@ -259,8 +259,10 @@ final class MetalViewportRenderer: NSObject, MTKViewDelegate {
     // scene is in front. This uses the full depth range without discarding any
     // geometry; crossing views retain the physical 1e-6 clipping plane.
     let minimumDepth = meshes.map { $0.minimumDepth(camera) }.min() ?? .infinity
-    let depthScale: Float =
-      minimumDepth.isFinite && minimumDepth > 0 ? Float(max(1e-6, minimumDepth * 0.5)) : 1e-6
+    let maximumDepth = meshes.map { $0.maximumDepth(camera) }.max() ?? 1
+    let depthScale: Float = camera.orthographicDistance > 0
+      ? Float(1 / max(1, maximumDepth * 1.01))
+      : (minimumDepth.isFinite && minimumDepth > 0 ? Float(max(1e-6, minimumDepth * 0.5)) : 1e-6)
     slot.clipped = slot.clipped.filter { $0.key < meshes.count }
     var clippedThisFrame = false
     for (index, mesh) in meshes.enumerated() {

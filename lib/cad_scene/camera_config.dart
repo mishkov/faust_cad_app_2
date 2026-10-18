@@ -10,6 +10,7 @@ class CameraConfig with Equatable {
   final double yaw;
   final double pitch;
   final double focalLength;
+  final bool isOrthographic;
 
   /// Camera-space depth of the point used for cursor zoom.
   final double focusDistance;
@@ -20,11 +21,19 @@ class CameraConfig with Equatable {
     required this.pitch,
     required this.focalLength,
     required this.focusDistance,
+    this.isOrthographic = false,
   }) : assert(focalLength.isFinite && focalLength > 0),
        assert(focusDistance.isFinite && focusDistance > 0);
 
   @override
-  List<Object?> get props => [position, yaw, pitch, focalLength, focusDistance];
+  List<Object?> get props => [
+    position,
+    yaw,
+    pitch,
+    focalLength,
+    focusDistance,
+    isOrthographic,
+  ];
 
   CameraConfig copyWith({
     Vertex? position,
@@ -32,6 +41,7 @@ class CameraConfig with Equatable {
     double? pitch,
     double? focalLength,
     double? focusDistance,
+    bool? isOrthographic,
   }) {
     return CameraConfig(
       position: position ?? this.position,
@@ -39,6 +49,7 @@ class CameraConfig with Equatable {
       pitch: pitch ?? this.pitch,
       focalLength: focalLength ?? this.focalLength,
       focusDistance: focusDistance ?? this.focusDistance,
+      isOrthographic: isOrthographic ?? this.isOrthographic,
     );
   }
 
@@ -70,6 +81,17 @@ class CameraConfig with Equatable {
         scaleFactor == 1 ||
         viewport.isEmpty) {
       return this;
+    }
+
+    if (isOrthographic) {
+      final factor = 1 / scaleFactor.clamp(0.2, 5.0);
+      final offset = Offset(
+        cursor.dx - viewport.width / 2,
+        cursor.dy - viewport.height / 2,
+      );
+      // Keep the point under the cursor fixed as the parallel view scales.
+      return pan(offset * (factor - 1))
+          .copyWith(focusDistance: focusDistance * factor);
     }
 
     // Reverse the painter's perspective projection to get the cursor ray.

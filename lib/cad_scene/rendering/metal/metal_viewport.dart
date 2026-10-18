@@ -84,6 +84,7 @@ class _MetalViewportState extends State<MetalViewport> {
             constraints.maxWidth,
             constraints.maxHeight,
             MediaQuery.devicePixelRatioOf(context),
+            camera.isOrthographic ? camera.focusDistance : 0,
           ]),
           'selection': _mesh!.selection(widget.selectedFaces),
           'wireframe': widget.renderMode == CadRenderMode.frame,

@@ -26,6 +26,27 @@ class CameraProjection {
     final halfWidth = screen.width / (2 * cameraConfig.focalLength);
     final halfHeight = screen.height / (2 * cameraConfig.focalLength);
     _clipSize = screen;
+    if (cameraConfig.isOrthographic) {
+      return _clipPlanes = [
+        (normal: Vector3(0, 1, 0), offset: -nearPlane),
+        (
+          normal: Vector3(1, 0, 0),
+          offset: halfWidth * cameraConfig.focusDistance,
+        ),
+        (
+          normal: Vector3(-1, 0, 0),
+          offset: halfWidth * cameraConfig.focusDistance,
+        ),
+        (
+          normal: Vector3(0, 0, 1),
+          offset: halfHeight * cameraConfig.focusDistance,
+        ),
+        (
+          normal: Vector3(0, 0, -1),
+          offset: halfHeight * cameraConfig.focusDistance,
+        ),
+      ];
+    }
     return _clipPlanes = [
       (normal: Vector3(0, 1, 0), offset: -nearPlane),
       (normal: Vector3(1, halfWidth, 0), offset: 0.0),
@@ -91,7 +112,9 @@ class CameraProjection {
   }
 
   ({double x, double y}) project(Vector3 p, {required Size screen}) {
-    final depth = math.max(p.y, nearPlane);
+    final depth = cameraConfig.isOrthographic
+        ? cameraConfig.focusDistance
+        : math.max(p.y, nearPlane);
     // Clamp tiny rounding errors at the clipping planes to the viewport.
     return (
       x: (screen.width / 2 + p.x / depth * cameraConfig.focalLength)
