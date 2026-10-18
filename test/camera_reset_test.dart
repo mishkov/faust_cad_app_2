@@ -1,12 +1,53 @@
 import 'package:faust_cad_app_2/cad_scene/cad_scene.dart';
 import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
+import 'package:faust_cad_app_2/cad_scene/rendering/camera_projection.dart';
 import 'package:faust_cad_app_2/main_app.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 void main() {
+  testWidgets('initial view frames the grid with diagonal ground axes', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(946, 630);
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(const MainApp());
+    await tester.pump();
+
+    final viewport = tester.getSize(find.byType(CadScene));
+    final projection = CameraProjection(_camera(tester));
+    Offset project(Vector3 point) {
+      final cameraPoint = projection.toCameraSpace(point);
+      expect(cameraPoint.y, greaterThan(0));
+      final screen = projection.project(cameraPoint, screen: viewport);
+      return Offset(screen.x, screen.y);
+    }
+
+    final origin = project(Vector3.zero());
+    expect(
+      origin.dx,
+      inExclusiveRange(viewport.width * 0.25, viewport.width * 0.45),
+    );
+    expect(
+      origin.dy,
+      inExclusiveRange(viewport.height * 0.55, viewport.height * 0.7),
+    );
+    final x = project(Vector3(100, 0, 0));
+    final y = project(Vector3(0, 100, 0));
+    expect(x.dx, greaterThan(origin.dx + 100));
+    expect(x.dy, greaterThan(origin.dy + 100));
+    expect(y.dx, greaterThan(origin.dx + 100));
+    expect(y.dy, lessThan(origin.dy - 50));
+    for (final corner in [origin, x, y, project(Vector3(100, 100, 0))]) {
+      expect(corner.dx, inExclusiveRange(0, viewport.width));
+      expect(corner.dy, inExclusiveRange(0, viewport.height));
+    }
+  });
+
   for (final commandKey in [
     LogicalKeyboardKey.metaLeft,
     LogicalKeyboardKey.metaRight,
@@ -144,6 +185,7 @@ void _expectSameCamera(CameraConfig actual, CameraConfig expected) {
   expect(actual.pitch, expected.pitch);
   expect(actual.focalLength, expected.focalLength);
   expect(actual.focusDistance, expected.focusDistance);
+  expect(actual.isOrthographic, expected.isOrthographic);
 }
 
 Future<void> _moveCamera(WidgetTester tester) async {
