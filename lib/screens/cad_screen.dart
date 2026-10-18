@@ -18,7 +18,7 @@ import 'package:faust_cad_app_2/sketch_editor/sketch_editor_controller.dart';
 import 'package:faust_cad_app_2/sketch_editor/sketch_workspace.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:vector_math/vector_math_64.dart' show Vector3;
+import 'package:vector_math/vector_math_64.dart' show Vector2, Vector3;
 
 import '../cad_scene/cad_primitivies/solid.dart';
 import '../cad_scene/navigation/camera_side.dart';
@@ -29,6 +29,9 @@ import '../extrusion_editor/extrusion_editor_controller.dart';
 import '../extrusion_editor/extrusion_workspace.dart';
 import '../feature_history/feature_history_panel.dart';
 import '../step_export/step_export_button.dart';
+import '../cad_scene/rendering/camera_projection.dart';
+import '../document/feature_result.dart';
+import '../sketch_editor/sketch_view.dart';
 
 class CadScreen extends StatefulWidget {
   const new({super.key, this.controller});
@@ -58,13 +61,16 @@ class _CadScreenState extends State<CadScreen>
   late final _editor = SketchEditorController(_document);
   late final _extrusionEditor = ExtrusionEditorController(_document);
   CameraConfig? _previousCamera;
-  var _plane = PrincipalPlane.xy;
+  bool _selectingSketchPlane = false;
+  bool _enteringSketch = false;
   OutputReference? _selectedReference;
   FeatureId? _selectedFeature;
   PlanarSupport? _inspectedSupport;
   var _selectionMode = ViewportSelectionMode.planarFace;
 
-  final List<CadPrimitive> _geometry = [...GroundGrid(100, 100).build()];
+  final List<CadPrimitive> _geometry = [
+    ...GroundGrid.withoutAxes(100, 100).build(),
+  ];
 
   static final _initialCameraPosition = CameraConfig(
     position: Vertex(Vector3(0, -50, 100)),
@@ -92,6 +98,7 @@ class _CadScreenState extends State<CadScreen>
   }
 
   void _resetCamera() {
+    if (_enteringSketch) return;
     _animateTo(_initialCameraPosition);
   }
 
@@ -167,6 +174,9 @@ class _CadScreenState extends State<CadScreen>
                 _cameraTarget.focusDistance,
               ),
             );
+      if (_cameraAnimation.isCompleted && _enteringSketch) {
+        _enteringSketch = false;
+      }
     });
   }
 
@@ -184,12 +194,14 @@ class _CadScreenState extends State<CadScreen>
 
   void _select(ViewportHit? hit) {
     setState(() {
-      _selectedReference = _selectionMode == ViewportSelectionMode.body
+      _selectedReference =
+          !_selectingSketchPlane && _selectionMode == ViewportSelectionMode.body
           ? hit?.bodyReference
           : hit?.faceReference;
       _selectedFeature = _selectedReference?.featureId;
       _inspectedSupport = null;
-      if (_selectionMode == ViewportSelectionMode.planarFace &&
+      if ((_selectingSketchPlane ||
+              _selectionMode == ViewportSelectionMode.planarFace) &&
           hit?.faceReference != null) {
         final normal = (hit!.face.surface as PlaneSurface).normal;
         _inspectedSupport = PlanarSupport.face(
@@ -200,6 +212,9 @@ class _CadScreenState extends State<CadScreen>
         );
       }
     });
+    if (_selectingSketchPlane && _inspectedSupport != null) {
+      _enterSketch(support: _inspectedSupport);
+    }
   }
 
   void _documentChanged() {
@@ -230,10 +245,37 @@ class _CadScreenState extends State<CadScreen>
 
   void _editorChanged() {
     if (_editor.activeId == null && _previousCamera != null) {
+      _cameraAnimation.stop();
+      _enteringSketch = false;
       _cameraPosition = _previousCamera!;
       _previousCamera = null;
     }
+    final frame = _editor.support?.frame;
+    if (frame != null && !_enteringSketch) {
+      final x = CameraProjection(_sketchCamera(_editor.view))
+          .toCameraDirection(frame.xAxis);
+      _editor.view = SketchView(
+        scale: _editor.view.scale,
+        center: _editor.view.center,
+        rotation: math.atan2(x.z, x.x),
+      );
+    }
     if (mounted) setState(() {});
+  }
+
+  void _startSketchSelection() {
+    if (_selectingSketchPlane || _enteringSketch) return;
+    setState(() {
+      _selectingSketchPlane = true;
+      _selectedReference = null;
+      _inspectedSupport = null;
+    });
+  }
+
+  void _cancelSketchSelection() {
+    if (_selectingSketchPlane) {
+      setState(() => _selectingSketchPlane = false);
+    }
   }
 
   void _enterSketch({FeatureId? id, PlanarSupport? support}) {
@@ -245,19 +287,76 @@ class _CadScreenState extends State<CadScreen>
       _editor.create(support!);
     }
     _previousCamera = previous;
+    _selectingSketchPlane = false;
     final frame = _editor.support?.frame;
-    if (frame != null) {
-      final direction = -frame.normal;
-      _cameraPosition = CameraConfig(
-        position: Vertex(frame.origin - direction * 200),
-        yaw: math.atan2(-direction.x, direction.y),
-        pitch: math.asin(direction.z.clamp(-1.0, 1.0)),
-        focalLength: 500,
-        focusDistance: 200,
-      );
+    if (frame == null) {
+      setState(() {});
+      return;
     }
+    final direction = -frame.normal;
+    final yaw = _planeYaw(direction);
+    final turn =
+        (yaw - _cameraPosition.yaw + math.pi) % (2 * math.pi) - math.pi;
+    final target = CameraConfig(
+      position: Vertex(frame.origin - direction * 200),
+      yaw: _cameraPosition.yaw + turn,
+      pitch: math.asin(direction.z.clamp(-1.0, 1.0)),
+      focalLength: 500,
+      focusDistance: 200,
+      isOrthographic: true,
+    );
+    final projection = CameraProjection(target);
+    final x = projection.toCameraDirection(frame.xAxis);
+    _editor.view = SketchView(
+      scale: target.focalLength / target.focusDistance,
+      rotation: math.atan2(x.z, x.x),
+    );
+    _enteringSketch = true;
+    _animateTo(target);
     setState(() {});
   }
+
+  double _planeYaw(Vector3 direction) =>
+      direction.x.abs() + direction.y.abs() < 1e-12
+      ? 0
+      : math.atan2(-direction.x, direction.y);
+
+  CameraConfig _sketchCamera(SketchView view) {
+    final frame = _editor.support?.frame;
+    if (frame == null) return _cameraPosition;
+    final center = frame.localToWorld(Vector2(view.center.dx, view.center.dy));
+    final direction = -frame.normal;
+    return _cameraPosition.copyWith(
+      yaw: _planeYaw(direction),
+      pitch: math.asin(direction.z.clamp(-1.0, 1.0)),
+      position: Vertex(center + frame.normal * _cameraPosition.focusDistance),
+      focalLength: view.scale * _cameraPosition.focusDistance,
+      isOrthographic: true,
+    );
+  }
+
+  Widget _scene(CameraConfig camera, {bool editing = false}) => CadScene(
+    cameraConfig: camera,
+    sketches: [
+      for (final result in _document.evaluation.features.entries)
+        if (result.value.state == FeatureState.valid &&
+            (!editing || result.key != _editor.activeId))
+          for (final output in result.value.outputs)
+            if (output.kind == OutputKind.sketch) output.data as SketchGeometry,
+    ],
+    renderMode: CadRenderMode.shaded,
+    geometry: _geometry,
+    evaluatedGeometry: _evaluated,
+    selectionMode: _selectingSketchPlane
+        ? ViewportSelectionMode.planarFace
+        : _selectionMode,
+    onSelected: _enteringSketch || editing ? null : _select,
+    selectedReference: editing ? null : _selectedReference,
+    geometryRevision: _document.evaluation.revision,
+    showPrincipalPlanes: _selectingSketchPlane,
+    onPrincipalPlaneSelected: (plane) =>
+        _enterSketch(support: PlanarSupport.principal(plane)),
+  );
 
   void _extrusionChanged() {
     if (mounted) setState(() {});
@@ -298,29 +397,6 @@ class _CadScreenState extends State<CadScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Sketches'),
-            DropdownButton<PrincipalPlane>(
-              value: _plane,
-              items: [
-                for (final p in PrincipalPlane.values)
-                  DropdownMenuItem(value: p, child: Text(p.name.toUpperCase())),
-              ],
-              onChanged: (p) => setState(() => _plane = p!),
-            ),
-            FilledButton(
-              key: const Key('new-sketch'),
-              onPressed: () =>
-                  _enterSketch(support: PlanarSupport.principal(_plane)),
-              child: const Text('New sketch'),
-            ),
-            OutlinedButton(
-              key: const Key('sketch-on-face'),
-              onPressed: _inspectedSupport == null
-                  ? null
-                  : () => _enterSketch(support: _inspectedSupport),
-              child: const Text('Sketch on selected face'),
-            ),
-            const Divider(),
             const Text('Viewport selection'),
             DropdownButton<ViewportSelectionMode>(
               value: _selectionMode,
@@ -369,18 +445,21 @@ class _CadScreenState extends State<CadScreen>
     if (_extrusionEditor.activeId != null) {
       return Scaffold(body: ExtrusionWorkspace(editor: _extrusionEditor));
     }
-    if (_editor.activeId != null) {
+    if (_editor.activeId != null && !_enteringSketch) {
       return Scaffold(
         body: SketchWorkspace(
           editor: _editor,
           onClose: _leaveSketch,
           onExtrude: _extrudeSketch,
+          sceneBuilder: (view) => _scene(_sketchCamera(view), editing: true),
         ),
       );
     }
     final evaluated = _evaluated;
     return CallbackShortcuts(
       bindings: {
+        const SingleActivator(LogicalKeyboardKey.escape):
+            _cancelSketchSelection,
         const SingleActivator(LogicalKeyboardKey.digit1, meta: true):
             _resetCamera,
         const SingleActivator(LogicalKeyboardKey.keyZ, meta: true):
@@ -451,10 +530,12 @@ class _CadScreenState extends State<CadScreen>
                     builder: (context, constraints) => Listener(
                       behavior: HitTestBehavior.opaque,
                       onPointerPanZoomStart: (_) {
+                        if (_enteringSketch) return;
                         _cameraAnimation.stop();
                         _previousGestureScale = 1.0;
                       },
                       onPointerPanZoomUpdate: (event) {
+                        if (_enteringSketch) return;
                         _cameraAnimation.stop();
                         final scaleFactor = event.scale / _previousGestureScale;
                         if (event.scale.isFinite && event.scale > 0) {
@@ -503,28 +584,77 @@ class _CadScreenState extends State<CadScreen>
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
-                          CadScene(
-                            cameraConfig: _cameraPosition,
-                            sketches: [
-                              for (final output
-                                  in _document.evaluation.dataOutputs)
-                                if (output.data is SketchGeometry)
-                                  output.data as SketchGeometry,
-                            ],
-                            renderMode: CadRenderMode.shaded,
-                            geometry: _geometry,
-                            evaluatedGeometry: evaluated,
-                            selectionMode: _selectionMode,
-                            onSelected: _select,
-                            selectedReference: _selectedReference,
-                            geometryRevision: _document.evaluation.revision,
+                          AbsorbPointer(
+                            absorbing: _enteringSketch,
+                            child: _scene(_cameraPosition),
                           ),
+                          if (!_enteringSketch)
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Padding(
+                                padding: const EdgeInsets.only(left: 12),
+                                child: Material(
+                                  elevation: 3,
+                                  color: _selectingSketchPlane
+                                      ? Theme.of(context)
+                                            .colorScheme
+                                            .primaryContainer
+                                      : Theme.of(context)
+                                            .colorScheme
+                                            .surfaceContainerHigh,
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: IconButton(
+                                    key: const Key('start-sketch'),
+                                    tooltip: 'Sketch',
+                                    onPressed: _startSketchSelection,
+                                    iconSize: 32,
+                                    padding: const EdgeInsets.all(10),
+                                    icon: Image.asset(
+                                      'assets/icons/sketch.png',
+                                      semanticLabel: 'Sketch',
+                                      width: 32,
+                                      height: 32,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          if (_selectingSketchPlane)
+                            Positioned(
+                              top: 16,
+                              left: 96,
+                              right: 96,
+                              child: Center(
+                                child: IgnorePointer(
+                                  child: Material(
+                                    key: const Key('sketch-plane-hint'),
+                                    elevation: 2,
+                                    borderRadius: BorderRadius.circular(20),
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .secondaryContainer,
+                                    child: const Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 8,
+                                      ),
+                                      child: Text(
+                                        'Hint: select plane to start sketch on it',
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                           Positioned(
                             top: 12,
                             right: 12,
                             child: ViewCube(
                               camera: _cameraPosition,
-                              onSelected: _selectSide,
+                              onSelected: (side) {
+                                if (!_enteringSketch) _selectSide(side);
+                              },
                             ),
                           ),
                         ],

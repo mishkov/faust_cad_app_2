@@ -6,14 +6,22 @@ in-memory authoring and presentation; no extrusion command or disk persistence.
 
 ## Creating and reopening
 
-Choose XY, XZ, or YZ and **New sketch**. Alternatively, select a visible named
-planar CAD face and choose **Sketch on selected face**. Unnamed, ambiguous,
-curved, and occluded faces remain unattachable under the existing viewport
-selection API. **Open sketch-N** reopens a retained sketch.
+Click the pencil **Sketch** button at the center of the scene's left edge.
+Temporary XY, XZ, and YZ plane patches appear near the origin, with the top-center
+hint “Hint: select plane to start sketch on it”. Click a plane patch or a visible
+named planar face to start; face picking works regardless of the inspection
+selection mode. Escape cancels plane selection without creating a document edit.
+Clicking the Sketch button again keeps selection active. Unnamed, ambiguous,
+curved, and occluded faces remain unattachable under the viewport selection API.
+**Open sketch-N** reopens a retained sketch.
 
-Editing uses an orthographic canvas in the resolved frame's local X/Y axes,
-including arbitrarily rotated or reversed planar supports. The supporting face
-trim and its holes appear as context outlines; they never clip the sketch.
+The camera animates to face the resolved plane, switches to orthographic
+projection, and then enables the sketch tools in the left panel. Drawing stays
+inside the CAD scene with the model visible, including for arbitrarily rotated
+or reversed planar supports. Sketch pan and zoom also move the scene camera so
+model geometry and local sketch coordinates remain aligned. Face trims and
+holes remain visible in the model; they never clip the sketch. Permanent red X,
+green Y, and blue Z axes extend from the origin in their positive directions.
 The active plane canvas takes interaction priority and deliberately removes
 solid occlusion so geometry beyond a support boundary remains editable. Leaving
 with **Finish sketch** cancels unfinished interaction and restores the entire
@@ -107,8 +115,8 @@ In the CAD view, valid inactive sketches are drawn through a separate
 are clipped against each sketch plane and suppress both fill and strokes.
 Coplanar support faces do not suppress their sketch. This overlay ignores pointer
 input, preserving CAD face/body picking; reopening happens through the sketch
-list. In the active editor, the explicit plane context view replaces that
-occlusion policy. CAD topology and tessellation never supply sketch identity.
+list. In the active editor, the interactive sketch overlay remains visible over the
+model so all sketch geometry can be edited. CAD topology and tessellation never supply sketch identity.
 
 ## Verification
 

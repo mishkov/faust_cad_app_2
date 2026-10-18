@@ -10,6 +10,7 @@ import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/tessellation_se
 import 'package:flutter/material.dart';
 
 import 'cad_primitivies/face.dart';
+import 'rendering/scene_guides_painter.dart';
 
 class CadScenePainter extends CustomPainter {
   CadScenePainter({
@@ -23,6 +24,8 @@ class CadScenePainter extends CustomPainter {
     TessellatedScene? evaluatedScene,
     this.selectedFaces = const {},
     this.devicePixelRatio = 1,
+    this.showGuides = false,
+    this.showPrincipalPlanes = false,
   }) : tessellator = tessellator ?? SceneTessellator() {
     // Build render data once before painting. Camera-only paints reuse it.
     scene =
@@ -43,10 +46,18 @@ class CadScenePainter extends CustomPainter {
   late final TessellatedScene scene;
   final Set<Face> selectedFaces;
   final double devicePixelRatio;
+  final bool showGuides;
+  final bool showPrincipalPlanes;
 
   @override
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
+    if (showGuides) {
+      SceneGuidesPainter(
+        camera: cameraConfig,
+        showPlanes: showPrincipalPlanes,
+      ).paint(canvas, size);
+    }
     if (renderMode == CadRenderMode.shaded) {
       ShadedSceneRenderer(
         cameraConfig,

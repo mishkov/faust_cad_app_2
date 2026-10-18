@@ -11,6 +11,7 @@ import 'sketch_editor_controller.dart';
 import 'sketch_dimension_dialog.dart';
 import 'sketch_hit.dart';
 import 'sketch_interaction.dart';
+import 'sketch_view.dart';
 
 class SketchWorkspace extends StatefulWidget {
   const SketchWorkspace({
@@ -18,10 +19,12 @@ class SketchWorkspace extends StatefulWidget {
     required this.editor,
     required this.onClose,
     this.onExtrude,
+    this.sceneBuilder,
   });
   final SketchEditorController editor;
   final VoidCallback onClose;
   final VoidCallback? onExtrude;
+  final Widget Function(SketchView view)? sceneBuilder;
   @override
   State<SketchWorkspace> createState() => _SketchWorkspaceState();
 }
@@ -106,7 +109,7 @@ class _SketchWorkspaceState extends State<SketchWorkspace> {
     final definition = editor.definition;
     final solution = editor.solution;
     return SizedBox(
-      width: 280,
+      width: widget.sceneBuilder == null ? 280 : 300,
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -376,14 +379,59 @@ class _SketchWorkspaceState extends State<SketchWorkspace> {
             _gestureScale = e.scale;
           },
           onPointerPanZoomEnd: (_) => _gestureScale = 1,
-          child: CustomPaint(
-            painter: SketchPainter(editor),
-            child: const SizedBox.expand(),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (widget.sceneBuilder != null)
+                IgnorePointer(child: widget.sceneBuilder!(editor.view)),
+              CustomPaint(
+                painter: SketchPainter(
+                  editor,
+                  overlay: widget.sceneBuilder != null,
+                ),
+              ),
+            ],
           ),
         ),
       );
     },
   );
+
+  Widget _layout(Widget toolbar, Widget instructions) {
+    if (widget.sceneBuilder == null) {
+      return Column(
+        children: [
+          toolbar,
+          instructions,
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _panel(),
+                Expanded(child: _canvas()),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          width: 300,
+          child: Column(
+            children: [
+              toolbar,
+              instructions,
+              Expanded(child: _panel()),
+            ],
+          ),
+        ),
+        Expanded(child: _canvas()),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
@@ -406,143 +454,132 @@ class _SketchWorkspaceState extends State<SketchWorkspace> {
           shift: true,
         ): editor.redo,
       },
-      child: Column(
-        children: [
-          Material(
-            color: const Color(0xffedf1f5),
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  for (final tool in SketchTool.values)
-                    OutlinedButton(
-                      key: Key('tool-${tool.name}'),
-                      style: editor.tool == tool
-                          ? OutlinedButton.styleFrom(
-                              backgroundColor: const Color(0xffd4e6f7),
-                            )
-                          : null,
-                      onPressed: editor.editable
-                          ? () {
-                              editor.setTool(tool);
-                              _canvasFocus.requestFocus();
-                            }
-                          : null,
-                      child: Text(switch (tool) {
-                        SketchTool.select => 'Select',
-                        SketchTool.line => 'Line',
-                        SketchTool.circle => 'Circle',
-                      }),
-                    ),
-                  TextButton(
-                    onPressed: editor.cancel,
-                    child: const Text('Cancel (Esc)'),
-                  ),
-                  IconButton(
-                    tooltip: 'Undo',
-                    onPressed:
-                        editor.document.canUndo ||
-                            editor.interaction == SketchInteraction.dragging
-                        ? editor.undo
+      child: _layout(
+        Material(
+          color: const Color(0xffedf1f5),
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                for (final tool in SketchTool.values)
+                  OutlinedButton(
+                    key: Key('tool-${tool.name}'),
+                    style: editor.tool == tool
+                        ? OutlinedButton.styleFrom(
+                            backgroundColor: const Color(0xffd4e6f7),
+                          )
                         : null,
-                    icon: const Icon(Icons.undo),
+                    onPressed: editor.editable
+                        ? () {
+                            editor.setTool(tool);
+                            _canvasFocus.requestFocus();
+                          }
+                        : null,
+                    child: Text(switch (tool) {
+                      SketchTool.select => 'Select',
+                      SketchTool.line => 'Line',
+                      SketchTool.circle => 'Circle',
+                    }),
                   ),
-                  IconButton(
-                    tooltip: 'Redo',
-                    onPressed: editor.document.canRedo ? editor.redo : null,
-                    icon: const Icon(Icons.redo),
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Checkbox(
-                        value: editor.snapping,
-                        onChanged: (value) {
-                          editor.setSnapping(value!);
-                        },
-                      ),
-                      const Text('Snap placement'),
-                    ],
-                  ),
-                  SizedBox(
-                    width: 150,
-                    height: 48,
-                    child: TextField(
-                      key: const Key('drawing-dimension'),
-                      enabled: editor.anchor != null,
-                      controller: _drawingDimension,
-                      decoration: InputDecoration(
-                        isDense: true,
-                        labelText: editor.tool == SketchTool.line
-                            ? 'Length'
-                            : editor.tool == SketchTool.circle
-                            ? 'Radius'
-                            : 'Dimension',
-                        suffixText: 'units',
-                      ),
-                      onSubmitted: (text) {
-                        final value = double.tryParse(text);
-                        if (value == null) {
-                          editor.showMessage(
-                            'Enter a positive finite dimension.',
-                          );
-                        } else {
-                          editor.finishDrawing(dimension: value);
-                          _drawingDimension.clear();
-                          _canvasFocus.requestFocus();
-                        }
+                TextButton(
+                  onPressed: editor.cancel,
+                  child: const Text('Cancel (Esc)'),
+                ),
+                IconButton(
+                  tooltip: 'Undo',
+                  onPressed:
+                      editor.document.canUndo ||
+                          editor.interaction == SketchInteraction.dragging
+                      ? editor.undo
+                      : null,
+                  icon: const Icon(Icons.undo),
+                ),
+                IconButton(
+                  tooltip: 'Redo',
+                  onPressed: editor.document.canRedo ? editor.redo : null,
+                  icon: const Icon(Icons.redo),
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Checkbox(
+                      value: editor.snapping,
+                      onChanged: (value) {
+                        editor.setSnapping(value!);
                       },
                     ),
-                  ),
-                  if (widget.onExtrude != null)
-                    OutlinedButton(
-                      key: const Key('extrude-sketch'),
-                      onPressed: editor.editable ? widget.onExtrude : null,
-                      child: const Text('Extrude regions'),
-                    ),
-                  FilledButton(
-                    key: const Key('finish-sketch'),
-                    onPressed: widget.onClose,
-                    child: const Text('Finish sketch'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: SizedBox(
-                height: 40,
-                child: Text(
-                  switch (editor.interaction) {
-                    SketchInteraction.idle => 'Select or drag • scroll to zoom • middle/right drag to pan',
-                    SketchInteraction.lineStart => 'Click the first endpoint',
-                    SketchInteraction.lineEnd => 'Click the endpoint, or enter a length to commit a dimension',
-                    SketchInteraction.circleCenter => 'Click the circle center',
-                    SketchInteraction.circleRadius => 'Click the radius point, or enter a radius to commit a dimension',
-                    SketchInteraction.dragging => 'Dragging with persistent constraints • release to commit • Esc to restore',
-                  },
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                    const Text('Snap placement'),
+                  ],
                 ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _panel(),
-                Expanded(child: _canvas()),
+                SizedBox(
+                  width: 150,
+                  height: 48,
+                  child: TextField(
+                    key: const Key('drawing-dimension'),
+                    enabled: editor.anchor != null,
+                    controller: _drawingDimension,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      labelText: editor.tool == SketchTool.line
+                          ? 'Length'
+                          : editor.tool == SketchTool.circle
+                          ? 'Radius'
+                          : 'Dimension',
+                      suffixText: 'units',
+                    ),
+                    onSubmitted: (text) {
+                      final value = double.tryParse(text);
+                      if (value == null) {
+                        editor.showMessage(
+                          'Enter a positive finite dimension.',
+                        );
+                      } else {
+                        editor.finishDrawing(dimension: value);
+                        _drawingDimension.clear();
+                        _canvasFocus.requestFocus();
+                      }
+                    },
+                  ),
+                ),
+                if (widget.onExtrude != null)
+                  OutlinedButton(
+                    key: const Key('extrude-sketch'),
+                    onPressed: editor.editable ? widget.onExtrude : null,
+                    child: const Text('Extrude regions'),
+                  ),
+                FilledButton(
+                  key: const Key('finish-sketch'),
+                  onPressed: widget.onClose,
+                  child: const Text('Finish sketch'),
+                ),
               ],
             ),
           ),
-        ],
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: SizedBox(
+              height: 40,
+              child: Text(
+                switch (editor.interaction) {
+                  SketchInteraction.idle => 'Select or drag • scroll to zoom • middle/right drag to pan',
+                  SketchInteraction.lineStart => 'Click the first endpoint',
+                  SketchInteraction.lineEnd => 'Click the endpoint, or enter a length to commit a dimension',
+                  SketchInteraction.circleCenter => 'Click the circle center',
+                  SketchInteraction.circleRadius => 'Click the radius point, or enter a radius to commit a dimension',
+                  SketchInteraction.dragging => 'Dragging with persistent constraints • release to commit • Esc to restore',
+                },
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        ),
       ),
     ),
   );

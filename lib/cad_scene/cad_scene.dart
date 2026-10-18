@@ -10,6 +10,10 @@ import 'package:flutter/material.dart';
 import '../sketch/sketch_geometry.dart';
 import '../sketch_editor/presentation/sketch_scene_painter.dart';
 import 'cad_render_backend.dart';
+import '../document/planar_support.dart';
+import 'cad_surfaces/plane_surface.dart';
+import 'rendering/scene_guides_painter.dart';
+import 'selection/principal_plane_views.dart';
 import 'rendering/metal/metal_viewport.dart';
 import 'rendering/metal/metal_viewport_controller.dart';
 
@@ -37,6 +41,8 @@ class CadScene extends StatefulWidget {
     this.renderMode = CadRenderMode.frame,
     this.tessellationSettings,
     this.geometryRevision,
+    this.showPrincipalPlanes = false,
+    this.onPrincipalPlaneSelected,
     this.evaluatedGeometry,
     this.selectionMode = ViewportSelectionMode.planarFace,
     this.onSelected,
@@ -54,6 +60,8 @@ class CadScene extends StatefulWidget {
   final ViewportSelectionMode selectionMode;
   final ValueChanged<ViewportHit?>? onSelected;
   final OutputReference? selectedReference;
+  final bool showPrincipalPlanes;
+  final ValueChanged<PrincipalPlane>? onPrincipalPlaneSelected;
   final CameraConfig cameraConfig;
   final List<CadObject> cadObjects;
   final List<CadPrimitive>? geometry;
@@ -123,6 +131,8 @@ class _CadSceneState extends State<CadScene> {
         : CustomPaint(
             painter: CadScenePainter(
               cameraConfig: widget.cameraConfig,
+              showGuides: true,
+              showPrincipalPlanes: widget.showPrincipalPlanes,
               devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
               evaluatedScene: scene,
               selectedFaces: selectedFaces,
@@ -152,19 +162,43 @@ class _CadSceneState extends State<CadScene> {
             ],
           )
         : paint;
-    if (picker == null || widget.onSelected == null) return contents;
+    final guidedContents = widget.backend == CadRenderBackend.metal
+        ? CustomPaint(
+            foregroundPainter: SceneGuidesPainter(
+              camera: widget.cameraConfig,
+              showPlanes: widget.showPrincipalPlanes,
+            ),
+            child: contents,
+          )
+        : contents;
+    if (picker == null || widget.onSelected == null) return guidedContents;
     return LayoutBuilder(
       builder: (context, constraints) => GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTapUp: (event) => widget.onSelected!(
-          picker.pick(
+        onTapUp: (event) {
+          final hit = picker.pick(
             camera: widget.cameraConfig,
             viewport: constraints.biggest,
             position: event.localPosition,
-            mode: widget.selectionMode,
-          ),
-        ),
-        child: contents,
+            mode: widget.showPrincipalPlanes
+                ? ViewportSelectionMode.body
+                : widget.selectionMode,
+          );
+          if (widget.showPrincipalPlanes) {
+            final plane = PrincipalPlaneViews.pick(
+              widget.cameraConfig,
+              constraints.biggest,
+              event.localPosition,
+            );
+            if (plane != null && (hit == null || plane.depth < hit.depth)) {
+              widget.onPrincipalPlaneSelected?.call(plane.plane);
+              return;
+            }
+            if (hit?.face.surface is! PlaneSurface) return;
+          }
+          widget.onSelected!(hit);
+        },
+        child: guidedContents,
       ),
     );
   }

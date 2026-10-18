@@ -129,7 +129,7 @@ void main() {
       addTearDown(doc.dispose);
       await tester.pumpWidget(MaterialApp(home: CadScreen(controller: doc)));
       await tester.tap(find.byKey(Key('open-${linkedSketchId.value}')));
-      await tester.pump();
+      await tester.pumpAndSettle();
       final sketchEditor = tester
           .widget<SketchWorkspace>(find.byType(SketchWorkspace))
           .editor;
@@ -159,6 +159,8 @@ void main() {
       await tester.tap(find.byKey(const Key('confirm-extrusion')));
       await tester.pump();
       final id = doc.features.last.id;
+      await tester.tap(find.byKey(const Key('start-sketch')));
+      await tester.pump();
       final scene = tester.widget<CadScene>(find.byType(CadScene));
       final rect = tester.getRect(find.byType(CadScene));
       final projection = CameraProjection(scene.cameraConfig);
@@ -167,10 +169,7 @@ void main() {
         screen: rect.size,
       );
       await tester.tapAt(rect.topLeft + Offset(p.x, p.y));
-      await tester.pump();
-      await tester.ensureVisible(find.byKey(const Key('sketch-on-face')));
-      await tester.tap(find.byKey(const Key('sketch-on-face')));
-      await tester.pump();
+      await tester.pumpAndSettle();
       final second = tester
           .widget<SketchWorkspace>(find.byType(SketchWorkspace))
           .editor;

@@ -9,18 +9,23 @@ class GroundGrid extends CadObject {
   final double width;
   final double length;
 
-  GroundGrid([this.width = 100, this.length = 100]);
+  GroundGrid([this.width = 100, this.length = 100]) : _includeAxes = true;
+
+  GroundGrid.withoutAxes([this.width = 100, this.length = 100])
+    : _includeAxes = false;
+
+  final bool _includeAxes;
 
   @override
   List<CadPrimitive> build() {
     return [
-      for (int i = 0; i < 11; i++)
+      for (int i = _includeAxes ? 0 : 1; i < 11; i++)
         Edge(
           Vertex(Vector3(i / 10 * width, 0, 0)),
           Vertex(Vector3(i / 10 * width, length, 0)),
           curve: const LinearCadCurve(),
         ),
-      for (int i = 0; i < 11; i++)
+      for (int i = _includeAxes ? 0 : 1; i < 11; i++)
         Edge(
           Vertex(Vector3(0, i / 10 * length, 0)),
           Vertex(Vector3(width, i / 10 * length, 0)),
