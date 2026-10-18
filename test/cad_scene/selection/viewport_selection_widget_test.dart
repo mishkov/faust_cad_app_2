@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
 import 'package:faust_cad_app_2/cad_scene/cad_scene.dart';
+import 'package:faust_cad_app_2/cad_scene/cad_objects/cylinder.dart';
+import 'package:faust_cad_app_2/cad_scene/cad_surfaces/cylinder_surface.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_scene_painter.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/vertex.dart';
 import 'package:faust_cad_app_2/cad_scene/camera_config.dart';
@@ -92,7 +94,7 @@ void main() {
   );
 
   testWidgets(
-    'existing viewer exposes face reference and resolved local plane',
+    'viewer replaces the inspection panel with a bottom selection badge',
     (tester) async {
       final document = DocumentController(
         evaluators: {CubeFeature.type: CubeFeature.evaluate},
@@ -129,13 +131,14 @@ void main() {
       expect(hit?.faceReference, isNotNull);
       await tester.tapAt(viewport.topLeft + local);
       await tester.pump();
-      expect(find.text('Resolved plane'), findsOneWidget);
-      expect(
-        find.text('${hit!.faceReference!.featureId}/${hit.faceReference!.key}'),
-        findsOneWidget,
-      );
-      expect(find.textContaining('Origin:'), findsOneWidget);
-      expect(find.textContaining('Normal:'), findsOneWidget);
+      expect(find.text('Viewport selection'), findsNothing);
+      expect(find.byType(DropdownButton<ViewportSelectionMode>), findsNothing);
+      expect(find.text('Face'), findsOneWidget);
+      expect(find.textContaining('Origin:'), findsNothing);
+      expect(find.textContaining('Normal:'), findsNothing);
+      final badge = find.byKey(const Key('selection-badge'));
+      expect(tester.getCenter(badge).dx, closeTo(viewport.center.dx, 0.01));
+      expect(tester.getRect(badge).bottom, closeTo(viewport.bottom - 16, 0.01));
       expect(tester.takeException(), isNull);
     },
   );
@@ -192,4 +195,82 @@ void main() {
       picture.dispose();
     },
   );
+  test('selected edge highlights only its visible boundary', () async {
+    final camera = CameraConfig(
+      position: Vertex(Vector3(0, 0, 20)),
+      yaw: 0,
+      pitch: -math.pi / 2,
+      focalLength: 200,
+      focusDistance: 20,
+    );
+    final back = rectangle(PlanarFrame.xy());
+    final front = rectangle(PlanarFrame.xy(origin: Vector3(0, 0, 5)));
+    final scene = SceneTessellator().buildGeometry([
+      back,
+      front,
+    ], preserveSourceIdentity: true);
+    Future<int> cyanPixels(bool visible) async {
+      final recorder = ui.PictureRecorder();
+      CadScenePainter(
+        cameraConfig: camera,
+        evaluatedScene: scene,
+        renderMode: CadRenderMode.shaded,
+        selectedEdge: (visible ? front : back).outerWire.edges.first,
+      ).paint(Canvas(recorder), const Size(400, 400));
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(400, 400);
+      final bytes = (await image.toByteData())!;
+      var cyan = 0;
+      for (var i = 0; i < bytes.lengthInBytes; i += 4) {
+        if (bytes.getUint8(i + 1) > bytes.getUint8(i) + 60 &&
+            bytes.getUint8(i + 2) > bytes.getUint8(i) + 60) {
+          cyan++;
+        }
+      }
+      image.dispose();
+      picture.dispose();
+      return cyan;
+    }
+
+    expect(await cyanPixels(true), greaterThan(100));
+    expect(await cyanPixels(false), 0);
+  });
+
+  test('cylindrical selection tints curved triangles', () async {
+    final camera = CameraConfig(
+      position: Vertex(Vector3(0, -20, 3)),
+      yaw: 0,
+      pitch: 0,
+      focalLength: 200,
+      focusDistance: 20,
+    );
+    final solid = Cylinder(
+      frame: PlanarFrame.xy(),
+      radius: 3,
+      height: 6,
+    ).build().single;
+    final scene = SceneTessellator().buildGeometry([
+      solid,
+    ], preserveSourceIdentity: true);
+    final recorder = ui.PictureRecorder();
+    CadScenePainter(
+      cameraConfig: camera,
+      evaluatedScene: scene,
+      renderMode: CadRenderMode.shaded,
+      selectedFaces: {
+        for (final face in scene.faces)
+          if (face.source.surface is CylinderSurface) face.source,
+      },
+    ).paint(Canvas(recorder), const Size(400, 400));
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(400, 400);
+    final bytes = (await image.toByteData())!;
+    final center = (200 * 400 + 200) * 4;
+    expect(
+      bytes.getUint8(center + 2),
+      greaterThan(bytes.getUint8(center) + 50),
+    );
+    image.dispose();
+    picture.dispose();
+  });
 }

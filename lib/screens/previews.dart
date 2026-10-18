@@ -12,6 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widget_previews.dart';
 
 import 'cad_screen.dart';
+import '../cad_scene/selection/selection_badge.dart';
+import '../cad_scene/selection/selection_measurement.dart';
 
 @Preview(
   name: 'CAD model, face selection, and STEP export',
@@ -83,6 +85,38 @@ Widget _cameraCubePreview(Brightness brightness) => MaterialApp(
           focusDistance: 200,
         ),
         onSelected: (_) {},
+      ),
+    ),
+  ),
+);
+
+@Preview(name: 'Selection measurements — light', size: Size(550, 200))
+Widget selectionBadgePreview() => _selectionBadgePreview(Brightness.light);
+
+@Preview(name: 'Selection measurements — dark', size: Size(550, 200))
+Widget selectionBadgeDarkPreview() => _selectionBadgePreview(Brightness.dark);
+
+Widget _selectionBadgePreview(Brightness brightness) => MaterialApp(
+  theme: ThemeData(brightness: brightness),
+  home: Scaffold(
+    body: const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        spacing: 16,
+        children: [
+          SelectionBadge(
+            measurement: SelectionMeasurement('Edge', [
+              (label: 'Length', value: 20),
+            ]),
+          ),
+          SelectionBadge(
+            measurement: SelectionMeasurement('Hole', [
+              (label: 'Radius', value: 5),
+              (label: 'Diameter', value: 10),
+              (label: 'Height', value: 20),
+            ]),
+          ),
+        ],
       ),
     ),
   ),

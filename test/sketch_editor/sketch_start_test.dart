@@ -157,7 +157,7 @@ void main() {
     );
   }
 
-  testWidgets('sketch face picking overrides prior body selection mode', (
+  testWidgets('sketch face picking overrides measurement inspection', (
     tester,
   ) async {
     final cube = FeatureId('cube');
@@ -176,10 +176,10 @@ void main() {
     );
     addTearDown(document.dispose);
     await tester.pumpWidget(MaterialApp(home: CadScreen(controller: document)));
-    await tester.tap(find.byType(DropdownButton<ViewportSelectionMode>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Body').last);
-    await tester.pumpAndSettle();
+    expect(
+      tester.widget<CadScene>(find.byType(CadScene)).selectionMode,
+      ViewportSelectionMode.inspect,
+    );
     await tester.tap(find.byKey(const Key('start-sketch')));
     await tester.pump();
     final scene = find.byType(CadScene);

@@ -21,6 +21,7 @@ import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/render_triangle
 import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 import '../cad_primitivies/face.dart';
+import '../cad_primitivies/edge.dart';
 
 /// Vector rendering with per-region depth comparisons for planar and tessellated CAD geometry.
 ///
@@ -66,6 +67,7 @@ class ShadedSceneRenderer {
     Size size,
     TessellatedScene scene, {
     Set<Face> selectedFaces = const {},
+    Edge? selectedEdge,
     Face? hoveredFace,
   }) {
     try {
@@ -74,6 +76,7 @@ class ShadedSceneRenderer {
         size,
         scene,
         selectedFaces: selectedFaces,
+        selectedEdge: selectedEdge,
         hoveredFace: hoveredFace,
       );
     } finally {
@@ -88,6 +91,7 @@ class ShadedSceneRenderer {
     Size size,
     TessellatedScene scene, {
     required Set<Face> selectedFaces,
+    Edge? selectedEdge,
     Face? hoveredFace,
   }) {
     // Shared mesh and edge samples are transformed once per paint. Clear the
@@ -110,6 +114,7 @@ class ShadedSceneRenderer {
             triangle,
             size,
             face.source == hoveredFace,
+            selectedFaces.contains(face.source),
           );
           if (projected != null) faces.add(projected);
         }
@@ -263,6 +268,8 @@ class ShadedSceneRenderer {
         for (final loop in face.loops)
           if (loop.isNotEmpty)
             (points: [...loop, loop.first], boundary: true, hovered: true),
+      if (scene.edgeSamples[selectedEdge] case final points?)
+        (points: points, boundary: true, hovered: true),
     ]) {
       for (var i = 0; i < points.length - 1; i++) {
         final clipped = _projection.clipLine(
@@ -443,6 +450,7 @@ class ShadedSceneRenderer {
     RenderTriangle triangle,
     Size size,
     bool hovered,
+    bool selected,
   ) {
     final camera = triangle.points.map(_toCameraSpace).toList();
     final normal = (camera[1] - camera[0]).cross(camera[2] - camera[0]);
@@ -476,7 +484,14 @@ class ShadedSceneRenderer {
       final gray = (255 * (0.32 + 0.5 * math.max(0.0, n.dot(_light))))
           .round()
           .clamp(0, 255);
-      colors.add(_hoverColor(Color.fromARGB(255, gray, gray, gray), hovered));
+      colors.add(
+        _hoverColor(
+          selected
+              ? Color.fromARGB(255, gray ~/ 2, gray, 255)
+              : Color.fromARGB(255, gray, gray, gray),
+          hovered,
+        ),
+      );
     }
 
     return ProjectedFace(

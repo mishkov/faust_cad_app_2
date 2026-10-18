@@ -10,6 +10,7 @@ import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/tessellation_se
 import 'package:flutter/material.dart';
 
 import 'cad_primitivies/face.dart';
+import 'cad_primitivies/edge.dart';
 import 'rendering/scene_guides_painter.dart';
 
 class CadScenePainter extends CustomPainter {
@@ -23,6 +24,7 @@ class CadScenePainter extends CustomPainter {
     SceneTessellator? tessellator,
     TessellatedScene? evaluatedScene,
     this.selectedFaces = const {},
+    this.selectedEdge,
     this.hoveredFace,
     this.devicePixelRatio = 1,
     this.showGuides = false,
@@ -46,6 +48,7 @@ class CadScenePainter extends CustomPainter {
   final SceneTessellator tessellator;
   late final TessellatedScene scene;
   final Set<Face> selectedFaces;
+  final Edge? selectedEdge;
   final Face? hoveredFace;
   final double devicePixelRatio;
   final bool showGuides;
@@ -70,6 +73,7 @@ class CadScenePainter extends CustomPainter {
         size,
         scene,
         selectedFaces: selectedFaces,
+        selectedEdge: selectedEdge,
         hoveredFace: hoveredFace,
       );
       _paintAxes(canvas, size);
@@ -111,6 +115,26 @@ class CadScenePainter extends CustomPainter {
               ..strokeWidth = 2,
           );
         }
+      }
+    }
+    final selectedPoints = scene.edgeSamples[selectedEdge];
+    if (selectedPoints != null) {
+      for (var i = 1; i < selectedPoints.length; i++) {
+        final clipped = projection.clipLine(
+          projection.toCameraSpace(selectedPoints[i - 1]),
+          projection.toCameraSpace(selectedPoints[i]),
+          screen: size,
+        );
+        if (clipped == null) continue;
+        final a = projection.project(clipped.begin, screen: size);
+        final b = projection.project(clipped.end, screen: size);
+        canvas.drawLine(
+          Offset(a.x, a.y),
+          Offset(b.x, b.y),
+          Paint()
+            ..color = const Color(0xff00bcd4)
+            ..strokeWidth = 2,
+        );
       }
     }
     _paintAxes(canvas, size);

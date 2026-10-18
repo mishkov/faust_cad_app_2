@@ -334,7 +334,7 @@ final class MetalViewportRenderer: NSObject, MTKViewDelegate {
         encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: mesh.lineCount)
       }
     }
-    if let lines = hoverLines, hoveredFace >= 0, hoverLineCount > 0 {
+    if let lines = hoverLines, hoverLineCount > 0 {
       var uniforms = camera.uniforms(precise: false, wireframe: wireframe, depthScale: depthScale)
       encoder.setVertexBytes(&uniforms, length: 80, index: 1)
       encoder.setRenderPipelineState(linePipeline)

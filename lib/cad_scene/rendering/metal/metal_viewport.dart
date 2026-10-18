@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../../sketch/sketch_geometry.dart';
 import '../../cad_primitivies/face.dart';
+import '../../cad_primitivies/edge.dart';
 import '../../cad_render_mode.dart';
 import '../../camera_config.dart';
 import '../tessellation/tessellated_scene.dart';
@@ -20,6 +21,7 @@ final class MetalViewport extends StatefulWidget {
     required this.camera,
     required this.renderMode,
     this.selectedFaces = const {},
+    this.selectedEdge,
     this.hoveredFace,
     this.sketches = const [],
     this.controller,
@@ -28,6 +30,7 @@ final class MetalViewport extends StatefulWidget {
   final CameraConfig camera;
   final CadRenderMode renderMode;
   final Set<Face> selectedFaces;
+  final Edge? selectedEdge;
   final Face? hoveredFace;
   final List<SketchGeometry> sketches;
   final MetalViewportController? controller;
@@ -40,6 +43,7 @@ class _MetalViewportState extends State<MetalViewport> {
   MetalSceneMesh? _mesh;
   MetalSceneMesh? _hoverMesh;
   Face? _hoveredFace;
+  Edge? _selectedEdge;
   TessellatedScene? _scene;
   List<SketchGeometry>? _sketches;
   int? _id;
@@ -69,10 +73,15 @@ class _MetalViewportState extends State<MetalViewport> {
           packet['mesh'] = _mesh!.message;
         }
         if (!identical(_hoverMesh, _mesh) ||
-            _hoveredFace != widget.hoveredFace) {
+            _hoveredFace != widget.hoveredFace ||
+            _selectedEdge != widget.selectedEdge) {
           _hoverMesh = _mesh;
           _hoveredFace = widget.hoveredFace;
-          packet['hoverLines'] = _mesh!.hoverLines(_hoveredFace);
+          _selectedEdge = widget.selectedEdge;
+          packet['hoverLines'] = _mesh!.hoverLines(
+            _hoveredFace,
+            selectedEdge: _selectedEdge,
+          );
         }
         if (!listEquals(_sketches, widget.sketches)) {
           _sketches = List.of(widget.sketches);
