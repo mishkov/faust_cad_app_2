@@ -51,7 +51,17 @@ class ViewCubePainter extends CustomPainter {
         (Vector3(0, 3.3, 0), Color(isLight ? 0xFF357D30 : 0xFF62B55B), 'Y'),
         (Vector3(0, 0, 4.2), Color(isLight ? 0xFF2769A5 : 0xFF599BDB), 'Z'),
       ]) {
-        final end = geometry.project(origin + axis * 0.75);
+        final endpoint = origin + axis * 0.75;
+        final end = geometry.project(endpoint);
+        final bounds = Path()..addRect((Offset.zero & size).inflate(16));
+        canvas.save();
+        canvas.clipPath(
+          Path.combine(
+            PathOperation.difference,
+            bounds,
+            geometry.occlusionPath(origin, endpoint),
+          ),
+        );
         canvas.drawLine(
           start,
           end,
@@ -59,6 +69,7 @@ class ViewCubePainter extends CustomPainter {
             ..color = color
             ..strokeWidth = 1.3,
         );
+        canvas.restore();
         final text = TextPainter(
           text: TextSpan(
             text: label,
@@ -75,10 +86,19 @@ class ViewCubePainter extends CustomPainter {
             (text.width * direction.dx.abs() +
                     text.height * direction.dy.abs()) /
                 2;
+        canvas.save();
+        canvas.clipPath(
+          Path.combine(
+            PathOperation.difference,
+            bounds,
+            geometry.occlusionPath(endpoint),
+          ),
+        );
         text.paint(
           canvas,
           end + direction * clearance - Offset(text.width / 2, text.height / 2),
         );
+        canvas.restore();
       }
       return;
     }

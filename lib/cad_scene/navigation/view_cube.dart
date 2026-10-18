@@ -35,11 +35,6 @@ class _ViewCubeState extends State<ViewCube> {
             return Stack(
               fit: StackFit.expand,
               children: [
-                IgnorePointer(
-                  child: CustomPaint(
-                    painter: ViewCubePainter(geometry, brightness: brightness),
-                  ),
-                ),
                 for (final side in geometry.visibleSides)
                   MouseRegion(
                     cursor: SystemMouseCursors.click,
@@ -61,6 +56,11 @@ class _ViewCubeState extends State<ViewCube> {
                       ),
                     ),
                   ),
+                IgnorePointer(
+                  child: CustomPaint(
+                    painter: ViewCubePainter(geometry, brightness: brightness),
+                  ),
+                ),
               ],
             );
           },

@@ -36,4 +36,47 @@ class ViewCubeGeometry {
   }
 
   Path path(CameraSide side) => Path()..addPolygon(corners(side), true);
+
+  // Cube regions closer than a line, or a label at a constant camera depth.
+  Path occlusionPath(Vector3 begin, [Vector3? end]) {
+    final start = project(begin);
+    final delta = end == null ? Offset.zero : project(end) - start;
+    final depth = projection.toCameraDirection(begin).y;
+    final gradient = delta.distanceSquared < 1e-12 || end == null
+        ? 0.0
+        : (projection.toCameraDirection(end).y - depth) / delta.distanceSquared;
+    final mask = Path();
+    for (final side in visibleSides) {
+      final normal = projection.toCameraDirection(side.outward);
+      double difference(Offset point) {
+        final x = (point.dx - size.width / 2) / scale;
+        final z = (size.height * 0.45 - point.dy) / scale;
+        final faceDepth = (1 - normal.x * x - normal.z * z) / normal.y;
+        final along = point - start;
+        final axisDepth =
+            depth + gradient * (along.dx * delta.dx + along.dy * delta.dy);
+        return axisDepth - faceDepth - 1e-8;
+      }
+
+      final polygon = corners(side);
+      final clipped = <Offset>[];
+      var previous = polygon.last;
+      var previousDistance = difference(previous);
+      for (final point in polygon) {
+        final distance = difference(point);
+        if ((distance > 0) != (previousDistance > 0)) {
+          clipped.add(
+            previous +
+                (point - previous) *
+                    (previousDistance / (previousDistance - distance)),
+          );
+        }
+        if (distance > 0) clipped.add(point);
+        previous = point;
+        previousDistance = distance;
+      }
+      if (clipped.length >= 3) mask.addPolygon(clipped, true);
+    }
+    return mask;
+  }
 }
