@@ -24,11 +24,14 @@ class _ViewCubeState extends State<ViewCube> {
     child: LayoutBuilder(
       builder: (context, constraints) {
         final geometry = ViewCubeGeometry(widget.camera, constraints.biggest);
+        final brightness = Theme.of(context).brightness;
         return Stack(
           fit: StackFit.expand,
           children: [
             IgnorePointer(
-              child: CustomPaint(painter: ViewCubePainter(geometry)),
+              child: CustomPaint(
+                painter: ViewCubePainter(geometry, brightness: brightness),
+              ),
             ),
             for (final side in geometry.visibleSides)
               MouseRegion(
@@ -43,6 +46,7 @@ class _ViewCubeState extends State<ViewCube> {
                   child: CustomPaint(
                     painter: ViewCubePainter(
                       geometry,
+                      brightness: brightness,
                       side: side,
                       highlighted: _hovered == side,
                       onSelected: () => widget.onSelected(side),

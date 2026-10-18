@@ -18,9 +18,14 @@ Widget viewportSelectionPreview() => const MaterialApp(home: CadScreen());
 @Preview(name: 'Sketch controls at compact size', size: Size(800, 550))
 Widget sketchCompactPreview() => const MaterialApp(home: CadScreen());
 
-@Preview(name: 'Camera position cube', size: Size(180, 180))
-Widget cameraCubePreview() => MaterialApp(
-  theme: ThemeData.dark(),
+@Preview(name: 'Camera position cube — dark', size: Size(180, 180))
+Widget cameraCubePreview() => _cameraCubePreview(Brightness.dark);
+
+@Preview(name: 'Camera position cube — light', size: Size(180, 180))
+Widget cameraCubeLightPreview() => _cameraCubePreview(Brightness.light);
+
+Widget _cameraCubePreview(Brightness brightness) => MaterialApp(
+  theme: ThemeData(brightness: brightness),
   home: Scaffold(
     body: Center(
       child: ViewCube(

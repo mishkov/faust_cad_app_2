@@ -9,11 +9,13 @@ import 'view_cube_geometry.dart';
 class ViewCubePainter extends CustomPainter {
   ViewCubePainter(
     this.geometry, {
+    required this.brightness,
     this.side,
     this.highlighted = false,
     this.onSelected,
   });
   final ViewCubeGeometry geometry;
+  final Brightness brightness;
   final CameraSide? side;
   final bool highlighted;
   final VoidCallback? onSelected;
@@ -39,14 +41,15 @@ class ViewCubePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    final isLight = brightness == Brightness.light;
     final face = side;
     if (face == null) {
       final origin = Vector3(-1.25, -1.25, -1.25);
       final start = geometry.project(origin);
       for (final (axis, color, label) in [
-        (Vector3(3.3, 0, 0), const Color(0xFFE05B55), 'X'),
-        (Vector3(0, 3.3, 0), const Color(0xFF62B55B), 'Y'),
-        (Vector3(0, 0, 4.2), const Color(0xFF599BDB), 'Z'),
+        (Vector3(3.3, 0, 0), Color(isLight ? 0xFFB43B35 : 0xFFE05B55), 'X'),
+        (Vector3(0, 3.3, 0), Color(isLight ? 0xFF357D30 : 0xFF62B55B), 'Y'),
+        (Vector3(0, 0, 4.2), Color(isLight ? 0xFF2769A5 : 0xFF599BDB), 'Z'),
       ]) {
         final end = geometry.project(origin + axis * 0.75);
         canvas.drawLine(
@@ -82,9 +85,9 @@ class ViewCubePainter extends CustomPainter {
     final corners = geometry.corners(face);
     final path = geometry.path(face);
     final gray = switch (face) {
-      CameraSide.top || CameraSide.bottom => 0xFF44464A,
-      CameraSide.left || CameraSide.right => 0xFF34363A,
-      _ => 0xFF3C3E42,
+      CameraSide.top || CameraSide.bottom => isLight ? 0xFFE8E9EC : 0xFF44464A,
+      CameraSide.left || CameraSide.right => isLight ? 0xFFCFD1D6 : 0xFF34363A,
+      _ => isLight ? 0xFFDCDDE1 : 0xFF3C3E42,
     };
     canvas.drawPath(
       path,
@@ -93,7 +96,7 @@ class ViewCubePainter extends CustomPainter {
     canvas.drawPath(
       path,
       Paint()
-        ..color = const Color(0xFF64666C)
+        ..color = Color(isLight ? 0xFF8A8E98 : 0xFF64666C)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1
         ..strokeJoin = StrokeJoin.round,
@@ -113,8 +116,8 @@ class ViewCubePainter extends CustomPainter {
     final text = TextPainter(
       text: TextSpan(
         text: face.label,
-        style: const TextStyle(
-          color: Color(0xFFF0F0F2),
+        style: TextStyle(
+          color: Color(isLight && !highlighted ? 0xFF31343B : 0xFFF0F0F2),
           fontSize: 11,
           fontWeight: FontWeight.w500,
         ),
