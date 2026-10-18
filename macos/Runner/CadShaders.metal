@@ -16,6 +16,9 @@ float3 camera(float3 hi,float3 lo,constant Uniforms& u) {
   return rotate((hi-u.eyeHi.xyz)+(lo-u.eyeLo.xyz),u);
 }
 float4 project(float3 p,constant Uniforms& u) {
+  if(u.options.w>0) return float4(
+    2*u.viewport.z*p.x/(u.viewport.x*u.options.w),
+    2*u.viewport.z*p.z/(u.viewport.y*u.options.w),1-p.y*u.options.y,1);
   return float4(2*u.viewport.z*p.x/u.viewport.x,2*u.viewport.z*p.z/u.viewport.y,u.options.y,p.y);
 }
 vertex Out cadBody(uint id [[vertex_id]],device const Body* v [[buffer(0)]],
@@ -24,7 +27,8 @@ vertex Out cadBody(uint id [[vertex_id]],device const Body* v [[buffer(0)]],
   float3 p=u.options.x>0 ? float3(b.hi) : camera(b.hi,b.lo,u);
   float3 n=normalize(float3(b.normal));
   float facing=b.facing;
-  if(facing==0) facing=dot(n,(float3(b.hi)-u.eyeHi.xyz)+(float3(b.lo)-u.eyeLo.xyz))>0 ? -1 : 1;
+  if(facing==0) facing=(u.options.w>0 ? rotate(n,u).y :
+    dot(n,(float3(b.hi)-u.eyeHi.xyz)+(float3(b.lo)-u.eyeLo.xyz)))>0 ? -1 : 1;
   n=rotate(n,u)*facing;
   float gray=round(255*(.32f+.5f*max(0.f,dot(n,normalize(float3(.55f,-.65f,.8f))))));
   float3 rgb=float3(gray)/255;
@@ -49,7 +53,12 @@ vertex LineOut cadLine(uint id [[vertex_id]],device const Line* lines [[buffer(0
   bool rejected=false;
   for(int i=0;i<5;i++) {
     float offset=i==0 ? 1e-6f : 0.f;
-    float da=dot(planes[i],a)-offset, db=dot(planes[i],b)-offset;
+    float3 plane=planes[i];
+    if(u.options.w>0 && i>0) {
+      plane.y=0;
+      offset=-(i<3 ? halfW : halfH)*u.options.w;
+    }
+    float da=dot(plane,a)-offset, db=dot(plane,b)-offset;
     if(da<0 && db<0) { rejected=true; break; }
     if((da<0)!=(db<0)) { float3 c=mix(a,b,da/(da-db)); if(da<0) a=c; else b=c; }
   }

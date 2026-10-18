@@ -256,14 +256,15 @@ class ShadedSceneRenderer {
         final delta = q - p;
         final lengthSquared = delta.distanceSquared;
         if (lengthSquared < 1e-12) continue;
-        final gradient =
-            (1 / clipped.end.y - 1 / clipped.begin.y) / lengthSquared;
+        final beginDepth = _depthScore(clipped.begin.y);
+        final endDepth = _depthScore(clipped.end.y);
+        final gradient = (endDepth - beginDepth) / lengthSquared;
         final inverseDepth = Vector3(
           delta.dx * gradient,
           delta.dy * gradient,
-          1 / clipped.begin.y - gradient * (delta.dx * p.dx + delta.dy * p.dy),
+          beginDepth - gradient * (delta.dx * p.dx + delta.dy * p.dy),
         );
-        final bias = math.max(1 / clipped.begin.y, 1 / clipped.end.y) * 1e-6;
+        final bias = math.max(beginDepth.abs(), endDepth.abs()) * 1e-6;
         final bounds = Rect.fromPoints(p, q).inflate(1.5);
         final visibility = ProjectedEdgeVisibility.resolve(
           p,
@@ -363,7 +364,7 @@ class ShadedSceneRenderer {
     normal.normalize();
     final planeDistance = normal.dot(origin);
     // A plane through the eye projects to a line, not a fillable surface.
-    if (planeDistance.abs() < 1e-10) return null;
+    if (_edgeOn(normal, planeDistance)) return null;
     final path = Path()..fillType = PathFillType.evenOdd;
     final contours = <List<Offset>>[];
     for (final points in face.loops) {
@@ -380,17 +381,14 @@ class ShadedSceneRenderer {
       path.addPolygon(contour, true);
     }
     if (contours.isEmpty || path.getBounds().isEmpty) return null;
-    final focalLength = _projection.cameraConfig.focalLength;
-    final a = normal.x / (focalLength * planeDistance);
-    final b = -normal.z / (focalLength * planeDistance);
-    final inverseDepth = Vector3(
-      a,
-      b,
-      normal.y / planeDistance - a * size.width / 2 - b * size.height / 2,
-    );
+    final inverseDepth = _planeDepth(normal, planeDistance, size);
     // Faces are two-sided; choose the normal facing the camera. The light is
     // expressed in camera coordinates, so right/up stay brighter during orbit.
-    if (planeDistance > 0) normal.negate();
+    if (_projection.cameraConfig.isOrthographic
+        ? normal.y > 0
+        : planeDistance > 0) {
+      normal.negate();
+    }
     final brightness = 0.32 + 0.5 * math.max(0.0, normal.dot(_light));
     final gray = (255 * brightness).round();
     return ProjectedFace(
@@ -409,7 +407,7 @@ class ShadedSceneRenderer {
     if (normal.length2 < 1e-24) return null;
     normal.normalize();
     final distance = normal.dot(camera[0]);
-    if (distance.abs() < 1e-10) return null;
+    if (_edgeOn(normal, distance)) return null;
     final clipped = _projection.clipLoop(camera, screen: size);
     if (clipped.length < 3) return null;
     final points = <Offset>[];
@@ -430,26 +428,44 @@ class ShadedSceneRenderer {
       // Interpolate analytic oriented radial normals, including clipped points.
       final n = (normals[0] * (1 - b - c) + normals[1] * b + normals[2] * c)
           .normalized();
-      if (n.dot(p) > 0) n.negate();
+      if (_projection.cameraConfig.isOrthographic ? n.y > 0 : n.dot(p) > 0) {
+        n.negate();
+      }
       final gray = (255 * (0.32 + 0.5 * math.max(0.0, n.dot(_light))))
           .round()
           .clamp(0, 255);
       colors.add(Color.fromARGB(255, gray, gray, gray));
     }
-    final a = normal.x / (_projection.cameraConfig.focalLength * distance);
-    final b = -normal.z / (_projection.cameraConfig.focalLength * distance);
+
     return ProjectedFace(
       Path()..addPolygon(points, true),
-      Vector3(
-        a,
-        b,
-        normal.y / distance - a * size.width / 2 - b * size.height / 2,
-      ),
+      _planeDepth(normal, distance, size),
       Colors.white,
       contours: [points],
       meshPoints: points,
       meshColors: colors,
     );
+  }
+
+  bool _edgeOn(Vector3 normal, double distance) =>
+      (_projection.cameraConfig.isOrthographic ? normal.y : distance).abs() <
+      1e-10;
+
+  double _depthScore(double depth) => _projection.cameraConfig.isOrthographic
+      ? -depth / _projection.cameraConfig.focusDistance
+      : 1 / depth;
+
+  Vector3 _planeDepth(Vector3 normal, double distance, Size size) {
+    final camera = _projection.cameraConfig;
+    final divisor = camera.isOrthographic ? normal.y : distance;
+    final a = normal.x / (camera.focalLength * divisor);
+    final b = -normal.z / (camera.focalLength * divisor);
+    final c = camera.isOrthographic
+        ? -distance / (normal.y * camera.focusDistance)
+        : normal.y / distance;
+    // Larger scores are nearer: reciprocal depth in perspective, negative
+    // linear depth in a parallel view. Both are affine over screen space.
+    return Vector3(a, b, c - a * size.width / 2 - b * size.height / 2);
   }
 
   List<Path> _occlusionMasks(

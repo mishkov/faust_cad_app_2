@@ -2,6 +2,18 @@
 
 A Flutter CAD viewer with wireframe and shaded rendering.
 
+## Camera position cube
+
+The top-right cube follows the scene camera. Hovering a visible face turns it
+blue; clicking Top, Front, Left, Right, Back, or Bottom animates to that side.
+X is red, Y is green, and Z is blue. Z is up and Front is the negative Y side.
+
+Side views use orthographic projection. Navigation centers the scene bounds and
+places the camera beyond all model, grid, and inactive sketch geometry while
+preserving zoom; objects can remain outside the viewport. Shift-pan and pinch
+zoom retain orthographic mode. Rotating switches back to perspective, and
+Command+1 animates back to the initial perspective view.
+
 ## STEP export
 
 Click **Export STEP** below **Model edits** and choose a destination in the native

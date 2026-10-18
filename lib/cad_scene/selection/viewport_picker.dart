@@ -77,6 +77,14 @@ final class ViewportPicker {
       1,
       (viewport.height / 2 - position.dy) / camera.focalLength,
     );
+    final origin = camera.isOrthographic
+        ? Vector3(
+            direction.x * camera.focusDistance,
+            0,
+            direction.z * camera.focusDistance,
+          )
+        : Vector3.zero();
+    if (camera.isOrthographic) direction.setValues(0, 1, 0);
     double? nearest;
     Face? source;
     for (final face in scene.faces) {
@@ -89,7 +97,7 @@ final class ViewportPicker {
             1e-12 * e1.length * e2.length * direction.length) {
           continue;
         }
-        final fromA = -a;
+        final fromA = origin - a;
         final u = fromA.dot(cross) / determinant;
         final q = fromA.cross(e1);
         final v = direction.dot(q) / determinant;
@@ -116,7 +124,7 @@ final class ViewportPicker {
       depth: nearest,
       point:
           camera.position.vector +
-          projection.fromCameraDirection(direction * nearest),
+          projection.fromCameraDirection(origin + direction * nearest),
       bodyReference: evaluated.bodies[owner],
       faceReference: evaluated.faces[source],
     );

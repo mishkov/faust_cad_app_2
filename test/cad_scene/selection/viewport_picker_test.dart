@@ -68,6 +68,25 @@ FeatureDefinition cube(double size, {double z = 0}) => FeatureDefinition(
 );
 
 void main() {
+  test(
+    'orthographic picking uses parallel rays and returns exact off-center hits',
+    () {
+      final camera = topCamera.copyWith(isOrthographic: true);
+      final front = rectangle(
+        PlanarFrame.xy(origin: Vector3(0, 0, 5)),
+        hole: true,
+      );
+      final back = rectangle(PlanarFrame.xy(origin: Vector3(0, 0, -50)));
+      final scene = picker([back, front]);
+      final hit = pick(scene, Vector3(2, 0, 5), camera: camera)!;
+      expect(hit.face, same(front));
+      expect(hit.point.distanceTo(Vector3(2, 0, 5)), lessThan(1e-8));
+      final throughHole = pick(scene, Vector3(.5, 0, -50), camera: camera)!;
+      expect(throughHole.face, same(back));
+      expect(throughHole.point.distanceTo(Vector3(.5, 0, -50)), lessThan(1e-8));
+    },
+  );
+
   test('rotated planar face maps triangle to exact analytic object and world point', () {
     final frame = tiltedFrame(0.6, height: 3);
     final face = rectangle(frame);

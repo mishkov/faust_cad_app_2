@@ -29,12 +29,15 @@ Dart or modifying the Flutter engine.
   are retained for close views. Normals, face IDs, boundaries and sketch geometry
   are persistent native buffers. Shared CAD boundaries are deduplicated; triangle
   diagonals and cylindrical patch seams are not outlines.
-- A positive camera-space Y is forward. Projection uses infinite reverse Z with
+- A positive camera-space Y is forward. Perspective projection uses infinite reverse Z with
   `depth32Float`, clear depth zero and `greaterEqual` testing. The geometric
   near plane is `1e-6`. When all conservative scene bounds are in front, half
   the nearest bound scales reverse Z to use the useful depth range. This clips
   only empty space and reduces precision loss from an extremely small fixed
   depth scale. Crossing views use the physical near value.
+  Orthographic side views use parallel projection at `focalLength / focusDistance`
+  pixels per model unit and reversed linear depth, with the far plane beyond the
+  complete scene bounds. Panning and zooming retain this projection until rotation.
   Both sides of each face render. Lighting and planar selection colors follow
   the reference renderer.
 - Bounds crossing/approaching the near plane select double-precision triangle
@@ -79,7 +82,8 @@ platforms display the unsupported-backend error when Metal is explicitly selecte
 
 The native suite compares the current Canvas renderer against Metal at nine
 camera angles, DPR 1/1.5/2, changing viewport dimensions, planar selection,
-reversed object order, hollow tubes, enclosed cavities, inside and near-plane
+reversed object order, all six orthographic views with and without inactive sketches,
+hollow tubes, enclosed cavities, inside and near-plane
 views, and wireframe. It also checks Flutter controls, dragging, zero-size hiding,
 resizing, and six attach/dispose cycles. Existing reference tests retain their
 original tolerances. The Metal suite reports exact pixel deltas separately from
@@ -218,3 +222,7 @@ The normal debug app was also checked with real mouse face selection. Both hot
 reload and hot restart succeeded through the Dart tooling connection, with no
 runtime errors after either operation. The native presentation layer explicitly
 uses the sRGB color space for display color matching.
+
+Run only the orthographic image comparisons with
+`--dart-define=METAL_SCENARIOS=orthographic,orthographicSketch` in addition to
+`--dart-define=METAL_CHECK_IMAGES=true`.

@@ -8,6 +8,47 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 void main() {
+  test('orthographic size and side clipping do not depend on depth', () {
+    final config = CameraConfig(
+      position: Vertex(Vector3.zero()),
+      yaw: 0,
+      pitch: 0,
+      focalLength: 100,
+      focusDistance: 10,
+      isOrthographic: true,
+    );
+    final projection = CameraProjection(config);
+    const screen = Size(200, 100);
+    for (final depth in [0.001, 2.0, 10000.0]) {
+      final point = Vector3(3, depth, 2);
+      expect(projection.project(point, screen: screen), (x: 130.0, y: 30.0));
+      final clipped = projection.clipLine(
+        Vector3(-20, depth, 0),
+        Vector3(20, depth, 0),
+        screen: screen,
+      )!;
+      expect(clipped.begin.x, closeTo(-10, 1e-9));
+      expect(clipped.end.x, closeTo(10, 1e-9));
+      expect(
+        projection.clipLoop([
+          Vector3(-20, depth, -20),
+          Vector3(20, depth, -20),
+          Vector3(20, depth, 20),
+          Vector3(-20, depth, 20),
+        ], screen: screen),
+        hasLength(4),
+      );
+    }
+    expect(
+      projection.clipLine(
+        Vector3(0, -10, 0),
+        Vector3(1, -2, 0),
+        screen: screen,
+      ),
+      isNull,
+    );
+  });
+
   CameraConfig camera({double yaw = 0, double pitch = 0}) => CameraConfig(
     position: Vertex(Vector3(3, -7, 2)),
     yaw: yaw,
