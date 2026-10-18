@@ -42,10 +42,14 @@ Widget sketchPlaneSelectionPreview() => MaterialApp(
   ),
 );
 
-@Preview(name: 'Face hover and hole boundaries', size: Size(600, 450))
+@Preview(
+  name: 'Face and edge hover without cylinder seams',
+  size: Size(600, 450),
+)
 Widget faceHoverPreview() => MaterialApp(
   home: Scaffold(
     body: CadScene(
+      selectionMode: ViewportSelectionMode.inspect,
       cameraConfig: CameraConfig(
         position: Vertex(Vector3(70, -100, 80)),
         yaw: 0.6,

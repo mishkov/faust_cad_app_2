@@ -20,7 +20,7 @@ final class MetalViewportRenderer: NSObject, MTKViewDelegate {
   private let slots = [FrameSlot(), FrameSlot()]
   private weak var view: MTKView?
   private var body: MetalMesh?, sketches = [MetalMesh](), camera: MetalCamera?
-  private var hoveredFace = -1
+  private var hoveredFaces: [Int] = []
   private var hoverLines: MTLBuffer?
   private var hoverLineCount = 0
   private var selection = [Int](), wireframe = false, clear = MTLClearColorMake(1, 1, 1, 1)
@@ -143,7 +143,8 @@ final class MetalViewportRenderer: NSObject, MTKViewDelegate {
       hoverLines = nextHoverLines
       hoverLineCount = count
     }
-    hoveredFace = (packet["hoveredFace"] as? NSNumber)?.intValue ?? -1
+    hoveredFaces = (packet["hoveredFaces"] as? [NSNumber])?.map { $0.intValue }
+      ?? [(packet["hoveredFace"] as? NSNumber)?.intValue ?? -1]
     camera = nextCamera
     selection = (packet["selection"] as? [NSNumber] ?? []).map { $0.intValue }
     wireframe = packet["wireframe"] as? Bool ?? false
@@ -276,7 +277,7 @@ final class MetalViewportRenderer: NSObject, MTKViewDelegate {
     memset(selected.contents(), 0, selected.length)
     let ids = selected.contents().bindMemory(to: UInt32.self, capacity: count)
     for id in selection where id >= 0 && id < count { ids[id] = 1 }
-    if hoveredFace >= 0 && hoveredFace < count { ids[hoveredFace] |= 2 }
+    for id in hoveredFaces where id >= 0 && id < count { ids[id] |= 2 }
     encoder.setVertexBuffer(selected, offset: 0, index: 2)
     let meshes = [body].compactMap({ $0 }) + sketches
     // Scale reverse Z to the conservative nearest scene bound when the whole

@@ -59,18 +59,24 @@ final class MetalSceneMesh {
       if (selected.contains(faces[i])) i,
   ];
 
-  Float32List hoverLines(Face? hoveredFace, {Edge? selectedEdge}) {
+  List<int> hoverFaces(Face? face) => selection(_scene.hoverFaces(face));
+
+  Float32List hoverLines(
+    Face? hoveredFace, {
+    Edge? selectedEdge,
+    Edge? hoveredEdge,
+  }) {
     final lines = <double>[];
-    for (final face in _scene.faces.where((f) => f.source == hoveredFace)) {
-      for (final loop in face.loops) {
-        for (var i = 0; i < loop.length; i++) {
-          addLine(lines, loop[i], loop[(i + 1) % loop.length], 3);
-        }
-      }
-    }
-    for (final points in _scene.selectionSamples(selectedEdge)) {
+    for (final points in _scene.hoverSamples(hoveredFace)) {
       for (var i = 1; i < points.length; i++) {
         addLine(lines, points[i - 1], points[i], 3);
+      }
+    }
+    for (final edge in _scene.highlightedEdges(selectedEdge, hoveredEdge)) {
+      final points = _scene.edgeSamples[edge];
+      if (points == null) continue;
+      for (var i = 1; i < points.length; i++) {
+        addLine(lines, points[i - 1], points[i], 4);
       }
     }
     return Float32List.fromList(lines);

@@ -466,13 +466,17 @@ analytic boundaries, holes, provenance, and validated material unions.
 
 Click a visible face or edge to inspect it. Edges within seven logical pixels
 have priority over faces; only visible solid/face boundaries are pickable.
-Selected edges turn cyan. A complete circular rim is selected as one circle,
-even when its topology uses multiple arcs. Clicking any segment highlights the
-whole visible rim and shows its full circumference and radius. Partial arcs
-remain individual selections. Cylindrical walls highlight together across their
-rendering patches, including inner hole walls. A small badge at the bottom of
-the scene shows edge/arc length, circle circumference and radius, or cylindrical
-radius and height in millimeters (one model unit = one millimeter).
+Hovered and selected edges use the same three-pixel cyan stroke. Hover is a
+transient preview and preserves the clicked selection. A complete circular rim
+is selected as one circle, even when its topology uses multiple arcs. Clicking
+any segment highlights the whole visible rim and shows its full circumference
+and radius. Partial arcs
+remain individual selections. Cylindrical walls hover and select as continuous
+surfaces across their rendering patches, including inner hole walls. Hover
+outlines contain only real boundaries, without internal construction seams. A
+small badge at the bottom of the scene shows edge/arc length, circle
+circumference and radius, or cylindrical radius and height in millimeters
+(one model unit = one millimeter).
 Clicking the badge preserves the inspection. Its numbers are selectable;
 double-click a number to copy its displayed value without units. A small
 “copied” badge appears above it briefly after a successful copy.

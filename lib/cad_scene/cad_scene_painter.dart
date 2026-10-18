@@ -26,6 +26,7 @@ class CadScenePainter extends CustomPainter {
     this.selectedFaces = const {},
     this.selectedEdge,
     this.hoveredFace,
+    this.hoveredEdge,
     this.devicePixelRatio = 1,
     this.showGuides = false,
     this.showPrincipalPlanes = false,
@@ -50,6 +51,7 @@ class CadScenePainter extends CustomPainter {
   final Set<Face> selectedFaces;
   final Edge? selectedEdge;
   final Face? hoveredFace;
+  final Edge? hoveredEdge;
   final double devicePixelRatio;
   final bool showGuides;
   final bool showPrincipalPlanes;
@@ -75,6 +77,7 @@ class CadScenePainter extends CustomPainter {
         selectedFaces: selectedFaces,
         selectedEdge: selectedEdge,
         hoveredFace: hoveredFace,
+        hoveredEdge: hoveredEdge,
       );
       _paintAxes(canvas, size);
       return;
@@ -96,32 +99,17 @@ class CadScenePainter extends CustomPainter {
         canvas.drawLine(Offset(begin.x, begin.y), Offset(end.x, end.y), paint);
       }
     }
-    for (final face in scene.faces.where((f) => f.source == hoveredFace)) {
-      for (final loop in face.loops) {
-        for (var i = 0; i < loop.length; i++) {
-          final clipped = projection.clipLine(
-            projection.toCameraSpace(loop[i]),
-            projection.toCameraSpace(loop[(i + 1) % loop.length]),
-            screen: size,
-          );
-          if (clipped == null) continue;
-          final a = projection.project(clipped.begin, screen: size);
-          final b = projection.project(clipped.end, screen: size);
-          canvas.drawLine(
-            Offset(a.x, a.y),
-            Offset(b.x, b.y),
-            Paint()
-              ..color = const Color(0xff00bcd4)
-              ..strokeWidth = 2,
-          );
-        }
-      }
-    }
-    for (final selectedPoints in scene.selectionSamples(selectedEdge)) {
-      for (var i = 1; i < selectedPoints.length; i++) {
+    for (final (:points, :width) in [
+      for (final points in scene.hoverSamples(hoveredFace))
+        (points: points, width: 2.0),
+      for (final edge in scene.highlightedEdges(selectedEdge, hoveredEdge))
+        if (scene.edgeSamples[edge] case final points?)
+          (points: points, width: 3.0),
+    ]) {
+      for (var i = 1; i < points.length; i++) {
         final clipped = projection.clipLine(
-          projection.toCameraSpace(selectedPoints[i - 1]),
-          projection.toCameraSpace(selectedPoints[i]),
+          projection.toCameraSpace(points[i - 1]),
+          projection.toCameraSpace(points[i]),
           screen: size,
         );
         if (clipped == null) continue;
@@ -132,7 +120,7 @@ class CadScenePainter extends CustomPainter {
           Offset(b.x, b.y),
           Paint()
             ..color = const Color(0xff00bcd4)
-            ..strokeWidth = 2,
+            ..strokeWidth = width,
         );
       }
     }

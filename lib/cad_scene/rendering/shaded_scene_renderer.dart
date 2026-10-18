@@ -58,6 +58,9 @@ class ShadedSceneRenderer {
   static final _hoverPaint = Paint()
     ..color = const Color(0xff00bcd4)
     ..strokeWidth = 2;
+  static final _edgeHighlightPaint = Paint()
+    ..color = const Color(0xff00bcd4)
+    ..strokeWidth = 3;
   static final _standalonePaint = Paint()
     ..color = Colors.red
     ..strokeWidth = 1;
@@ -69,6 +72,7 @@ class ShadedSceneRenderer {
     Set<Face> selectedFaces = const {},
     Edge? selectedEdge,
     Face? hoveredFace,
+    Edge? hoveredEdge,
   }) {
     try {
       _paintFrame(
@@ -78,6 +82,7 @@ class ShadedSceneRenderer {
         selectedFaces: selectedFaces,
         selectedEdge: selectedEdge,
         hoveredFace: hoveredFace,
+        hoveredEdge: hoveredEdge,
       );
     } finally {
       _cameraPoints.clear();
@@ -93,19 +98,21 @@ class ShadedSceneRenderer {
     required Set<Face> selectedFaces,
     Edge? selectedEdge,
     Face? hoveredFace,
+    Edge? hoveredEdge,
   }) {
     // Shared mesh and edge samples are transformed once per paint. Clear the
     // cache between frames because model coordinates can be mutable.
     final timer = layerCounts == null ? null : (Stopwatch()..start());
     _cameraPoints.clear();
     final faces = <ProjectedFace>[];
+    final hoveredFaces = scene.hoverFaces(hoveredFace);
     for (final face in scene.faces) {
       if (face.source.surface is PlaneSurface) {
         final projected = _projectFace(
           face,
           size,
           selectedFaces.contains(face.source),
-          face.source == hoveredFace,
+          hoveredFaces.contains(face.source),
         );
         if (projected != null) faces.add(projected);
       } else {
@@ -113,7 +120,7 @@ class ShadedSceneRenderer {
           final projected = _projectTriangle(
             triangle,
             size,
-            face.source == hoveredFace,
+            hoveredFaces.contains(face.source),
             selectedFaces.contains(face.source),
           );
           if (projected != null) faces.add(projected);
@@ -259,18 +266,35 @@ class ShadedSceneRenderer {
     // This also hides grid lines and cavity edges behind opaque material.
     // Boundary strokes finish last so antialiased hole rims stay black even
     // where a standalone line emerges from behind them.
-    for (final (:points, :boundary, :hovered) in [
+    for (final (:points, :boundary, :hovered, :edgeHighlight) in [
       for (final edge in scene.shadedEdges.where((e) => !e.boundary))
-        (points: edge.points, boundary: edge.boundary, hovered: false),
+        (
+          points: edge.points,
+          boundary: edge.boundary,
+          hovered: false,
+          edgeHighlight: false,
+        ),
       for (final edge in scene.shadedEdges.where((e) => e.boundary))
-        (points: edge.points, boundary: edge.boundary, hovered: false),
-      for (final face in scene.faces.where((f) => f.source == hoveredFace))
-        for (final loop in face.loops)
-          if (loop.isNotEmpty)
-            (points: [...loop, loop.first], boundary: true, hovered: true),
-      for (final points in scene.selectionSamples(selectedEdge))
-        (points: points, boundary: true, hovered: true),
+        (
+          points: edge.points,
+          boundary: edge.boundary,
+          hovered: false,
+          edgeHighlight: false,
+        ),
+      for (final points in scene.hoverSamples(hoveredFace))
+        (points: points, boundary: true, hovered: true, edgeHighlight: false),
+      for (final edge in scene.highlightedEdges(selectedEdge, hoveredEdge))
+        if (scene.edgeSamples[edge] case final points?)
+          (points: points, boundary: true, hovered: true, edgeHighlight: true),
     ]) {
+      final stroke = edgeHighlight
+          ? _edgeHighlightPaint
+          : hovered
+          ? _hoverPaint
+          : boundary
+          ? _boundaryPaint
+          : _standalonePaint;
+      final coverageRadius = math.max(1.5, stroke.strokeWidth / 2 + 0.5);
       for (var i = 0; i < points.length - 1; i++) {
         final clipped = _projection.clipLine(
           _toCameraSpace(points[i]),
@@ -294,13 +318,14 @@ class ShadedSceneRenderer {
           beginDepth - gradient * (delta.dx * p.dx + delta.dy * p.dy),
         );
         final bias = math.max(beginDepth.abs(), endDepth.abs()) * 1e-6;
-        final bounds = Rect.fromPoints(p, q).inflate(1.5);
+        final bounds = Rect.fromPoints(p, q).inflate(coverageRadius);
         final visibility = ProjectedEdgeVisibility.resolve(
           p,
           q,
           inverseDepth,
           index,
           bias: bias,
+          coverageRadius: coverageRadius,
         );
         if (visibility.coverage == EdgeCoverage.hidden) {
           layerCounts?.hiddenEdges++;
@@ -322,7 +347,7 @@ class ShadedSceneRenderer {
         if (masks.isNotEmpty &&
             masks.length <= 2 &&
             masks.any((mask) => mask.contains((p + q) / 2)) &&
-            _completelyErased(_strokeEnvelope(p, q), masks)) {
+            _completelyErased(_strokeEnvelope(p, q, coverageRadius), masks)) {
           layerCounts?.hiddenEdges++;
           continue;
         }
@@ -332,15 +357,7 @@ class ShadedSceneRenderer {
         }
         try {
           layerCounts?.edgeDraws++;
-          canvas.drawLine(
-            p,
-            q,
-            hovered
-                ? _hoverPaint
-                : boundary
-                ? _boundaryPaint
-                : _standalonePaint,
-          );
+          canvas.drawLine(p, q, stroke);
           for (final mask in masks) {
             layerCounts?.maskDraws++;
             canvas.drawPath(mask, _erasePaint);
@@ -381,10 +398,10 @@ class ShadedSceneRenderer {
     return false;
   }
 
-  static Path _strokeEnvelope(Offset p, Offset q) {
+  static Path _strokeEnvelope(Offset p, Offset q, double radius) {
     final direction = (q - p) / (q - p).distance;
-    final along = direction * 1.5;
-    final across = Offset(-direction.dy, direction.dx) * 1.5;
+    final along = direction * radius;
+    final across = Offset(-direction.dy, direction.dx) * radius;
     return Path()..addPolygon([
       p - along - across,
       q + along - across,

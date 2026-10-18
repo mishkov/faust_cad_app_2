@@ -5,6 +5,8 @@ import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 import '../../cad_primitivies/edge.dart';
 import '../../geometry/analytic_continuity.dart';
+import '../../cad_primitivies/face.dart';
+import '../../cad_surfaces/cylinder_surface.dart';
 
 class TessellatedScene {
   TessellatedScene(
@@ -24,6 +26,50 @@ class TessellatedScene {
   final List<({List<Vector3> points, bool boundary})> shadedEdges;
   final Map<Edge, List<Vector3>> edgeSamples;
   late final Map<Edge, List<Edge>> _circleEdges = _groupCircleEdges();
+  final _hoverGroups = <Face, Set<Face>>{};
+  final _hoverOutlines = <Face, List<List<Vector3>>>{};
+
+  Set<Face> hoverFaces(Face? face) {
+    if (face == null) return const {};
+    final cached = _hoverGroups[face];
+    if (cached != null) return cached;
+    final group = Set<Face>.unmodifiable(
+      AnalyticContinuity.connectedCylinderFaces(
+        face,
+        faces.map((f) => f.source),
+      ),
+    );
+    for (final member in group) {
+      _hoverGroups[member] = group;
+    }
+    return group;
+  }
+
+  List<List<Vector3>> hoverSamples(Face? face) {
+    if (face == null) return const [];
+    final cached = _hoverOutlines[face];
+    if (cached != null) return cached;
+    final group = hoverFaces(face);
+    final outlines = List<List<Vector3>>.unmodifiable([
+      if (face.surface is CylinderSurface) ...[
+        for (final edge in AnalyticContinuity.boundaryEdges(group))
+          ?edgeSamples[edge],
+      ] else ...[
+        for (final rendered in faces.where((f) => f.source == face))
+          for (final loop in rendered.loops)
+            if (loop.isNotEmpty) [...loop, loop.first],
+      ],
+    ]);
+    for (final member in group) {
+      _hoverOutlines[member] = outlines;
+    }
+    return outlines;
+  }
+
+  Set<Edge> highlightedEdges(Edge? selected, Edge? hovered) => {
+    if (selected != null) ...selectionEdges(selected),
+    if (hovered != null) ...selectionEdges(hovered),
+  };
 
   List<Edge> selectionEdges(Edge edge) => _circleEdges[edge] ?? [edge];
 

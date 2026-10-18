@@ -84,4 +84,30 @@ abstract final class AnalyticContinuity {
     }
     return result;
   }
+
+  static Iterable<Edge> boundaryEdges(Iterable<Face> faces) {
+    final uses = Map<Object, List<Edge>>.identity();
+    final counts = <Edge, int>{};
+    for (final face in faces) {
+      for (final wire in [face.outerWire, ...face.innerWires]) {
+        for (final edge in wire.edges) {
+          Edge? matching;
+          for (final other in uses[edge.begin] ?? const <Edge>[]) {
+            if (edge.hasSameBoundary(other)) {
+              matching = other;
+              break;
+            }
+          }
+          if (matching != null) {
+            counts[matching] = counts[matching]! + 1;
+          } else {
+            counts[edge] = 1;
+            (uses[edge.begin] ??= []).add(edge);
+            (uses[edge.end] ??= []).add(edge);
+          }
+        }
+      }
+    }
+    return counts.keys.where((edge) => counts[edge] == 1);
+  }
 }
