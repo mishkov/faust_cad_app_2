@@ -20,6 +20,7 @@ final class MetalViewport extends StatefulWidget {
     required this.camera,
     required this.renderMode,
     this.selectedFaces = const {},
+    this.hoveredFace,
     this.sketches = const [],
     this.controller,
   });
@@ -27,6 +28,7 @@ final class MetalViewport extends StatefulWidget {
   final CameraConfig camera;
   final CadRenderMode renderMode;
   final Set<Face> selectedFaces;
+  final Face? hoveredFace;
   final List<SketchGeometry> sketches;
   final MetalViewportController? controller;
   @override
@@ -36,6 +38,8 @@ final class MetalViewport extends StatefulWidget {
 class _MetalViewportState extends State<MetalViewport> {
   late final _controller = widget.controller ?? MetalViewportController();
   MetalSceneMesh? _mesh;
+  MetalSceneMesh? _hoverMesh;
+  Face? _hoveredFace;
   TessellatedScene? _scene;
   List<SketchGeometry>? _sketches;
   int? _id;
@@ -64,6 +68,12 @@ class _MetalViewportState extends State<MetalViewport> {
           _mesh = MetalSceneMesh(widget.scene);
           packet['mesh'] = _mesh!.message;
         }
+        if (!identical(_hoverMesh, _mesh) ||
+            _hoveredFace != widget.hoveredFace) {
+          _hoverMesh = _mesh;
+          _hoveredFace = widget.hoveredFace;
+          packet['hoverLines'] = _mesh!.hoverLines(_hoveredFace);
+        }
         if (!listEquals(_sketches, widget.sketches)) {
           _sketches = List.of(widget.sketches);
           packet['sketches'] = [
@@ -87,6 +97,9 @@ class _MetalViewportState extends State<MetalViewport> {
             camera.isOrthographic ? camera.focusDistance : 0,
           ]),
           'selection': _mesh!.selection(widget.selectedFaces),
+          'hoveredFace': widget.hoveredFace == null
+              ? -1
+              : _mesh!.faces.indexOf(widget.hoveredFace!),
           'wireframe': widget.renderMode == CadRenderMode.frame,
           'clear': Float64List.fromList([color.r, color.g, color.b, 1]),
         });

@@ -54,6 +54,9 @@ class ShadedSceneRenderer {
   static final _boundaryPaint = Paint()
     ..color = Colors.black
     ..strokeWidth = 1;
+  static final _hoverPaint = Paint()
+    ..color = const Color(0xff00bcd4)
+    ..strokeWidth = 2;
   static final _standalonePaint = Paint()
     ..color = Colors.red
     ..strokeWidth = 1;
@@ -63,9 +66,16 @@ class ShadedSceneRenderer {
     Size size,
     TessellatedScene scene, {
     Set<Face> selectedFaces = const {},
+    Face? hoveredFace,
   }) {
     try {
-      _paintFrame(canvas, size, scene, selectedFaces: selectedFaces);
+      _paintFrame(
+        canvas,
+        size,
+        scene,
+        selectedFaces: selectedFaces,
+        hoveredFace: hoveredFace,
+      );
     } finally {
       _cameraPoints.clear();
       _meshBatch.clear();
@@ -78,6 +88,7 @@ class ShadedSceneRenderer {
     Size size,
     TessellatedScene scene, {
     required Set<Face> selectedFaces,
+    Face? hoveredFace,
   }) {
     // Shared mesh and edge samples are transformed once per paint. Clear the
     // cache between frames because model coordinates can be mutable.
@@ -90,11 +101,16 @@ class ShadedSceneRenderer {
           face,
           size,
           selectedFaces.contains(face.source),
+          face.source == hoveredFace,
         );
         if (projected != null) faces.add(projected);
       } else {
         for (final triangle in face.triangles) {
-          final projected = _projectTriangle(triangle, size);
+          final projected = _projectTriangle(
+            triangle,
+            size,
+            face.source == hoveredFace,
+          );
           if (projected != null) faces.add(projected);
         }
       }
@@ -238,9 +254,15 @@ class ShadedSceneRenderer {
     // This also hides grid lines and cavity edges behind opaque material.
     // Boundary strokes finish last so antialiased hole rims stay black even
     // where a standalone line emerges from behind them.
-    for (final (:points, :boundary) in [
-      ...scene.shadedEdges.where((entry) => !entry.boundary),
-      ...scene.shadedEdges.where((entry) => entry.boundary),
+    for (final (:points, :boundary, :hovered) in [
+      for (final edge in scene.shadedEdges.where((e) => !e.boundary))
+        (points: edge.points, boundary: edge.boundary, hovered: false),
+      for (final edge in scene.shadedEdges.where((e) => e.boundary))
+        (points: edge.points, boundary: edge.boundary, hovered: false),
+      for (final face in scene.faces.where((f) => f.source == hoveredFace))
+        for (final loop in face.loops)
+          if (loop.isNotEmpty)
+            (points: [...loop, loop.first], boundary: true, hovered: true),
     ]) {
       for (var i = 0; i < points.length - 1; i++) {
         final clipped = _projection.clipLine(
@@ -303,7 +325,15 @@ class ShadedSceneRenderer {
         }
         try {
           layerCounts?.edgeDraws++;
-          canvas.drawLine(p, q, boundary ? _boundaryPaint : _standalonePaint);
+          canvas.drawLine(
+            p,
+            q,
+            hovered
+                ? _hoverPaint
+                : boundary
+                ? _boundaryPaint
+                : _standalonePaint,
+          );
           for (final mask in masks) {
             layerCounts?.maskDraws++;
             canvas.drawPath(mask, _erasePaint);
@@ -356,7 +386,12 @@ class ShadedSceneRenderer {
     ], true);
   }
 
-  ProjectedFace? _projectFace(TessellatedFace face, Size size, bool selected) {
+  ProjectedFace? _projectFace(
+    TessellatedFace face,
+    Size size,
+    bool selected,
+    bool hovered,
+  ) {
     final surface = face.source.surface;
     if (surface is! PlaneSurface) return null;
     final origin = _toCameraSpace(surface.origin);
@@ -394,14 +429,21 @@ class ShadedSceneRenderer {
     return ProjectedFace(
       path,
       inverseDepth,
-      selected
-          ? Color.fromARGB(255, gray ~/ 2, gray, 255)
-          : Color.fromARGB(255, gray, gray, gray),
+      _hoverColor(
+        selected
+            ? Color.fromARGB(255, gray ~/ 2, gray, 255)
+            : Color.fromARGB(255, gray, gray, gray),
+        hovered,
+      ),
       contours: contours,
     );
   }
 
-  ProjectedFace? _projectTriangle(RenderTriangle triangle, Size size) {
+  ProjectedFace? _projectTriangle(
+    RenderTriangle triangle,
+    Size size,
+    bool hovered,
+  ) {
     final camera = triangle.points.map(_toCameraSpace).toList();
     final normal = (camera[1] - camera[0]).cross(camera[2] - camera[0]);
     if (normal.length2 < 1e-24) return null;
@@ -434,7 +476,7 @@ class ShadedSceneRenderer {
       final gray = (255 * (0.32 + 0.5 * math.max(0.0, n.dot(_light))))
           .round()
           .clamp(0, 255);
-      colors.add(Color.fromARGB(255, gray, gray, gray));
+      colors.add(_hoverColor(Color.fromARGB(255, gray, gray, gray), hovered));
     }
 
     return ProjectedFace(
@@ -446,6 +488,9 @@ class ShadedSceneRenderer {
       meshColors: colors,
     );
   }
+
+  Color _hoverColor(Color color, bool hovered) =>
+      hovered ? Color.lerp(color, Colors.white, 0.16)! : color;
 
   bool _edgeOn(Vector3 normal, double distance) =>
       (_projection.cameraConfig.isOrthographic ? normal.y : distance).abs() <

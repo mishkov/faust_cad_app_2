@@ -98,6 +98,11 @@ constraints for correction.
 
 ## Presentation and selection
 
+Hovering a visible CAD face subtly lightens its material and outlines its outer
+and hole boundaries in cyan. This feedback clears over empty space or when the
+pointer leaves the scene, and follows camera and model updates without changing
+click selection or document history.
+
 `sketch_editor/presentation` owns solved strokes, filled region paths, markers,
 projection and hit testing. It never constructs CAD vertices, edges, wires, or
 faces from sketch entities. Analytic local coordinates drive region picking;

@@ -23,6 +23,7 @@ class CadScenePainter extends CustomPainter {
     SceneTessellator? tessellator,
     TessellatedScene? evaluatedScene,
     this.selectedFaces = const {},
+    this.hoveredFace,
     this.devicePixelRatio = 1,
     this.showGuides = false,
     this.showPrincipalPlanes = false,
@@ -45,6 +46,7 @@ class CadScenePainter extends CustomPainter {
   final SceneTessellator tessellator;
   late final TessellatedScene scene;
   final Set<Face> selectedFaces;
+  final Face? hoveredFace;
   final double devicePixelRatio;
   final bool showGuides;
   final bool showPrincipalPlanes;
@@ -63,7 +65,13 @@ class CadScenePainter extends CustomPainter {
       ShadedSceneRenderer(
         cameraConfig,
         devicePixelRatio: devicePixelRatio,
-      ).paint(canvas, size, scene, selectedFaces: selectedFaces);
+      ).paint(
+        canvas,
+        size,
+        scene,
+        selectedFaces: selectedFaces,
+        hoveredFace: hoveredFace,
+      );
       _paintAxes(canvas, size);
       return;
     }
@@ -82,6 +90,27 @@ class CadScenePainter extends CustomPainter {
         final begin = projection.project(clipped.begin, screen: size);
         final end = projection.project(clipped.end, screen: size);
         canvas.drawLine(Offset(begin.x, begin.y), Offset(end.x, end.y), paint);
+      }
+    }
+    for (final face in scene.faces.where((f) => f.source == hoveredFace)) {
+      for (final loop in face.loops) {
+        for (var i = 0; i < loop.length; i++) {
+          final clipped = projection.clipLine(
+            projection.toCameraSpace(loop[i]),
+            projection.toCameraSpace(loop[(i + 1) % loop.length]),
+            screen: size,
+          );
+          if (clipped == null) continue;
+          final a = projection.project(clipped.begin, screen: size);
+          final b = projection.project(clipped.end, screen: size);
+          canvas.drawLine(
+            Offset(a.x, a.y),
+            Offset(b.x, b.y),
+            Paint()
+              ..color = const Color(0xff00bcd4)
+              ..strokeWidth = 2,
+          );
+        }
       }
     }
     _paintAxes(canvas, size);

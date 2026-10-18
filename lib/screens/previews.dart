@@ -5,6 +5,8 @@ import '../cad_scene/cad_primitivies/vertex.dart';
 import '../cad_scene/navigation/view_cube.dart';
 import '../cad_scene/cad_scene.dart';
 import '../cad_scene/cad_objects/ground_grid.dart';
+import '../cad_scene/cad_objects/tube.dart';
+import '../cad_scene/geometry/planar_frame.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/widget_previews.dart';
@@ -34,6 +36,30 @@ Widget sketchPlaneSelectionPreview() => MaterialApp(
       geometry: GroundGrid.withoutAxes().build(),
       renderMode: CadRenderMode.shaded,
       showPrincipalPlanes: true,
+    ),
+  ),
+);
+
+@Preview(name: 'Face hover and hole boundaries', size: Size(600, 450))
+Widget faceHoverPreview() => MaterialApp(
+  home: Scaffold(
+    body: CadScene(
+      cameraConfig: CameraConfig(
+        position: Vertex(Vector3(70, -100, 80)),
+        yaw: 0.6,
+        pitch: -0.55,
+        focalLength: 500,
+        focusDistance: 140,
+      ),
+      cadObjects: [
+        Tube(
+          frame: PlanarFrame.xy(),
+          outerRadius: 20,
+          innerRadius: 10,
+          height: 10,
+        ),
+      ],
+      renderMode: CadRenderMode.shaded,
     ),
   ),
 );
