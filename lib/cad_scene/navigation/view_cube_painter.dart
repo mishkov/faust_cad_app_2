@@ -48,7 +48,7 @@ class ViewCubePainter extends CustomPainter {
         (Vector3(0, 3.3, 0), const Color(0xFF62B55B), 'Y'),
         (Vector3(0, 0, 4.2), const Color(0xFF599BDB), 'Z'),
       ]) {
-        final end = geometry.project(origin + axis);
+        final end = geometry.project(origin + axis * 0.75);
         canvas.drawLine(
           start,
           end,
@@ -63,7 +63,19 @@ class ViewCubePainter extends CustomPainter {
           ),
           textDirection: TextDirection.ltr,
         )..layout();
-        text.paint(canvas, end - Offset(text.width / 2, text.height / 2));
+        final delta = end - start;
+        final direction = delta.distance > 1e-6
+            ? delta / delta.distance
+            : const Offset(0, -1);
+        final clearance =
+            4 +
+            (text.width * direction.dx.abs() +
+                    text.height * direction.dy.abs()) /
+                2;
+        text.paint(
+          canvas,
+          end + direction * clearance - Offset(text.width / 2, text.height / 2),
+        );
       }
       return;
     }
