@@ -112,7 +112,6 @@ Widget _selectionBadgePreview(Brightness brightness) => MaterialApp(
           SelectionBadge(
             measurement: SelectionMeasurement('Hole', [
               (label: 'Radius', value: 5),
-              (label: 'Diameter', value: 10),
               (label: 'Height', value: 20),
             ]),
           ),

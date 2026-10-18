@@ -468,8 +468,11 @@ Click a visible face or edge to inspect it. Edges within seven logical pixels
 have priority over faces; only visible solid/face boundaries are pickable.
 Selected edges turn cyan. Cylindrical walls highlight together across their
 rendering patches, including inner hole walls. A small badge at the bottom of
-the scene shows edge/arc length, circle radius and diameter, or cylindrical
-radius, diameter and height in millimeters (one model unit = one millimeter).
+the scene shows edge/arc length, circle radius, or cylindrical
+radius and height in millimeters (one model unit = one millimeter).
+Clicking the badge preserves the inspection. Its numbers are selectable;
+double-click a number to copy its displayed value without units. A small
+“copied” badge appears above it briefly after a successful copy.
 It omits coordinates and internal references. Empty clicks and Escape clear
 inspection; model edits discard transient measurements. Inspection and camera
 state do not edit document history. The feature history fills the sidebar.

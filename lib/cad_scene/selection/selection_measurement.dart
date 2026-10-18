@@ -21,7 +21,6 @@ final class SelectionMeasurement {
         return SelectionMeasurement('Arc', [
           (label: 'Length', value: curve.radius * edge.trim!.sweepAngle.abs()),
           (label: 'Radius', value: curve.radius),
-          (label: 'Diameter', value: curve.radius * 2),
         ]);
       }
       return SelectionMeasurement('Edge', [
@@ -42,7 +41,6 @@ final class SelectionMeasurement {
         face.orientation == FaceOrientation.reversed ? 'Hole' : 'Cylinder',
         [
           (label: 'Radius', value: surface.radius),
-          (label: 'Diameter', value: surface.radius * 2),
           (
             label: 'Height',
             value: axial.reduce(math.max) - axial.reduce(math.min),
@@ -82,7 +80,6 @@ final class SelectionMeasurement {
             1e-9) {
       return SelectionMeasurement('Circle', [
         (label: 'Radius', value: curve.radius),
-        (label: 'Diameter', value: curve.radius * 2),
       ]);
     }
     return const SelectionMeasurement('Face', []);

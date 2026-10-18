@@ -145,7 +145,7 @@ void main() {
       expect(hit.face.surface, isA<CylinderSurface>());
       expect(hit.edge, isNull);
       expect(SelectionMeasurement.fromHit(hit).kind, 'Cylinder');
-      expect(values(hit), {'Radius': 3, 'Diameter': 6, 'Height': 6});
+      expect(values(hit), {'Radius': 3, 'Height': 6});
       final mesh = MetalSceneMesh(scene.scene);
       final walls = solid.shells.single.faces
           .where((f) => f.surface is CylinderSurface)
@@ -163,7 +163,7 @@ void main() {
     final scene = picker([solid]);
     final cap = pick(scene, Vector3(0, 0, 6))!;
     expect(SelectionMeasurement.fromHit(cap).kind, 'Circle');
-    expect(values(cap), {'Radius': 3, 'Diameter': 6});
+    expect(values(cap), {'Radius': 3});
     final rim = pick(scene, Vector3(3 / math.sqrt(2), 3 / math.sqrt(2), 6))!;
     expect(rim.edge, isNotNull);
     expect(values(rim)['Length'], closeTo(3 * math.pi / 2, 1e-9));
@@ -192,7 +192,7 @@ void main() {
       depth: 1,
     );
     expect(SelectionMeasurement.fromHit(hit).kind, 'Hole');
-    expect(values(hit), {'Radius': 2, 'Diameter': 4, 'Height': 7});
+    expect(values(hit), {'Radius': 2, 'Height': 7});
   });
 
   test(
@@ -232,7 +232,7 @@ void main() {
     final scene = picker([solid]);
     final cap = pick(scene, Vector3(0, 0, 6))!;
     expect(SelectionMeasurement.fromHit(cap).kind, 'Circle');
-    expect(values(cap), {'Radius': 3, 'Diameter': 6});
+    expect(values(cap), {'Radius': 3});
     final view = CameraConfig(
       position: Vertex(Vector3(20, 0, 3)),
       yaw: math.pi / 2,
@@ -242,7 +242,7 @@ void main() {
     );
     final wall = pick(scene, Vector3(3, 0, 3), view: view)!;
     expect(wall.edge, isNull);
-    expect(values(wall), {'Radius': 3, 'Diameter': 6, 'Height': 6});
+    expect(values(wall), {'Radius': 3, 'Height': 6});
     final faces = solid.shells.single.faces;
     expect(
       AnalyticContinuity.connectedCylinderFaces(wall.face, faces),

@@ -66,9 +66,25 @@ void main() {
       final badge = find.byKey(const Key('selection-badge'));
       expect(badge, findsNothing);
       await clickWorld(tester, Vector3(15, 6, 29));
-      expect(find.text('Length 20 mm'), findsOneWidget);
+      expect(find.text('20'), findsOneWidget);
       expect(painter(tester).selectedEdge, isNotNull);
       expect(painter(tester).selectedFaces, isEmpty);
+      final selected = painter(tester).selectedEdge;
+      final badgeRect = tester.getRect(
+        find.byKey(const Key('selection-badge-surface')),
+      );
+      await tester.tapAt(badgeRect.topLeft + const Offset(4, 4));
+      await tester.pump();
+      expect(badge, findsOneWidget);
+      expect(painter(tester).selectedEdge, same(selected));
+      await tester.tap(find.text('Edge'));
+      await tester.pump();
+      expect(badge, findsOneWidget);
+      expect(painter(tester).selectedEdge, same(selected));
+      await tester.tap(find.byKey(const ValueKey('selection-number-Length')));
+      await tester.pump();
+      expect(badge, findsOneWidget);
+      expect(painter(tester).selectedEdge, same(selected));
       final sceneFinder = find.byType(CadScene);
       final rect = tester.getRect(sceneFinder);
       final projection = CameraProjection(
@@ -134,9 +150,11 @@ void main() {
       final undoCount = document.undoCount;
       await clickWorld(tester, Vector3(15, 6, 19));
       expect(find.text('Cylinder'), findsOneWidget);
-      expect(find.text('Radius 10 mm'), findsOneWidget);
-      expect(find.text('Diameter 20 mm'), findsOneWidget);
-      expect(find.text('Height 20 mm'), findsOneWidget);
+      expect(find.text('Radius '), findsOneWidget);
+      expect(find.text('10'), findsOneWidget);
+      expect(find.textContaining('Diameter'), findsNothing);
+      expect(find.text('Height '), findsOneWidget);
+      expect(find.text('20'), findsOneWidget);
       expect(painter(tester).selectedFaces, hasLength(4));
       expect(painter(tester).selectedEdge, isNull);
       expect(document.undoCount, undoCount);
@@ -160,7 +178,6 @@ void main() {
                   child: SelectionBadge(
                     measurement: SelectionMeasurement('Hole', [
                       (label: 'Radius', value: 0.125),
-                      (label: 'Diameter', value: 0.25),
                       (label: 'Height', value: 5),
                     ]),
                   ),
@@ -170,8 +187,8 @@ void main() {
           ),
         ),
       );
-      expect(find.text('Radius 0.125 mm'), findsOneWidget);
-      expect(find.text('Diameter 0.25 mm'), findsOneWidget);
+      expect(find.text('0.125'), findsOneWidget);
+      expect(find.textContaining('Diameter'), findsNothing);
       expect(tester.takeException(), isNull);
     });
   }

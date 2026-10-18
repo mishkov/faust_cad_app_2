@@ -536,13 +536,11 @@ class _CadScreenState extends State<CadScreen>
                               left: 12,
                               right: 12,
                               bottom: 16,
-                              child: IgnorePointer(
-                                child: Center(
-                                  child: SelectionBadge(
-                                    key: const Key('selection-badge'),
-                                    measurement: SelectionMeasurement.fromHit(
-                                      _selectedHit!,
-                                    ),
+                              child: Center(
+                                child: SelectionBadge(
+                                  key: const Key('selection-badge'),
+                                  measurement: SelectionMeasurement.fromHit(
+                                    _selectedHit!,
                                   ),
                                 ),
                               ),
