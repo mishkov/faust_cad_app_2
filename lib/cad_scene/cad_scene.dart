@@ -10,6 +10,10 @@ import 'package:flutter/material.dart';
 import '../sketch/sketch_geometry.dart';
 import '../sketch_editor/presentation/sketch_scene_painter.dart';
 import 'cad_render_backend.dart';
+import '../document/planar_support.dart';
+import 'cad_surfaces/plane_surface.dart';
+import 'rendering/scene_guides_painter.dart';
+import 'selection/principal_plane_views.dart';
 import 'rendering/metal/metal_viewport.dart';
 import 'rendering/metal/metal_viewport_controller.dart';
 
@@ -37,6 +41,8 @@ class CadScene extends StatefulWidget {
     this.renderMode = CadRenderMode.frame,
     this.tessellationSettings,
     this.geometryRevision,
+    this.showPrincipalPlanes = false,
+    this.onPrincipalPlaneSelected,
     this.evaluatedGeometry,
     this.selectionMode = ViewportSelectionMode.planarFace,
     this.onSelected,
@@ -54,6 +60,8 @@ class CadScene extends StatefulWidget {
   final ViewportSelectionMode selectionMode;
   final ValueChanged<ViewportHit?>? onSelected;
   final OutputReference? selectedReference;
+  final bool showPrincipalPlanes;
+  final ValueChanged<PrincipalPlane>? onPrincipalPlaneSelected;
   final CameraConfig cameraConfig;
   final List<CadObject> cadObjects;
   final List<CadPrimitive>? geometry;
@@ -71,21 +79,26 @@ class CadScene extends StatefulWidget {
 
 class _CadSceneState extends State<CadScene> {
   final _tessellator = SceneTessellator();
+  static final _emptyGeometry = EvaluatedGeometry(
+    geometry: [],
+    bodies: {},
+    faces: {},
+  );
+  Offset? _hoverPosition;
+  Face? _hoveredFace;
   @override
   Widget build(BuildContext context) {
     final evaluated = widget.evaluatedGeometry;
-    final picker = evaluated == null
-        ? null
-        : ViewportPicker(
-            evaluated: evaluated,
-            extraGeometry: [
-              ...?widget.geometry,
-              for (final o in widget.cadObjects) ...o.build(),
-            ],
-            tessellator: _tessellator,
-            settings: widget.tessellationSettings,
-            geometryRevision: widget.geometryRevision,
-          );
+    final picker = ViewportPicker(
+      evaluated: evaluated ?? _emptyGeometry,
+      extraGeometry: [
+        ...?widget.geometry,
+        for (final o in widget.cadObjects) ...o.build(),
+      ],
+      tessellator: _tessellator,
+      settings: widget.tessellationSettings,
+      geometryRevision: widget.geometryRevision,
+    );
     final selectedFaces = <Face>{};
     if (evaluated != null && widget.selectedReference != null) {
       for (final entry in evaluated.faces.entries) {
@@ -101,71 +114,117 @@ class _CadSceneState extends State<CadScene> {
         }
       }
     }
-    final scene =
-        picker?.scene ??
-        _tessellator.buildGeometry(
-          [
-            ...?widget.geometry,
-            for (final object in widget.cadObjects) ...object.build(),
-          ],
-          settings: widget.tessellationSettings,
-          geometryRevision: widget.geometryRevision,
-        );
-    final Widget paint = widget.backend == CadRenderBackend.metal
-        ? MetalViewport(
-            scene: scene,
-            camera: widget.cameraConfig,
-            renderMode: widget.renderMode,
-            selectedFaces: selectedFaces,
-            sketches: widget.sketches,
-            controller: widget.metalController,
-          )
-        : CustomPaint(
-            painter: CadScenePainter(
-              cameraConfig: widget.cameraConfig,
-              devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
-              evaluatedScene: scene,
-              selectedFaces: selectedFaces,
-              cadObjects: widget.cadObjects,
-              geometry: widget.geometry,
-              renderMode: widget.renderMode,
-              tessellationSettings: widget.tessellationSettings,
-              geometryRevision: widget.geometryRevision,
-              tessellator: _tessellator,
-            ),
-          );
-    final contents =
-        widget.backend == CadRenderBackend.canvas && widget.sketches.isNotEmpty
-        ? Stack(
-            fit: StackFit.expand,
-            children: [
-              paint,
-              IgnorePointer(
-                child: CustomPaint(
-                  painter: SketchScenePainter(
-                    sketches: widget.sketches,
-                    camera: widget.cameraConfig,
-                    occluders: scene,
-                  ),
-                ),
-              ),
-            ],
-          )
-        : paint;
-    if (picker == null || widget.onSelected == null) return contents;
+    final scene = picker.scene;
     return LayoutBuilder(
-      builder: (context, constraints) => GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapUp: (event) => widget.onSelected!(
-          picker.pick(
-            camera: widget.cameraConfig,
-            viewport: constraints.biggest,
-            position: event.localPosition,
-            mode: widget.selectionMode,
-          ),
-        ),
-        child: contents,
-      ),
+      builder: (context, constraints) {
+        Face? faceAt(Offset position) => picker
+            .pick(
+              camera: widget.cameraConfig,
+              viewport: constraints.biggest,
+              position: position,
+              mode: widget.showPrincipalPlanes
+                  ? ViewportSelectionMode.planarFace
+                  : ViewportSelectionMode.face,
+            )
+            ?.face;
+        _hoveredFace = _hoverPosition == null ? null : faceAt(_hoverPosition!);
+        final Widget paint = widget.backend == CadRenderBackend.metal
+            ? MetalViewport(
+                scene: scene,
+                camera: widget.cameraConfig,
+                renderMode: widget.renderMode,
+                selectedFaces: selectedFaces,
+                hoveredFace: _hoveredFace,
+                sketches: widget.sketches,
+                controller: widget.metalController,
+              )
+            : CustomPaint(
+                painter: CadScenePainter(
+                  cameraConfig: widget.cameraConfig,
+                  showGuides: true,
+                  showPrincipalPlanes: widget.showPrincipalPlanes,
+                  devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
+                  evaluatedScene: scene,
+                  selectedFaces: selectedFaces,
+                  hoveredFace: _hoveredFace,
+                  cadObjects: widget.cadObjects,
+                  geometry: widget.geometry,
+                  renderMode: widget.renderMode,
+                  tessellationSettings: widget.tessellationSettings,
+                  geometryRevision: widget.geometryRevision,
+                  tessellator: _tessellator,
+                ),
+              );
+        final contents =
+            widget.backend == CadRenderBackend.canvas &&
+                widget.sketches.isNotEmpty
+            ? Stack(
+                fit: StackFit.expand,
+                children: [
+                  paint,
+                  IgnorePointer(
+                    child: CustomPaint(
+                      painter: SketchScenePainter(
+                        sketches: widget.sketches,
+                        camera: widget.cameraConfig,
+                        occluders: scene,
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : paint;
+        final guidedContents = widget.backend == CadRenderBackend.metal
+            ? CustomPaint(
+                foregroundPainter: SceneGuidesPainter(
+                  camera: widget.cameraConfig,
+                  occluders: scene,
+                  showPlanes: widget.showPrincipalPlanes,
+                ),
+                child: contents,
+              )
+            : contents;
+        final interactive = MouseRegion(
+          onHover: (event) {
+            _hoverPosition = event.localPosition;
+            final face = faceAt(event.localPosition);
+            if (face != _hoveredFace) setState(() => _hoveredFace = face);
+          },
+          onExit: (_) {
+            _hoverPosition = null;
+            if (_hoveredFace != null) setState(() => _hoveredFace = null);
+          },
+          child: guidedContents,
+        );
+        if (widget.onSelected == null) return interactive;
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapUp: (event) {
+            final hit = picker.pick(
+              camera: widget.cameraConfig,
+              viewport: constraints.biggest,
+              position: event.localPosition,
+              mode: widget.showPrincipalPlanes
+                  ? ViewportSelectionMode.body
+                  : widget.selectionMode,
+            );
+            if (widget.showPrincipalPlanes) {
+              final plane = PrincipalPlaneViews.pick(
+                widget.cameraConfig,
+                constraints.biggest,
+                event.localPosition,
+              );
+              if (plane != null && (hit == null || plane.depth < hit.depth)) {
+                widget.onPrincipalPlaneSelected?.call(plane.plane);
+                return;
+              }
+              if (hit?.face.surface is! PlaneSurface) return;
+            }
+            widget.onSelected!(hit);
+          },
+          child: interactive,
+        );
+      },
     );
   }
 }

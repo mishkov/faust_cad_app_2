@@ -9,7 +9,8 @@ import '../tessellation/tessellated_scene.dart';
 /// Camera-independent native upload. Doubles also support precise near clipping.
 final class MetalSceneMesh {
   MetalSceneMesh(TessellatedScene scene)
-    : faces = [for (final face in scene.faces) face.source] {
+    : _scene = scene,
+      faces = [for (final face in scene.faces) face.source] {
     final body = <double>[], source = <double>[];
     final indices = <int>[];
     final vertices =
@@ -48,6 +49,7 @@ final class MetalSceneMesh {
   }
 
   final List<Face> faces;
+  final TessellatedScene _scene;
   late final Float32List bodyVertices, edgeVertices;
   late final Float64List bodySource;
   late final Uint32List bodyIndices;
@@ -56,6 +58,18 @@ final class MetalSceneMesh {
     for (var i = 0; i < faces.length; i++)
       if (faces[i].surface is PlaneSurface && selected.contains(faces[i])) i,
   ];
+
+  Float32List hoverLines(Face? hoveredFace) {
+    final lines = <double>[];
+    for (final face in _scene.faces.where((f) => f.source == hoveredFace)) {
+      for (final loop in face.loops) {
+        for (var i = 0; i < loop.length; i++) {
+          addLine(lines, loop[i], loop[(i + 1) % loop.length], 3);
+        }
+      }
+    }
+    return Float32List.fromList(lines);
+  }
 
   Map<String, Object> get message => {
     'vertices': bodyVertices,

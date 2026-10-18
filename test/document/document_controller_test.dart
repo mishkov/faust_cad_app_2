@@ -38,6 +38,73 @@ void main() {
     expect(controller.evaluation, same(evaluation));
   });
 
+  test(
+    'cancelled edit session restores model, undo and redo after live edits',
+    () {
+      controller.addFeature(_copy('b', 'a'));
+      controller.updateParameters(a, {'size': 8});
+      controller.undo();
+      final before = controller.features;
+      controller.beginEditSession();
+      controller.updateParameters(a, {'size': 12});
+      controller.beginTransaction('Drag');
+      controller.updateParameters(a, {'z': 5});
+      controller.commitTransaction();
+      controller.undo();
+      controller.redo();
+      expect(_top(controller, a), 11);
+      expect(_bodyX(controller, b), -6);
+      controller.cancelEditSession();
+      expect(controller.features, before);
+      expect(_top(controller, a), 2);
+      expect(_bodyX(controller, b), -2);
+      expect(controller.undoCount, 1);
+      expect(controller.redoCount, 1);
+      controller.redo();
+      expect(_top(controller, a), 4);
+      expect(_bodyX(controller, b), -4);
+      controller.undo();
+      controller.undo();
+      expect(controller.features.map((f) => f.id), [a]);
+    },
+  );
+
+  test('committed edit session keeps individual undo entries', () {
+    controller.beginEditSession();
+    controller.updateParameters(a, {'size': 8});
+    controller.updateParameters(a, {'z': 5});
+    controller.commitEditSession();
+    expect(controller.undoCount, 2);
+    controller.undo();
+    expect(_top(controller, a), 4);
+    controller.beginEditSession();
+    controller.cancelEditSession();
+    expect(controller.redoCount, 1);
+    controller.redo();
+    expect(_top(controller, a), 9);
+  });
+
+  test(
+    'edit sessions reject nesting and require drags to end before closing',
+    () {
+      expect(controller.commitEditSession, throwsStateError);
+      expect(controller.cancelEditSession, throwsStateError);
+      controller.beginTransaction('Drag');
+      expect(controller.beginEditSession, throwsStateError);
+      controller.cancelTransaction();
+      controller.beginEditSession();
+      expect(controller.beginEditSession, throwsStateError);
+      controller.beginTransaction('Drag');
+      controller.updateParameters(a, {'size': 8});
+      expect(controller.commitEditSession, throwsStateError);
+      expect(controller.cancelEditSession, throwsStateError);
+      controller.cancelTransaction();
+      controller.cancelEditSession();
+      expect(_top(controller, a), 2);
+      expect(controller.undoCount, 0);
+    },
+  );
+
   test('add, parameter change, and remove restore IDs, order and geometry', () {
     controller.addFeature(_cube('b', size: 6));
     expect(controller.undoCount, 1);

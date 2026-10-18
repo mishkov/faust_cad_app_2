@@ -10,49 +10,54 @@ import 'sketch_constraint_marker.dart';
 import 'sketch_presentation.dart';
 
 final class SketchPainter extends CustomPainter {
-  SketchPainter(this.editor) : super(repaint: editor);
+  SketchPainter(this.editor, {this.overlay = false}) : super(repaint: editor);
   final SketchEditorController editor;
+  final bool overlay;
 
   @override
   void paint(Canvas canvas, Size size) {
     canvas.save();
     canvas.clipRect(Offset.zero & size);
-    canvas.drawColor(const Color(0xfff6f8fa), BlendMode.src);
+    if (!overlay) {
+      canvas.drawColor(const Color(0xfff6f8fa), BlendMode.src);
+      final view = editor.view;
+      Offset project(Vector2 p) => view.project(p, size);
+      final grid = Paint()
+        ..color = const Color(0xffe1e7ed)
+        ..strokeWidth = 1;
+      final step = math
+          .pow(10, (math.log(60 / view.scale) / math.ln10).floor())
+          .toDouble();
+      final low = view.unproject(Offset(0, size.height), size),
+          high = view.unproject(Offset(size.width, 0), size);
+      for (var x = (low.x / step).ceil() * step; x <= high.x; x += step) {
+        canvas.drawLine(
+          project(Vector2(x, low.y)),
+          project(Vector2(x, high.y)),
+          grid,
+        );
+      }
+      for (var y = (low.y / step).ceil() * step; y <= high.y; y += step) {
+        canvas.drawLine(
+          project(Vector2(low.x, y)),
+          project(Vector2(high.x, y)),
+          grid,
+        );
+      }
+      canvas.drawLine(
+        project(Vector2(low.x, 0)),
+        project(Vector2(high.x, 0)),
+        Paint()..color = Colors.red.withValues(alpha: 0.3),
+      );
+      canvas.drawLine(
+        project(Vector2(0, low.y)),
+        project(Vector2(0, high.y)),
+        Paint()..color = Colors.green.withValues(alpha: 0.3),
+      );
+    }
     final view = editor.view;
     Offset project(Vector2 p) => view.project(p, size);
-    final grid = Paint()
-      ..color = const Color(0xffe1e7ed)
-      ..strokeWidth = 1;
-    final step = math
-        .pow(10, (math.log(60 / view.scale) / math.ln10).floor())
-        .toDouble();
-    final low = view.unproject(Offset(0, size.height), size),
-        high = view.unproject(Offset(size.width, 0), size);
-    for (var x = (low.x / step).ceil() * step; x <= high.x; x += step) {
-      canvas.drawLine(
-        project(Vector2(x, low.y)),
-        project(Vector2(x, high.y)),
-        grid,
-      );
-    }
-    for (var y = (low.y / step).ceil() * step; y <= high.y; y += step) {
-      canvas.drawLine(
-        project(Vector2(low.x, y)),
-        project(Vector2(high.x, y)),
-        grid,
-      );
-    }
-    canvas.drawLine(
-      project(Vector2(low.x, 0)),
-      project(Vector2(high.x, 0)),
-      Paint()..color = Colors.red.withValues(alpha: 0.3),
-    );
-    canvas.drawLine(
-      project(Vector2(0, low.y)),
-      project(Vector2(0, high.y)),
-      Paint()..color = Colors.green.withValues(alpha: 0.3),
-    );
-    final boundary = editor.support?.boundary;
+    final boundary = overlay ? null : editor.support?.boundary;
     if (boundary != null) {
       final mesh = SceneTessellator().buildGeometry([boundary]);
       for (final face in mesh.faces) {
@@ -189,5 +194,6 @@ final class SketchPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(SketchPainter oldDelegate) => oldDelegate.editor != editor;
+  bool shouldRepaint(SketchPainter oldDelegate) =>
+      oldDelegate.editor != editor || oldDelegate.overlay != overlay;
 }

@@ -4,7 +4,7 @@ import '../../document/output_reference.dart';
 import '../cad_primitivies/cad_primitive.dart';
 import '../cad_primitivies/face.dart';
 
-enum ViewportSelectionMode { body, planarFace }
+enum ViewportSelectionMode { body, planarFace, face }
 
 final class ViewportHit {
   ViewportHit({
