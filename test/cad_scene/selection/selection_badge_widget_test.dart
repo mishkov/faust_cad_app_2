@@ -12,6 +12,10 @@ import 'package:faust_cad_app_2/document/feature_output.dart';
 import 'package:faust_cad_app_2/document/features/cube_feature.dart';
 import 'package:faust_cad_app_2/document/output_reference.dart';
 import 'package:faust_cad_app_2/screens/cad_screen.dart';
+import 'package:faust_cad_app_2/extrusion/extrusion.dart';
+
+import '../../support/extrusion_fixtures.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
@@ -157,6 +161,53 @@ void main() {
       expect(find.text('20'), findsOneWidget);
       expect(painter(tester).selectedFaces, hasLength(4));
       expect(painter(tester).selectedEdge, isNull);
+      expect(document.undoCount, undoCount);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'either half of an extruded rim displays the same complete circle',
+    (tester) async {
+      final regions = profileArrangement([profileCircle('circle', 0, 0, 10)]);
+      final solid = const AnalyticExtrusionService()
+          .extrude(
+            regions: regions,
+            regionIds: regions.regions.map((region) => region.id),
+            frame: PlanarFrame.xy(origin: Vector3(15, 16, 9)),
+            distance: 20,
+          )
+          .solids
+          .single;
+      final document = DocumentController(
+        evaluators: {
+          'cylinder': (_, _) => [
+            FeatureOutput(key: 'body', kind: OutputKind.body, geometry: solid),
+          ],
+        },
+        features: [
+          FeatureDefinition(id: FeatureId('cylinder'), type: 'cylinder'),
+        ],
+      );
+      addTearDown(document.dispose);
+      await tester.pumpWidget(
+        MaterialApp(home: CadScreen(controller: document)),
+      );
+      final revision = document.evaluation.revision;
+      final undoCount = document.undoCount;
+      await clickWorld(tester, Vector3(15, 6, 29));
+      final first = painter(tester).selectedEdge;
+      expect(first, isNotNull);
+      expect(find.text('Circle'), findsOneWidget);
+      expect(find.text('62.832'), findsOneWidget);
+      expect(find.text('10'), findsOneWidget);
+      expect(painter(tester).scene.selectionEdges(first!), hasLength(2));
+      await clickWorld(tester, Vector3(15, 26, 29));
+      expect(painter(tester).selectedEdge, isNot(same(first)));
+      expect(find.text('Circle'), findsOneWidget);
+      expect(find.text('62.832'), findsOneWidget);
+      expect(find.text('10'), findsOneWidget);
+      expect(document.evaluation.revision, revision);
       expect(document.undoCount, undoCount);
       expect(tester.takeException(), isNull);
     },

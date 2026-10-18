@@ -18,8 +18,14 @@ final class SelectionMeasurement {
     if (edge != null) {
       final curve = edge.curve;
       if (curve is CircularCadCurve) {
-        return SelectionMeasurement('Arc', [
-          (label: 'Length', value: curve.radius * edge.trim!.sweepAngle.abs()),
+        final circle = AnalyticContinuity.isFullCircle(hit.edges);
+        return SelectionMeasurement(circle ? 'Circle' : 'Arc', [
+          (
+            label: 'Length',
+            value:
+                curve.radius *
+                (circle ? 2 * math.pi : edge.trim!.sweepAngle.abs()),
+          ),
           (label: 'Radius', value: curve.radius),
         ]);
       }
@@ -48,36 +54,10 @@ final class SelectionMeasurement {
         ],
       );
     }
-    final edges = face.outerWire.edges;
-    final curve = edges.first.curve;
+    final curve = face.outerWire.edges.first.curve;
     if (face.innerWires.isEmpty &&
         curve is CircularCadCurve &&
-        edges.every(
-          (edge) =>
-              edge.curve is CircularCadCurve &&
-              AnalyticContinuity.sameCircle(
-                curve,
-                edge.curve as CircularCadCurve,
-              ),
-        ) &&
-        (edges
-                        .fold(
-                          0.0,
-                          (sum, edge) =>
-                              sum +
-                              edge.trim!.sweepAngle *
-                                  curve.frame.normal
-                                      .dot(
-                                        (edge.curve as CircularCadCurve)
-                                            .frame
-                                            .normal,
-                                      )
-                                      .sign,
-                        )
-                        .abs() -
-                    2 * math.pi)
-                .abs() <
-            1e-9) {
+        AnalyticContinuity.isFullCircle(face.outerWire.edges)) {
       return SelectionMeasurement('Circle', [
         (label: 'Radius', value: curve.radius),
       ]);

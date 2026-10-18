@@ -197,6 +197,7 @@ final class ViewportPicker {
         nearest = ViewportHit(
           face: face,
           edge: entry.key,
+          edges: scene.selectionEdges(entry.key),
           owner: owner,
           depth: point.y,
           point: camera.position.vector + projection.fromCameraDirection(point),

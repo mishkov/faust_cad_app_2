@@ -16,9 +16,12 @@ final class ViewportHit {
     this.bodyReference,
     this.faceReference,
     this.edge,
-  }) : _point = point.clone();
+    Iterable<Edge>? edges,
+  }) : edges = List.unmodifiable(edges ?? [?edge]),
+       _point = point.clone();
   final Face face;
   final Edge? edge;
+  final List<Edge> edges;
   final CadPrimitive owner;
   final Vector3 _point;
   Vector3 get point => _point.clone();

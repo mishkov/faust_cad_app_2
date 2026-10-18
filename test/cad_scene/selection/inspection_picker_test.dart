@@ -154,7 +154,7 @@ void main() {
     },
   );
 
-  test('circular cap and rim use analytic radius and arc length', () {
+  test('circular cap and rim use analytic radius and full circumference', () {
     final solid = Cylinder(
       frame: PlanarFrame.xy(),
       radius: 3,
@@ -166,7 +166,9 @@ void main() {
     expect(values(cap), {'Radius': 3});
     final rim = pick(scene, Vector3(3 / math.sqrt(2), 3 / math.sqrt(2), 6))!;
     expect(rim.edge, isNotNull);
-    expect(values(rim)['Length'], closeTo(3 * math.pi / 2, 1e-9));
+    expect(SelectionMeasurement.fromHit(rim).kind, 'Circle');
+    expect(rim.edges, hasLength(4));
+    expect(values(rim)['Length'], closeTo(6 * math.pi, 1e-9));
     expect(values(rim)['Radius'], 3);
     final mesh = MetalSceneMesh(scene.scene);
     expect(mesh.hoverLines(null, selectedEdge: rim.edge), isNotEmpty);

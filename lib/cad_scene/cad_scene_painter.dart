@@ -117,8 +117,7 @@ class CadScenePainter extends CustomPainter {
         }
       }
     }
-    final selectedPoints = scene.edgeSamples[selectedEdge];
-    if (selectedPoints != null) {
+    for (final selectedPoints in scene.selectionSamples(selectedEdge)) {
       for (var i = 1; i < selectedPoints.length; i++) {
         final clipped = projection.clipLine(
           projection.toCameraSpace(selectedPoints[i - 1]),

@@ -268,7 +268,7 @@ class ShadedSceneRenderer {
         for (final loop in face.loops)
           if (loop.isNotEmpty)
             (points: [...loop, loop.first], boundary: true, hovered: true),
-      if (scene.edgeSamples[selectedEdge] case final points?)
+      for (final points in scene.selectionSamples(selectedEdge))
         (points: points, boundary: true, hovered: true),
     ]) {
       for (var i = 0; i < points.length - 1; i++) {

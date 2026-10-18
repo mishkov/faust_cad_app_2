@@ -1,10 +1,30 @@
 import 'dart:math' as math;
 
 import '../cad_curves/circular_cad_curve.dart';
+import '../cad_primitivies/edge.dart';
 import '../cad_primitivies/face.dart';
 import '../cad_surfaces/cylinder_surface.dart';
 
 abstract final class AnalyticContinuity {
+  static bool isFullCircle(List<Edge> edges) {
+    if (edges.length < 2) return false;
+    final circle = edges.first.curve;
+    if (circle is! CircularCadCurve) return false;
+    var sweep = 0.0;
+    for (var i = 0; i < edges.length; i++) {
+      final edge = edges[i], curve = edge.curve;
+      if (curve is! CircularCadCurve ||
+          !sameCircle(circle, curve) ||
+          !identical(edge.end, edges[(i + 1) % edges.length].begin)) {
+        return false;
+      }
+      sweep +=
+          edge.trim!.sweepAngle *
+          circle.frame.normal.dot(curve.frame.normal).sign;
+    }
+    return (sweep.abs() - 2 * math.pi).abs() < 1e-9;
+  }
+
   static bool sameCircle(CircularCadCurve a, CircularCadCurve b) {
     final distance = math.min(
       a.frame.tolerance.distance,

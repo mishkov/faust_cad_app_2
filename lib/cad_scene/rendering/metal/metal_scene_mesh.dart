@@ -68,8 +68,7 @@ final class MetalSceneMesh {
         }
       }
     }
-    final points = _scene.edgeSamples[selectedEdge];
-    if (points != null) {
+    for (final points in _scene.selectionSamples(selectedEdge)) {
       for (var i = 1; i < points.length; i++) {
         addLine(lines, points[i - 1], points[i], 3);
       }
