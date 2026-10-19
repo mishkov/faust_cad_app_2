@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../../sketch/sketch_geometry.dart';
 import '../../cad_primitivies/face.dart';
+import '../../cad_primitivies/edge.dart';
 import '../../cad_render_mode.dart';
 import '../../camera_config.dart';
 import '../tessellation/tessellated_scene.dart';
@@ -20,7 +21,9 @@ final class MetalViewport extends StatefulWidget {
     required this.camera,
     required this.renderMode,
     this.selectedFaces = const {},
+    this.selectedEdge,
     this.hoveredFace,
+    this.hoveredEdge,
     this.sketches = const [],
     this.controller,
   });
@@ -28,7 +31,9 @@ final class MetalViewport extends StatefulWidget {
   final CameraConfig camera;
   final CadRenderMode renderMode;
   final Set<Face> selectedFaces;
+  final Edge? selectedEdge;
   final Face? hoveredFace;
+  final Edge? hoveredEdge;
   final List<SketchGeometry> sketches;
   final MetalViewportController? controller;
   @override
@@ -40,6 +45,8 @@ class _MetalViewportState extends State<MetalViewport> {
   MetalSceneMesh? _mesh;
   MetalSceneMesh? _hoverMesh;
   Face? _hoveredFace;
+  Edge? _selectedEdge;
+  Edge? _hoveredEdge;
   TessellatedScene? _scene;
   List<SketchGeometry>? _sketches;
   int? _id;
@@ -69,10 +76,18 @@ class _MetalViewportState extends State<MetalViewport> {
           packet['mesh'] = _mesh!.message;
         }
         if (!identical(_hoverMesh, _mesh) ||
-            _hoveredFace != widget.hoveredFace) {
+            _hoveredFace != widget.hoveredFace ||
+            _selectedEdge != widget.selectedEdge ||
+            _hoveredEdge != widget.hoveredEdge) {
           _hoverMesh = _mesh;
           _hoveredFace = widget.hoveredFace;
-          packet['hoverLines'] = _mesh!.hoverLines(_hoveredFace);
+          _selectedEdge = widget.selectedEdge;
+          _hoveredEdge = widget.hoveredEdge;
+          packet['hoverLines'] = _mesh!.hoverLines(
+            _hoveredFace,
+            selectedEdge: _selectedEdge,
+            hoveredEdge: _hoveredEdge,
+          );
         }
         if (!listEquals(_sketches, widget.sketches)) {
           _sketches = List.of(widget.sketches);
@@ -100,6 +115,7 @@ class _MetalViewportState extends State<MetalViewport> {
           'hoveredFace': widget.hoveredFace == null
               ? -1
               : _mesh!.faces.indexOf(widget.hoveredFace!),
+          'hoveredFaces': _mesh!.hoverFaces(widget.hoveredFace),
           'wireframe': widget.renderMode == CadRenderMode.frame,
           'clear': Float64List.fromList([color.r, color.g, color.b, 1]),
         });

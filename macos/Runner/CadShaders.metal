@@ -73,14 +73,14 @@ vertex LineOut cadLine(uint id [[vertex_id]],device const Line* lines [[buffer(0
   float lengthLogical=length(delta);
   if(lengthLogical<1e-8f) return {float4(0,0,-1,1),float4(0),float4(0)};
   float2 tangent=delta/lengthLogical,normal=float2(-tangent.y,tangent.x);
-  float halfPhysical=((l.corner.z==2 || l.corner.z==3) ? 1.f : .5f)*u.viewport.w;
+  float halfPhysical=(l.corner.z==4 ? 1.5f : (l.corner.z==2 || l.corner.z==3) ? 1.f : .5f)*u.viewport.w;
   float inflate=(halfPhysical+1)/u.viewport.w;
   float t=l.corner.x,side=l.corner.y;
   float4 clip=mix(ca,cb,t);
   float2 pixel=mix(pa,pb,t)+normal*side*inflate+tangent*(t*2-1)/u.viewport.w;
   clip.xy=pixel*2/u.viewport.xy*clip.w;
   clip.z=min(clip.w,clip.z*(1+0x1p-20f));
-  float3 color=l.corner.z==3 ? float3(0,188,212)/255 : l.corner.z==2 ? float3(33,150,243)/255 :
+  float3 color=(l.corner.z==3 || l.corner.z==4) ? float3(0,188,212)/255 : l.corner.z==2 ? float3(33,150,243)/255 :
     (l.corner.z==0 || u.options.z>0 ? float3(244,67,54)/255 : float3(0));
   return {clip,float4(color,1),float4(side*(halfPhysical+1),mix(-1.f,lengthLogical*u.viewport.w+1,t),lengthLogical*u.viewport.w,halfPhysical)};
 }

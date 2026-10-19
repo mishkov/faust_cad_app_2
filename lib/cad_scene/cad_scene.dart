@@ -20,7 +20,11 @@ import 'rendering/metal/metal_viewport_controller.dart';
 import '../document/evaluated_geometry.dart';
 import '../document/output_reference.dart';
 import 'cad_primitivies/face.dart';
+import 'cad_primitivies/edge.dart';
 import 'cad_primitivies/solid.dart';
+import 'cad_primitivies/shell.dart';
+import 'cad_surfaces/cylinder_surface.dart';
+import 'geometry/analytic_continuity.dart';
 import 'selection/viewport_picker.dart';
 import 'selection/viewport_hit.dart';
 
@@ -47,6 +51,7 @@ class CadScene extends StatefulWidget {
     this.selectionMode = ViewportSelectionMode.planarFace,
     this.onSelected,
     this.selectedReference,
+    this.selectedHit,
     this._backend,
     this.sketches = const [],
     this.metalController,
@@ -60,6 +65,7 @@ class CadScene extends StatefulWidget {
   final ViewportSelectionMode selectionMode;
   final ValueChanged<ViewportHit?>? onSelected;
   final OutputReference? selectedReference;
+  final ViewportHit? selectedHit;
   final bool showPrincipalPlanes;
   final ValueChanged<PrincipalPlane>? onPrincipalPlaneSelected;
   final CameraConfig cameraConfig;
@@ -86,6 +92,7 @@ class _CadSceneState extends State<CadScene> {
   );
   Offset? _hoverPosition;
   Face? _hoveredFace;
+  Edge? _hoveredEdge;
   @override
   Widget build(BuildContext context) {
     final evaluated = widget.evaluatedGeometry;
@@ -100,7 +107,22 @@ class _CadSceneState extends State<CadScene> {
       geometryRevision: widget.geometryRevision,
     );
     final selectedFaces = <Face>{};
-    if (evaluated != null && widget.selectedReference != null) {
+    final selectedHit = widget.selectedHit;
+    final selectedEdge = selectedHit?.edge;
+    if (selectedHit != null && selectedEdge == null) {
+      selectedFaces.add(selectedHit.face);
+      if (selectedHit.face.surface is CylinderSurface) {
+        selectedFaces.addAll(
+          AnalyticContinuity.connectedCylinderFaces(
+            selectedHit.face,
+            _facesOf(selectedHit.owner),
+          ),
+        );
+      }
+    }
+    if (evaluated != null &&
+        widget.selectedReference != null &&
+        selectedEdge == null) {
       for (final entry in evaluated.faces.entries) {
         if (entry.value == widget.selectedReference) {
           selectedFaces.add(entry.key);
@@ -117,24 +139,29 @@ class _CadSceneState extends State<CadScene> {
     final scene = picker.scene;
     return LayoutBuilder(
       builder: (context, constraints) {
-        Face? faceAt(Offset position) => picker
-            .pick(
-              camera: widget.cameraConfig,
-              viewport: constraints.biggest,
-              position: position,
-              mode: widget.showPrincipalPlanes
-                  ? ViewportSelectionMode.planarFace
-                  : ViewportSelectionMode.face,
-            )
-            ?.face;
-        _hoveredFace = _hoverPosition == null ? null : faceAt(_hoverPosition!);
+        ViewportHit? hitAt(Offset position) => picker.pick(
+          camera: widget.cameraConfig,
+          viewport: constraints.biggest,
+          position: position,
+          mode: widget.showPrincipalPlanes
+              ? ViewportSelectionMode.planarFace
+              : widget.selectionMode == ViewportSelectionMode.inspect
+              ? ViewportSelectionMode.inspect
+              : ViewportSelectionMode.face,
+        );
+
+        final hover = _hoverPosition == null ? null : hitAt(_hoverPosition!);
+        _hoveredEdge = hover?.edge;
+        _hoveredFace = _hoveredEdge == null ? hover?.face : null;
         final Widget paint = widget.backend == CadRenderBackend.metal
             ? MetalViewport(
                 scene: scene,
                 camera: widget.cameraConfig,
                 renderMode: widget.renderMode,
                 selectedFaces: selectedFaces,
+                selectedEdge: selectedEdge,
                 hoveredFace: _hoveredFace,
+                hoveredEdge: _hoveredEdge,
                 sketches: widget.sketches,
                 controller: widget.metalController,
               )
@@ -146,7 +173,9 @@ class _CadSceneState extends State<CadScene> {
                   devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
                   evaluatedScene: scene,
                   selectedFaces: selectedFaces,
+                  selectedEdge: selectedEdge,
                   hoveredFace: _hoveredFace,
+                  hoveredEdge: _hoveredEdge,
                   cadObjects: widget.cadObjects,
                   geometry: widget.geometry,
                   renderMode: widget.renderMode,
@@ -187,12 +216,24 @@ class _CadSceneState extends State<CadScene> {
         final interactive = MouseRegion(
           onHover: (event) {
             _hoverPosition = event.localPosition;
-            final face = faceAt(event.localPosition);
-            if (face != _hoveredFace) setState(() => _hoveredFace = face);
+            final hit = hitAt(event.localPosition);
+            final edge = hit?.edge;
+            final face = edge == null ? hit?.face : null;
+            if (face != _hoveredFace || edge != _hoveredEdge) {
+              setState(() {
+                _hoveredFace = face;
+                _hoveredEdge = edge;
+              });
+            }
           },
           onExit: (_) {
             _hoverPosition = null;
-            if (_hoveredFace != null) setState(() => _hoveredFace = null);
+            if (_hoveredFace != null || _hoveredEdge != null) {
+              setState(() {
+                _hoveredFace = null;
+                _hoveredEdge = null;
+              });
+            }
           },
           child: guidedContents,
         );
@@ -227,4 +268,11 @@ class _CadSceneState extends State<CadScene> {
       },
     );
   }
+
+  Iterable<Face> _facesOf(CadPrimitive owner) => switch (owner) {
+    Solid(:final shells) => shells.expand((shell) => shell.faces),
+    Shell(:final faces) => faces,
+    Face() => [owner],
+    _ => const [],
+  };
 }

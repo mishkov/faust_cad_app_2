@@ -12,7 +12,6 @@ import 'package:faust_cad_app_2/document/features/cube_feature.dart';
 import 'package:faust_cad_app_2/document/features/sketch_feature.dart';
 import 'package:faust_cad_app_2/document/output_reference.dart';
 import 'package:faust_cad_app_2/document/planar_support.dart';
-import 'package:faust_cad_app_2/document/planar_support_resolution.dart';
 import 'package:faust_cad_app_2/sketch/sketch_geometry.dart';
 import 'package:faust_cad_app_2/sketch_editor/sketch_editor_controller.dart';
 import 'package:faust_cad_app_2/sketch_editor/sketch_workspace.dart';
@@ -21,6 +20,8 @@ import 'package:flutter/services.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector2, Vector3;
 
 import '../cad_scene/cad_primitivies/solid.dart';
+import '../cad_scene/selection/selection_badge.dart';
+import '../cad_scene/selection/selection_measurement.dart';
 import '../cad_scene/navigation/camera_side.dart';
 import '../cad_scene/navigation/view_cube.dart';
 import '../cad_scene/rendering/tessellation/scene_tessellator.dart';
@@ -65,8 +66,7 @@ class _CadScreenState extends State<CadScreen>
   bool _enteringSketch = false;
   OutputReference? _selectedReference;
   FeatureId? _selectedFeature;
-  PlanarSupport? _inspectedSupport;
-  var _selectionMode = ViewportSelectionMode.planarFace;
+  ViewportHit? _selectedHit;
 
   final List<CadPrimitive> _geometry = [
     ...GroundGrid.withoutAxes(100, 100).build(),
@@ -194,38 +194,35 @@ class _CadScreenState extends State<CadScreen>
 
   void _select(ViewportHit? hit) {
     setState(() {
-      _selectedReference =
-          !_selectingSketchPlane && _selectionMode == ViewportSelectionMode.body
-          ? hit?.bodyReference
-          : hit?.faceReference;
-      _selectedFeature = _selectedReference?.featureId;
-      _inspectedSupport = null;
-      if ((_selectingSketchPlane ||
-              _selectionMode == ViewportSelectionMode.planarFace) &&
-          hit?.faceReference != null) {
-        final normal = (hit!.face.surface as PlaneSurface).normal;
-        _inspectedSupport = PlanarSupport.face(
+      _selectedHit = hit;
+      _selectedReference = hit?.edge == null ? hit?.faceReference : null;
+      _selectedFeature = (hit?.bodyReference ?? hit?.faceReference)?.featureId;
+    });
+    if (_selectingSketchPlane &&
+        hit?.faceReference != null &&
+        hit!.face.surface is PlaneSurface) {
+      final normal = (hit.face.surface as PlaneSurface).normal;
+      _enterSketch(
+        support: PlanarSupport.face(
           reference: hit.faceReference!,
           preferredDirection: normal.x.abs() < 0.9
               ? Vector3(1, 0, 0)
               : Vector3(0, 1, 0),
-        );
-      }
-    });
-    if (_selectingSketchPlane && _inspectedSupport != null) {
-      _enterSketch(support: _inspectedSupport);
+        ),
+      );
     }
   }
 
   void _documentChanged() {
     _evaluated = _document.evaluation.materializeGeometry();
+    if (_selectedHit != null) _selectedReference = null;
+    _selectedHit = null;
     if (_selectedReference != null &&
         !{
           ..._evaluated.faces.values,
           ..._evaluated.bodies.values,
         }.contains(_selectedReference)) {
       _selectedReference = null;
-      _inspectedSupport = null;
     }
     if (!_document.features.any((f) => f.id == _selectedFeature)) {
       _selectedFeature = null;
@@ -239,7 +236,7 @@ class _CadScreenState extends State<CadScreen>
       _selectedReference = _evaluated.bodies.values
           .where((reference) => reference.featureId == id)
           .firstOrNull;
-      _inspectedSupport = null;
+      _selectedHit = null;
     });
   }
 
@@ -268,13 +265,19 @@ class _CadScreenState extends State<CadScreen>
     setState(() {
       _selectingSketchPlane = true;
       _selectedReference = null;
-      _inspectedSupport = null;
+      _selectedHit = null;
     });
   }
 
   void _cancelSketchSelection() {
     if (_selectingSketchPlane) {
       setState(() => _selectingSketchPlane = false);
+    } else if (_selectedHit != null || _selectedReference != null) {
+      setState(() {
+        _selectedHit = null;
+        _selectedReference = null;
+        _selectedFeature = null;
+      });
     }
   }
 
@@ -349,9 +352,10 @@ class _CadScreenState extends State<CadScreen>
     evaluatedGeometry: _evaluated,
     selectionMode: _selectingSketchPlane
         ? ViewportSelectionMode.planarFace
-        : _selectionMode,
+        : ViewportSelectionMode.inspect,
     onSelected: _enteringSketch || editing ? null : _select,
     selectedReference: editing ? null : _selectedReference,
+    selectedHit: editing ? null : _selectedHit,
     geometryRevision: _document.evaluation.revision,
     showPrincipalPlanes: _selectingSketchPlane,
     onPrincipalPlaneSelected: (plane) =>
@@ -378,66 +382,6 @@ class _CadScreenState extends State<CadScreen>
 
   void _leaveSketch() {
     _editor.close();
-  }
-
-  Widget _inspectionPanel() {
-    final resolution = _inspectedSupport == null
-        ? null
-        : PlanarSupportResolution.resolve(
-            _inspectedSupport!,
-            _document.evaluation,
-          );
-    final frame = resolution?.support?.frame;
-    String vector(Vector3 v) =>
-        '(${v.x.toStringAsFixed(3)}, ${v.y.toStringAsFixed(3)}, ${v.z.toStringAsFixed(3)})';
-    return SizedBox(
-      width: 240,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Viewport selection'),
-            DropdownButton<ViewportSelectionMode>(
-              value: _selectionMode,
-              items: const [
-                DropdownMenuItem(
-                  value: ViewportSelectionMode.planarFace,
-                  child: Text('Planar face'),
-                ),
-                DropdownMenuItem(
-                  value: ViewportSelectionMode.body,
-                  child: Text('Body'),
-                ),
-              ],
-              onChanged: (mode) => setState(() {
-                _selectionMode = mode!;
-                _selectedReference = null;
-                _inspectedSupport = null;
-              }),
-            ),
-            const Text('Click a visible body face to inspect it.'),
-            const SizedBox(height: 12),
-            if (_selectedReference != null)
-              Text(
-                '${_selectedReference!.featureId}/${_selectedReference!.key}',
-              ),
-            if (resolution?.diagnostic != null) Text(resolution!.diagnostic!),
-            if (frame != null) ...[
-              const Text('Resolved plane'),
-              Text('Origin: ${vector(frame.origin)}'),
-              Text('X: ${vector(frame.xAxis)}'),
-              Text('Y: ${vector(frame.yAxis)}'),
-              Text('Normal: ${vector(frame.normal)}'),
-              const SizedBox(height: 8),
-              const Text(
-                'Infinite support plane; the face boundary is only a trim.',
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
   }
 
   @override
@@ -510,7 +454,6 @@ class _CadScreenState extends State<CadScreen>
                         ),
                       ),
                       Expanded(
-                        flex: 3,
                         child: FeatureHistoryPanel(
                           document: _document,
                           selectedId: _selectedFeature,
@@ -520,8 +463,6 @@ class _CadScreenState extends State<CadScreen>
                           onExtrudeSketch: _enterExtrusion,
                         ),
                       ),
-                      const Divider(height: 1),
-                      Expanded(flex: 2, child: _inspectionPanel()),
                     ],
                   ),
                 ),
@@ -588,6 +529,22 @@ class _CadScreenState extends State<CadScreen>
                             absorbing: _enteringSketch,
                             child: _scene(_cameraPosition),
                           ),
+                          if (!_enteringSketch &&
+                              !_selectingSketchPlane &&
+                              _selectedHit != null)
+                            Positioned(
+                              left: 12,
+                              right: 12,
+                              bottom: 16,
+                              child: Center(
+                                child: SelectionBadge(
+                                  key: const Key('selection-badge'),
+                                  measurement: SelectionMeasurement.fromHit(
+                                    _selectedHit!,
+                                  ),
+                                ),
+                              ),
+                            ),
                           if (!_enteringSketch)
                             Align(
                               alignment: Alignment.centerLeft,

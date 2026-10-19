@@ -464,10 +464,27 @@ analytic boundaries, holes, provenance, and validated material unions.
 
 ## Viewport selection and associative planar supports
 
-The viewer has Body / Planar face selection. Click a visible cube face to tint
-its visible trimmed area and inspect its semantic reference, plane origin, local
-X/Y axes, and normal. Selection and camera state do not edit document history.
-Create and reopen sketches using the plane selector or the selected planar face.
+Click a visible face or edge to inspect it. Edges within seven logical pixels
+have priority over faces; only visible solid/face boundaries are pickable.
+Hovered and selected edges use the same three-pixel cyan stroke. Hover is a
+transient preview and preserves the clicked selection. A complete circular rim
+is selected as one circle, even when its topology uses multiple arcs. Clicking
+any segment highlights the whole visible rim and shows its full circumference
+and radius. Partial arcs
+remain individual selections. Cylindrical walls hover and select as continuous
+surfaces across their rendering patches, including inner hole walls. Hover
+outlines contain only real boundaries, without internal construction seams. A
+small badge at the bottom of the scene shows edge/arc length, circle
+circumference and radius, or cylindrical radius and height in millimeters
+(one model unit = one millimeter).
+Clicking the badge preserves the inspection. Its numbers are selectable;
+double-click a number to copy its displayed value without units. A small
+“copied” badge appears above it briefly after a successful copy.
+It omits coordinates and internal references. Empty clicks and Escape clear
+inspection; model edits discard transient measurements. Inspection and camera
+state do not edit document history. The feature history fills the sidebar.
+Create and reopen sketches using the Sketch button and plane selector; sketch
+creation continues to select planar faces directly without edge interception.
 The interactive widget previews are in `lib/screens/previews.dart`.
 See [the sketch editor](docs/sketch_editor.md) for drawing and constraint controls.
 
@@ -494,12 +511,16 @@ CadScene(
 
 `ViewportPicker` is also usable without the widget. Its `ViewportHit` returns the
 exact analytic face, owning body, world point, camera depth, and optional body
-and face `OutputReference`s. Picking uses the renderer's bounded tessellation and
+and face `OutputReference`s. In `inspect` mode, `ViewportHit.edge` identifies a
+transient analytic boundary; `ViewportHit.edges` contains the full circular
+rim when applicable. Neither creates a persistent document reference.
+Picking uses the renderer's bounded tessellation and
 near plane. It honors rotated faces, finite trimming boundaries, holes, and
 frontmost planar/cylindrical geometry regardless of selection mode. A curved
 front face blocks planar picking behind it. Body mode selects solids. Planar
-face mode rejects cylindrical walls. Face fills define picking in both render
-modes; standalone wires/grid strokes are not selection targets. Curved trim rims
+face mode rejects cylindrical walls. Face fills define occlusion in both render
+modes; inspection also picks their visible analytic boundaries. Standalone
+wires/grid strokes are not selection targets. Curved trim rims
 and cylindrical occlusion share the configured rendering chord approximation.
 Only surfaces supported by the renderer participate.
 
