@@ -1,4 +1,11 @@
 import 'dart:math' as math;
+import 'dart:async';
+
+import '../automation/ai_control_bar.dart';
+import '../automation/ai_integration_controller.dart';
+import '../automation/automation_controller.dart';
+import '../automation/automation_renderer.dart';
+import '../settings/settings_dialog.dart';
 
 import 'package:faust_cad_app_2/cad_scene/cad_objects/ground_grid.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/cad_primitive.dart';
@@ -35,9 +42,10 @@ import '../sketch_editor/sketch_view.dart';
 import '../step_export/step_export_button.dart';
 
 class CadScreen extends StatefulWidget {
-  const new({super.key, this.controller});
+  const new({super.key, this.controller, this.automation});
 
   final DocumentController? controller;
+  final AutomationController? automation;
 
   @override
   State<CadScreen> createState() => _CadScreenState();
@@ -61,6 +69,24 @@ class _CadScreenState extends State<CadScreen>
   late var _evaluated = _document.evaluation.materializeGeometry();
   late final _editor = SketchEditorController(_document);
   late final _extrusionEditor = ExtrusionEditorController(_document);
+  late final _automation =
+      widget.automation ??
+      AutomationController(
+        _document,
+        canBegin: () =>
+            !_settingsOpen &&
+            !_selectingSketchPlane &&
+            !_enteringSketch &&
+            _editor.activeId == null &&
+            _extrusionEditor.activeId == null &&
+            (ModalRoute.of(context)?.isCurrent ?? true),
+        render: AutomationRenderer(_document).render,
+      );
+  late final _integration = AiIntegrationController(
+    _automation,
+    port: const int.fromEnvironment('FAUST_MCP_PORT', defaultValue: 47831),
+  );
+  bool _settingsOpen = false;
   CameraConfig? _previousCamera;
   bool _selectingSketchPlane = false;
   bool _enteringSketch = false;
@@ -91,10 +117,40 @@ class _CadScreenState extends State<CadScreen>
     _document.addListener(_documentChanged);
     _editor.addListener(_editorChanged);
     _extrusionEditor.addListener(_extrusionChanged);
+    _automation.addListener(_automationChanged);
+    FocusManager.instance.addEarlyKeyEventHandler(_settingsShortcut);
     _cameraAnimation = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 350),
     )..addListener(_animateCamera);
+    const token = String.fromEnvironment('FAUST_MCP_TOKEN');
+    if (token.isNotEmpty) unawaited(_integration.enable(token: token));
+  }
+
+  void _automationChanged() {
+    if (mounted) setState(() {});
+  }
+
+  KeyEventResult _settingsShortcut(KeyEvent event) {
+    if (event.logicalKey != LogicalKeyboardKey.comma ||
+        !HardwareKeyboard.instance.isMetaPressed) {
+      return KeyEventResult.ignored;
+    }
+    if (event is KeyDownEvent) unawaited(_openSettings());
+    return KeyEventResult.handled;
+  }
+
+  Future<void> _openSettings() async {
+    if (_settingsOpen || !mounted) return;
+    _settingsOpen = true;
+    try {
+      await showDialog<void>(
+        context: context,
+        builder: (context) => SettingsDialog(integration: _integration),
+      );
+    } finally {
+      _settingsOpen = false;
+    }
   }
 
   void _resetCamera() {
@@ -182,7 +238,11 @@ class _CadScreenState extends State<CadScreen>
 
   @override
   void dispose() {
+    FocusManager.instance.removeEarlyKeyEventHandler(_settingsShortcut);
+    _automation.removeListener(_automationChanged);
     _document.removeListener(_documentChanged);
+    _integration.dispose();
+    if (widget.automation == null) _automation.dispose();
     _editor.removeListener(_editorChanged);
     _editor.dispose();
     _extrusionEditor.removeListener(_extrusionChanged);
@@ -261,7 +321,9 @@ class _CadScreenState extends State<CadScreen>
   }
 
   void _startSketchSelection() {
-    if (_selectingSketchPlane || _enteringSketch) return;
+    if (_document.isEditLocked || _selectingSketchPlane || _enteringSketch) {
+      return;
+    }
     setState(() {
       _selectingSketchPlane = true;
       _selectedReference = null;
@@ -282,6 +344,7 @@ class _CadScreenState extends State<CadScreen>
   }
 
   void _enterSketch({FeatureId? id, PlanarSupport? support}) {
+    if (_document.isEditLocked) return;
     _cameraAnimation.stop();
     final previous = _previousCamera ?? _cameraPosition;
     if (id != null) {
@@ -370,6 +433,7 @@ class _CadScreenState extends State<CadScreen>
     FeatureId sketchId, {
     Iterable<String> regions = const [],
   }) {
+    if (_document.isEditLocked) return;
     _editor.close();
     _extrusionEditor.create(sketchId, regionIds: regions);
   }
@@ -406,222 +470,272 @@ class _CadScreenState extends State<CadScreen>
             _cancelSketchSelection,
         const SingleActivator(LogicalKeyboardKey.digit1, meta: true):
             _resetCamera,
-        const SingleActivator(LogicalKeyboardKey.keyZ, meta: true):
-            _editor.undo,
-        const SingleActivator(LogicalKeyboardKey.keyZ, meta: true, shift: true):
-            _editor.redo,
-        const SingleActivator(LogicalKeyboardKey.keyZ, control: true):
-            _editor.undo,
-        const SingleActivator(
-          LogicalKeyboardKey.keyZ,
-          control: true,
-          shift: true,
-        ): _editor.redo,
+        if (!_document.isEditLocked) ...{
+          const SingleActivator(LogicalKeyboardKey.keyZ, meta: true):
+              _editor.undo,
+          const SingleActivator(
+            LogicalKeyboardKey.keyZ,
+            meta: true,
+            shift: true,
+          ): _editor.redo,
+          const SingleActivator(LogicalKeyboardKey.keyZ, control: true):
+              _editor.undo,
+          const SingleActivator(
+            LogicalKeyboardKey.keyZ,
+            control: true,
+            shift: true,
+          ): _editor.redo,
+        },
       },
       child: Focus(
         autofocus: true,
         child: Scaffold(
-          body: Center(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(
-                  width: 300,
-                  child: Column(
+          body: Column(
+            children: [
+              if (_automation.isActive || _automation.paused)
+                AiControlBar(
+                  active: _automation.isActive,
+                  paused: _automation.paused,
+                  operation: _automation.operation,
+                  onStop: _automation.stop,
+                  onOpenSettings: () => unawaited(_openSettings()),
+                ),
+              Expanded(
+                child: Center(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Row(
-                        children: [
-                          const SizedBox(width: 12),
-                          const Text('Model edits'),
-                          IconButton(
-                            tooltip: 'Undo',
-                            onPressed: _document.canUndo ? _editor.undo : null,
-                            icon: const Icon(Icons.undo),
-                          ),
-                          IconButton(
-                            tooltip: 'Redo',
-                            onPressed: _document.canRedo ? _editor.redo : null,
-                            icon: const Icon(Icons.redo),
-                          ),
-                        ],
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                        child: StepExportButton(
-                          solids: evaluated.geometry
-                              .whereType<Solid>()
-                              .toList(),
+                      SizedBox(
+                        width: 300,
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Text(
+                                    'Model edits',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                IconButton(
+                                  tooltip: 'Undo',
+                                  onPressed:
+                                      !_document.isEditLocked &&
+                                          _document.canUndo
+                                      ? _editor.undo
+                                      : null,
+                                  icon: const Icon(Icons.undo),
+                                ),
+                                IconButton(
+                                  tooltip: 'Redo',
+                                  onPressed:
+                                      !_document.isEditLocked &&
+                                          _document.canRedo
+                                      ? _editor.redo
+                                      : null,
+                                  icon: const Icon(Icons.redo),
+                                ),
+                                IconButton(
+                                  key: const Key('open-settings'),
+                                  tooltip: 'Settings (⌘,)',
+                                  onPressed: () => unawaited(_openSettings()),
+                                  icon: const Icon(Icons.settings_outlined),
+                                ),
+                              ],
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                              child: StepExportButton(
+                                enabled: !_document.isEditLocked,
+                                solids: evaluated.geometry
+                                    .whereType<Solid>()
+                                    .toList(),
+                              ),
+                            ),
+                            Expanded(
+                              child: FeatureHistoryPanel(
+                                document: _document,
+                                selectedId: _selectedFeature,
+                                onSelected: _selectFeature,
+                                onOpenSketch: (id) => _enterSketch(id: id),
+                                onEditExtrusion: _extrusionEditor.open,
+                                onExtrudeSketch: _enterExtrusion,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                      VerticalDivider(width: 1),
                       Expanded(
-                        child: FeatureHistoryPanel(
-                          document: _document,
-                          selectedId: _selectedFeature,
-                          onSelected: _selectFeature,
-                          onOpenSketch: (id) => _enterSketch(id: id),
-                          onEditExtrusion: _extrusionEditor.open,
-                          onExtrudeSketch: _enterExtrusion,
+                        child: LayoutBuilder(
+                          builder: (context, constraints) => Listener(
+                            behavior: HitTestBehavior.opaque,
+                            onPointerPanZoomStart: (_) {
+                              if (_enteringSketch) return;
+                              _cameraAnimation.stop();
+                              _previousGestureScale = 1.0;
+                            },
+                            onPointerPanZoomUpdate: (event) {
+                              if (_enteringSketch) return;
+                              _cameraAnimation.stop();
+                              final scaleFactor =
+                                  event.scale / _previousGestureScale;
+                              if (event.scale.isFinite && event.scale > 0) {
+                                _previousGestureScale = event.scale;
+                              }
+
+                              setState(() {
+                                if (HardwareKeyboard.instance.isShiftPressed) {
+                                  _cameraPosition = _cameraPosition
+                                      .pan(event.panDelta)
+                                      .zoomTowardCursor(
+                                        cursor: event.localPosition,
+                                        viewport: constraints.biggest,
+                                        scaleFactor: scaleFactor,
+                                      );
+                                  return;
+                                }
+
+                                final yaw =
+                                    _cameraPosition.yaw -
+                                    event.panDelta.dx * 0.005;
+                                final pitch =
+                                    _cameraPosition.pitch -
+                                    event.panDelta.dy * 0.005;
+                                final orientationChanged =
+                                    yaw != _cameraPosition.yaw ||
+                                    pitch != _cameraPosition.pitch;
+                                final rotatedCamera = _cameraPosition.copyWith(
+                                  yaw: yaw,
+                                  pitch: pitch,
+                                  isOrthographic: orientationChanged
+                                      ? false
+                                      : _cameraPosition.isOrthographic,
+                                  // Rotation starts looking along a different ray, so
+                                  // discard the depth accumulated by earlier zooms.
+                                  focusDistance: orientationChanged
+                                      ? _initialFocusDistance
+                                      : _cameraPosition.focusDistance,
+                                );
+                                _cameraPosition = rotatedCamera
+                                    .zoomTowardCursor(
+                                      cursor: event.localPosition,
+                                      viewport: constraints.biggest,
+                                      scaleFactor: scaleFactor,
+                                    );
+                              });
+                            },
+                            onPointerPanZoomEnd: (_) =>
+                                _previousGestureScale = 1.0,
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                AbsorbPointer(
+                                  absorbing: _enteringSketch,
+                                  child: _scene(_cameraPosition),
+                                ),
+                                if (!_enteringSketch &&
+                                    !_selectingSketchPlane &&
+                                    _selectedHit != null)
+                                  Positioned(
+                                    left: 12,
+                                    right: 12,
+                                    bottom: 16,
+                                    child: Center(
+                                      child: SelectionBadge(
+                                        key: const Key('selection-badge'),
+                                        measurement:
+                                            SelectionMeasurement.fromHit(
+                                              _selectedHit!,
+                                            ),
+                                      ),
+                                    ),
+                                  ),
+                                if (!_enteringSketch)
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(left: 12),
+                                      child: Material(
+                                        elevation: 3,
+                                        color: _selectingSketchPlane
+                                            ? Theme.of(context)
+                                                  .colorScheme
+                                                  .primaryContainer
+                                            : Theme.of(context)
+                                                  .colorScheme
+                                                  .surfaceContainerHigh,
+                                        borderRadius: BorderRadius.circular(10),
+                                        child: IconButton(
+                                          key: const Key('start-sketch'),
+                                          tooltip: 'Sketch',
+                                          onPressed: _document.isEditLocked
+                                              ? null
+                                              : _startSketchSelection,
+                                          iconSize: 32,
+                                          padding: const EdgeInsets.all(10),
+                                          icon: Image.asset(
+                                            'assets/icons/sketch.png',
+                                            semanticLabel: 'Sketch',
+                                            width: 32,
+                                            height: 32,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                if (_selectingSketchPlane)
+                                  Positioned(
+                                    top: 16,
+                                    left: 96,
+                                    right: 96,
+                                    child: Center(
+                                      child: IgnorePointer(
+                                        child: Material(
+                                          key: const Key('sketch-plane-hint'),
+                                          elevation: 2,
+                                          borderRadius: BorderRadius.circular(
+                                            20,
+                                          ),
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .secondaryContainer,
+                                          child: const Padding(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 8,
+                                            ),
+                                            child: Text(
+                                              'Hint: select plane to start sketch on it',
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                Positioned(
+                                  top: 12,
+                                  right: 12,
+                                  child: ViewCube(
+                                    camera: _cameraPosition,
+                                    onSelected: (side) {
+                                      if (!_enteringSketch) _selectSide(side);
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                VerticalDivider(width: 1),
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) => Listener(
-                      behavior: HitTestBehavior.opaque,
-                      onPointerPanZoomStart: (_) {
-                        if (_enteringSketch) return;
-                        _cameraAnimation.stop();
-                        _previousGestureScale = 1.0;
-                      },
-                      onPointerPanZoomUpdate: (event) {
-                        if (_enteringSketch) return;
-                        _cameraAnimation.stop();
-                        final scaleFactor = event.scale / _previousGestureScale;
-                        if (event.scale.isFinite && event.scale > 0) {
-                          _previousGestureScale = event.scale;
-                        }
-
-                        setState(() {
-                          if (HardwareKeyboard.instance.isShiftPressed) {
-                            _cameraPosition = _cameraPosition
-                                .pan(event.panDelta)
-                                .zoomTowardCursor(
-                                  cursor: event.localPosition,
-                                  viewport: constraints.biggest,
-                                  scaleFactor: scaleFactor,
-                                );
-                            return;
-                          }
-
-                          final yaw =
-                              _cameraPosition.yaw - event.panDelta.dx * 0.005;
-                          final pitch =
-                              _cameraPosition.pitch - event.panDelta.dy * 0.005;
-                          final orientationChanged =
-                              yaw != _cameraPosition.yaw ||
-                              pitch != _cameraPosition.pitch;
-                          final rotatedCamera = _cameraPosition.copyWith(
-                            yaw: yaw,
-                            pitch: pitch,
-                            isOrthographic: orientationChanged
-                                ? false
-                                : _cameraPosition.isOrthographic,
-                            // Rotation starts looking along a different ray, so
-                            // discard the depth accumulated by earlier zooms.
-                            focusDistance: orientationChanged
-                                ? _initialFocusDistance
-                                : _cameraPosition.focusDistance,
-                          );
-                          _cameraPosition = rotatedCamera.zoomTowardCursor(
-                            cursor: event.localPosition,
-                            viewport: constraints.biggest,
-                            scaleFactor: scaleFactor,
-                          );
-                        });
-                      },
-                      onPointerPanZoomEnd: (_) => _previousGestureScale = 1.0,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          AbsorbPointer(
-                            absorbing: _enteringSketch,
-                            child: _scene(_cameraPosition),
-                          ),
-                          if (!_enteringSketch &&
-                              !_selectingSketchPlane &&
-                              _selectedHit != null)
-                            Positioned(
-                              left: 12,
-                              right: 12,
-                              bottom: 16,
-                              child: Center(
-                                child: SelectionBadge(
-                                  key: const Key('selection-badge'),
-                                  measurement: SelectionMeasurement.fromHit(
-                                    _selectedHit!,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          if (!_enteringSketch)
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: Padding(
-                                padding: const EdgeInsets.only(left: 12),
-                                child: Material(
-                                  elevation: 3,
-                                  color: _selectingSketchPlane
-                                      ? Theme.of(context)
-                                            .colorScheme
-                                            .primaryContainer
-                                      : Theme.of(context)
-                                            .colorScheme
-                                            .surfaceContainerHigh,
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: IconButton(
-                                    key: const Key('start-sketch'),
-                                    tooltip: 'Sketch',
-                                    onPressed: _startSketchSelection,
-                                    iconSize: 32,
-                                    padding: const EdgeInsets.all(10),
-                                    icon: Image.asset(
-                                      'assets/icons/sketch.png',
-                                      semanticLabel: 'Sketch',
-                                      width: 32,
-                                      height: 32,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          if (_selectingSketchPlane)
-                            Positioned(
-                              top: 16,
-                              left: 96,
-                              right: 96,
-                              child: Center(
-                                child: IgnorePointer(
-                                  child: Material(
-                                    key: const Key('sketch-plane-hint'),
-                                    elevation: 2,
-                                    borderRadius: BorderRadius.circular(20),
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .secondaryContainer,
-                                    child: const Padding(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 8,
-                                      ),
-                                      child: Text(
-                                        'Hint: select plane to start sketch on it',
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          Positioned(
-                            top: 12,
-                            right: 12,
-                            child: ViewCube(
-                              camera: _cameraPosition,
-                              onSelected: (side) {
-                                if (!_enteringSketch) _selectSide(side);
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

@@ -35,6 +35,7 @@ class FeatureHistoryPanel extends StatelessWidget {
     );
     if (context.mounted &&
         result != null &&
+        !document.isEditLocked &&
         !document.hasActiveTransaction &&
         document.features.any((f) => f.id == feature.id)) {
       document.renameFeature(feature.id, result);
@@ -91,7 +92,10 @@ class FeatureHistoryPanel extends StatelessWidget {
               ),
               FilledButton(
                 key: const Key('confirm-delete'),
-                onPressed: current == null || document.hasActiveTransaction
+                onPressed:
+                    current == null ||
+                        document.hasActiveTransaction ||
+                        document.isEditLocked
                     ? null
                     : () => Navigator.pop(context, true),
                 child: const Text('Delete feature'),
@@ -103,6 +107,7 @@ class FeatureHistoryPanel extends StatelessWidget {
     );
     if (context.mounted &&
         confirmed == true &&
+        !document.isEditLocked &&
         !document.hasActiveTransaction &&
         document.features.any((f) => f.id == feature.id)) {
       document.removeFeature(
@@ -121,7 +126,7 @@ class FeatureHistoryPanel extends StatelessWidget {
       FeatureState.failed => Theme.of(context).colorScheme.error,
       FeatureState.blocked => Colors.orange.shade800,
     };
-    final editable = !document.hasActiveTransaction;
+    final editable = !document.hasActiveTransaction && !document.isEditLocked;
     return Card(
       key: Key('history-${feature.id.value}'),
       color: selected ? Theme.of(context).colorScheme.secondaryContainer : null,

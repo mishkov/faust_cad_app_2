@@ -428,6 +428,7 @@ class _SketchWorkspaceState extends State<SketchWorkspace> {
             ],
           ),
         ),
+        const VerticalDivider(width: 1),
         Expanded(child: _canvas()),
       ],
     );

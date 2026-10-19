@@ -2,6 +2,14 @@
 
 A Flutter CAD viewer with wireframe and shaded rendering.
 
+## Settings and AI integration
+
+Open **Settings** using the gear button or **Command+,**, including while editing
+a sketch or extrusion. The desktop dialog lists sections on the left; **AI
+Integration** contains the local MCP enable switch, port, connection details and
+AI session controls. **Stop AI** also stays available directly in the CAD view.
+See [MCP setup, tool contract and gear demonstration](docs/mcp_control.md).
+
 ## Camera position cube
 
 The top-right cube follows the scene camera. Hovering a visible face turns it
