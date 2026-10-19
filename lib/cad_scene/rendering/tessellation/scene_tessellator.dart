@@ -12,6 +12,9 @@ import 'package:faust_cad_app_2/cad_scene/cad_primitivies/wire.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_surfaces/cylinder_surface.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_surfaces/plane_surface.dart';
 import 'package:faust_cad_app_2/cad_scene/geometry/planar_frame.dart';
+
+import '../../geometry/analytic_continuity.dart';
+
 import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/render_triangle.dart';
 import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/tessellated_face.dart';
 import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/tessellated_scene.dart';
@@ -111,6 +114,7 @@ class SceneTessellator {
           }
         case Edge():
           uses.add((edge: p, face: owner));
+          if (preserveSourceIdentity) snapshot.add(p);
           snapshot.addAll([id(p.begin), id(p.end), p.curve.runtimeType]);
           vector(p.begin.vector);
           vector(p.end.vector);
@@ -264,7 +268,11 @@ class SceneTessellator {
       return matching.length == 2 &&
           matching.every(
             (other) =>
-                identical(other.face!.surface, face.surface) &&
+                other.face!.surface is CylinderSurface &&
+                AnalyticContinuity.sameCylinder(
+                  other.face!.surface as CylinderSurface,
+                  face.surface as CylinderSurface,
+                ) &&
                 other.face!.orientation == face.orientation,
           );
     }
@@ -274,7 +282,18 @@ class SceneTessellator {
         if (supported(use.edge) && !isSeam(use))
           (points: sample(use.edge), boundary: use.face != null),
     ];
-    final result = TessellatedScene(rendered, renderEdges);
+    final renderedSources = {for (final face in rendered) face.source};
+    final result = TessellatedScene(
+      rendered,
+      renderEdges,
+      edgeSamples: {
+        for (final use in uses)
+          if (renderedSources.contains(use.face) &&
+              supported(use.edge) &&
+              !isSeam(use))
+            use.edge: sample(use.edge),
+      },
+    );
     _snapshot = snapshot;
     _settings = quality;
     _revision = geometryRevision;

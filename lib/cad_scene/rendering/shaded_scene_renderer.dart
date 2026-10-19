@@ -21,6 +21,7 @@ import 'package:faust_cad_app_2/cad_scene/rendering/tessellation/render_triangle
 import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 import '../cad_primitivies/face.dart';
+import '../cad_primitivies/edge.dart';
 
 /// Vector rendering with per-region depth comparisons for planar and tessellated CAD geometry.
 ///
@@ -54,6 +55,12 @@ class ShadedSceneRenderer {
   static final _boundaryPaint = Paint()
     ..color = Colors.black
     ..strokeWidth = 1;
+  static final _hoverPaint = Paint()
+    ..color = const Color(0xff00bcd4)
+    ..strokeWidth = 2;
+  static final _edgeHighlightPaint = Paint()
+    ..color = const Color(0xff00bcd4)
+    ..strokeWidth = 3;
   static final _standalonePaint = Paint()
     ..color = Colors.red
     ..strokeWidth = 1;
@@ -63,9 +70,20 @@ class ShadedSceneRenderer {
     Size size,
     TessellatedScene scene, {
     Set<Face> selectedFaces = const {},
+    Edge? selectedEdge,
+    Face? hoveredFace,
+    Edge? hoveredEdge,
   }) {
     try {
-      _paintFrame(canvas, size, scene, selectedFaces: selectedFaces);
+      _paintFrame(
+        canvas,
+        size,
+        scene,
+        selectedFaces: selectedFaces,
+        selectedEdge: selectedEdge,
+        hoveredFace: hoveredFace,
+        hoveredEdge: hoveredEdge,
+      );
     } finally {
       _cameraPoints.clear();
       _meshBatch.clear();
@@ -78,23 +96,33 @@ class ShadedSceneRenderer {
     Size size,
     TessellatedScene scene, {
     required Set<Face> selectedFaces,
+    Edge? selectedEdge,
+    Face? hoveredFace,
+    Edge? hoveredEdge,
   }) {
     // Shared mesh and edge samples are transformed once per paint. Clear the
     // cache between frames because model coordinates can be mutable.
     final timer = layerCounts == null ? null : (Stopwatch()..start());
     _cameraPoints.clear();
     final faces = <ProjectedFace>[];
+    final hoveredFaces = scene.hoverFaces(hoveredFace);
     for (final face in scene.faces) {
       if (face.source.surface is PlaneSurface) {
         final projected = _projectFace(
           face,
           size,
           selectedFaces.contains(face.source),
+          hoveredFaces.contains(face.source),
         );
         if (projected != null) faces.add(projected);
       } else {
         for (final triangle in face.triangles) {
-          final projected = _projectTriangle(triangle, size);
+          final projected = _projectTriangle(
+            triangle,
+            size,
+            hoveredFaces.contains(face.source),
+            selectedFaces.contains(face.source),
+          );
           if (projected != null) faces.add(projected);
         }
       }
@@ -238,10 +266,35 @@ class ShadedSceneRenderer {
     // This also hides grid lines and cavity edges behind opaque material.
     // Boundary strokes finish last so antialiased hole rims stay black even
     // where a standalone line emerges from behind them.
-    for (final (:points, :boundary) in [
-      ...scene.shadedEdges.where((entry) => !entry.boundary),
-      ...scene.shadedEdges.where((entry) => entry.boundary),
+    for (final (:points, :boundary, :hovered, :edgeHighlight) in [
+      for (final edge in scene.shadedEdges.where((e) => !e.boundary))
+        (
+          points: edge.points,
+          boundary: edge.boundary,
+          hovered: false,
+          edgeHighlight: false,
+        ),
+      for (final edge in scene.shadedEdges.where((e) => e.boundary))
+        (
+          points: edge.points,
+          boundary: edge.boundary,
+          hovered: false,
+          edgeHighlight: false,
+        ),
+      for (final points in scene.hoverSamples(hoveredFace))
+        (points: points, boundary: true, hovered: true, edgeHighlight: false),
+      for (final edge in scene.highlightedEdges(selectedEdge, hoveredEdge))
+        if (scene.edgeSamples[edge] case final points?)
+          (points: points, boundary: true, hovered: true, edgeHighlight: true),
     ]) {
+      final stroke = edgeHighlight
+          ? _edgeHighlightPaint
+          : hovered
+          ? _hoverPaint
+          : boundary
+          ? _boundaryPaint
+          : _standalonePaint;
+      final coverageRadius = math.max(1.5, stroke.strokeWidth / 2 + 0.5);
       for (var i = 0; i < points.length - 1; i++) {
         final clipped = _projection.clipLine(
           _toCameraSpace(points[i]),
@@ -256,21 +309,23 @@ class ShadedSceneRenderer {
         final delta = q - p;
         final lengthSquared = delta.distanceSquared;
         if (lengthSquared < 1e-12) continue;
-        final gradient =
-            (1 / clipped.end.y - 1 / clipped.begin.y) / lengthSquared;
+        final beginDepth = _depthScore(clipped.begin.y);
+        final endDepth = _depthScore(clipped.end.y);
+        final gradient = (endDepth - beginDepth) / lengthSquared;
         final inverseDepth = Vector3(
           delta.dx * gradient,
           delta.dy * gradient,
-          1 / clipped.begin.y - gradient * (delta.dx * p.dx + delta.dy * p.dy),
+          beginDepth - gradient * (delta.dx * p.dx + delta.dy * p.dy),
         );
-        final bias = math.max(1 / clipped.begin.y, 1 / clipped.end.y) * 1e-6;
-        final bounds = Rect.fromPoints(p, q).inflate(1.5);
+        final bias = math.max(beginDepth.abs(), endDepth.abs()) * 1e-6;
+        final bounds = Rect.fromPoints(p, q).inflate(coverageRadius);
         final visibility = ProjectedEdgeVisibility.resolve(
           p,
           q,
           inverseDepth,
           index,
           bias: bias,
+          coverageRadius: coverageRadius,
         );
         if (visibility.coverage == EdgeCoverage.hidden) {
           layerCounts?.hiddenEdges++;
@@ -292,7 +347,7 @@ class ShadedSceneRenderer {
         if (masks.isNotEmpty &&
             masks.length <= 2 &&
             masks.any((mask) => mask.contains((p + q) / 2)) &&
-            _completelyErased(_strokeEnvelope(p, q), masks)) {
+            _completelyErased(_strokeEnvelope(p, q, coverageRadius), masks)) {
           layerCounts?.hiddenEdges++;
           continue;
         }
@@ -302,7 +357,7 @@ class ShadedSceneRenderer {
         }
         try {
           layerCounts?.edgeDraws++;
-          canvas.drawLine(p, q, boundary ? _boundaryPaint : _standalonePaint);
+          canvas.drawLine(p, q, stroke);
           for (final mask in masks) {
             layerCounts?.maskDraws++;
             canvas.drawPath(mask, _erasePaint);
@@ -343,10 +398,10 @@ class ShadedSceneRenderer {
     return false;
   }
 
-  static Path _strokeEnvelope(Offset p, Offset q) {
+  static Path _strokeEnvelope(Offset p, Offset q, double radius) {
     final direction = (q - p) / (q - p).distance;
-    final along = direction * 1.5;
-    final across = Offset(-direction.dy, direction.dx) * 1.5;
+    final along = direction * radius;
+    final across = Offset(-direction.dy, direction.dx) * radius;
     return Path()..addPolygon([
       p - along - across,
       q + along - across,
@@ -355,7 +410,12 @@ class ShadedSceneRenderer {
     ], true);
   }
 
-  ProjectedFace? _projectFace(TessellatedFace face, Size size, bool selected) {
+  ProjectedFace? _projectFace(
+    TessellatedFace face,
+    Size size,
+    bool selected,
+    bool hovered,
+  ) {
     final surface = face.source.surface;
     if (surface is! PlaneSurface) return null;
     final origin = _toCameraSpace(surface.origin);
@@ -363,7 +423,7 @@ class ShadedSceneRenderer {
     normal.normalize();
     final planeDistance = normal.dot(origin);
     // A plane through the eye projects to a line, not a fillable surface.
-    if (planeDistance.abs() < 1e-10) return null;
+    if (_edgeOn(normal, planeDistance)) return null;
     final path = Path()..fillType = PathFillType.evenOdd;
     final contours = <List<Offset>>[];
     for (final points in face.loops) {
@@ -380,36 +440,41 @@ class ShadedSceneRenderer {
       path.addPolygon(contour, true);
     }
     if (contours.isEmpty || path.getBounds().isEmpty) return null;
-    final focalLength = _projection.cameraConfig.focalLength;
-    final a = normal.x / (focalLength * planeDistance);
-    final b = -normal.z / (focalLength * planeDistance);
-    final inverseDepth = Vector3(
-      a,
-      b,
-      normal.y / planeDistance - a * size.width / 2 - b * size.height / 2,
-    );
+    final inverseDepth = _planeDepth(normal, planeDistance, size);
     // Faces are two-sided; choose the normal facing the camera. The light is
     // expressed in camera coordinates, so right/up stay brighter during orbit.
-    if (planeDistance > 0) normal.negate();
+    if (_projection.cameraConfig.isOrthographic
+        ? normal.y > 0
+        : planeDistance > 0) {
+      normal.negate();
+    }
     final brightness = 0.32 + 0.5 * math.max(0.0, normal.dot(_light));
     final gray = (255 * brightness).round();
     return ProjectedFace(
       path,
       inverseDepth,
-      selected
-          ? Color.fromARGB(255, gray ~/ 2, gray, 255)
-          : Color.fromARGB(255, gray, gray, gray),
+      _hoverColor(
+        selected
+            ? Color.fromARGB(255, gray ~/ 2, gray, 255)
+            : Color.fromARGB(255, gray, gray, gray),
+        hovered,
+      ),
       contours: contours,
     );
   }
 
-  ProjectedFace? _projectTriangle(RenderTriangle triangle, Size size) {
+  ProjectedFace? _projectTriangle(
+    RenderTriangle triangle,
+    Size size,
+    bool hovered,
+    bool selected,
+  ) {
     final camera = triangle.points.map(_toCameraSpace).toList();
     final normal = (camera[1] - camera[0]).cross(camera[2] - camera[0]);
     if (normal.length2 < 1e-24) return null;
     normal.normalize();
     final distance = normal.dot(camera[0]);
-    if (distance.abs() < 1e-10) return null;
+    if (_edgeOn(normal, distance)) return null;
     final clipped = _projection.clipLoop(camera, screen: size);
     if (clipped.length < 3) return null;
     final points = <Offset>[];
@@ -430,26 +495,54 @@ class ShadedSceneRenderer {
       // Interpolate analytic oriented radial normals, including clipped points.
       final n = (normals[0] * (1 - b - c) + normals[1] * b + normals[2] * c)
           .normalized();
-      if (n.dot(p) > 0) n.negate();
+      if (_projection.cameraConfig.isOrthographic ? n.y > 0 : n.dot(p) > 0) {
+        n.negate();
+      }
       final gray = (255 * (0.32 + 0.5 * math.max(0.0, n.dot(_light))))
           .round()
           .clamp(0, 255);
-      colors.add(Color.fromARGB(255, gray, gray, gray));
+      colors.add(
+        _hoverColor(
+          selected
+              ? Color.fromARGB(255, gray ~/ 2, gray, 255)
+              : Color.fromARGB(255, gray, gray, gray),
+          hovered,
+        ),
+      );
     }
-    final a = normal.x / (_projection.cameraConfig.focalLength * distance);
-    final b = -normal.z / (_projection.cameraConfig.focalLength * distance);
+
     return ProjectedFace(
       Path()..addPolygon(points, true),
-      Vector3(
-        a,
-        b,
-        normal.y / distance - a * size.width / 2 - b * size.height / 2,
-      ),
+      _planeDepth(normal, distance, size),
       Colors.white,
       contours: [points],
       meshPoints: points,
       meshColors: colors,
     );
+  }
+
+  Color _hoverColor(Color color, bool hovered) =>
+      hovered ? Color.lerp(color, Colors.white, 0.16)! : color;
+
+  bool _edgeOn(Vector3 normal, double distance) =>
+      (_projection.cameraConfig.isOrthographic ? normal.y : distance).abs() <
+      1e-10;
+
+  double _depthScore(double depth) => _projection.cameraConfig.isOrthographic
+      ? -depth / _projection.cameraConfig.focusDistance
+      : 1 / depth;
+
+  Vector3 _planeDepth(Vector3 normal, double distance, Size size) {
+    final camera = _projection.cameraConfig;
+    final divisor = camera.isOrthographic ? normal.y : distance;
+    final a = normal.x / (camera.focalLength * divisor);
+    final b = -normal.z / (camera.focalLength * divisor);
+    final c = camera.isOrthographic
+        ? -distance / (normal.y * camera.focusDistance)
+        : normal.y / distance;
+    // Larger scores are nearer: reciprocal depth in perspective, negative
+    // linear depth in a parallel view. Both are affine over screen space.
+    return Vector3(a, b, c - a * size.width / 2 - b * size.height / 2);
   }
 
   List<Path> _occlusionMasks(

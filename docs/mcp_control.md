@@ -7,7 +7,9 @@ The adapter implements the 2025-11-25 MCP lifecycle and tools capability.
 
 ## Start and connect
 
-Run the desktop app, click **Enable MCP**, then **Copy MCP connection**. This
+Run the desktop app, open **Settings** with the gear button or **Command+,**, and
+choose **AI Integration** in the section list on the left. Turn on **Enable MCP**,
+then click **Copy MCP connection**. This
 copies a local endpoint containing a randomly generated connection token. Keep
 the endpoint private. It remains valid until the app closes. A second app cannot
 silently take over an occupied port.
@@ -41,8 +43,12 @@ hyphens or underscores, and optionally a different port:
 flutter run -d macos --dart-define=FAUST_MCP_TOKEN=local-development-token --dart-define=FAUST_MCP_PORT=47831
 ```
 
-This opts into starting the bridge at launch. Ordinary launches require the
-Enable MCP button. Browser origins are rejected, including local browser pages.
+This opts into starting the bridge at launch. Ordinary launches require enabling
+MCP in Settings. The dialog also lets you disable the bridge and choose its port
+while it is disabled (0 asks the OS for an available port). Disabling revokes an
+active session, preserves completed edits, and closes client connections.
+Port and enable changes apply to the running app; launch defines remain the
+defaults for the next launch. Browser origins are rejected, including local browser pages.
 The web/widget-preview build has no network bridge. The macOS release app has
 the network-server sandbox entitlement, matching the existing debug entitlement.
 
@@ -112,7 +118,7 @@ features remain valid and the same session/revision is still current. Failure
 leaves the prior model, revision, undo and redo history untouched and returns
 diagnostics. **Stop AI** revokes the session immediately; an in-flight worker
 may finish computing but cannot publish. Completed steps remain. New sessions
-require **Re-enable AI** after Stop. A dropped bridge connection or five minutes
+require **Re-enable AI** in Settings → AI Integration after Stop. A dropped bridge connection or five minutes
 without an editing call releases the lock. A process that remains connected but
 forgets to finish therefore cannot retain control indefinitely.
 

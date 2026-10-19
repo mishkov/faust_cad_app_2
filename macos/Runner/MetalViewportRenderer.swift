@@ -20,6 +20,9 @@ final class MetalViewportRenderer: NSObject, MTKViewDelegate {
   private let slots = [FrameSlot(), FrameSlot()]
   private weak var view: MTKView?
   private var body: MetalMesh?, sketches = [MetalMesh](), camera: MetalCamera?
+  private var hoveredFaces: [Int] = []
+  private var hoverLines: MTLBuffer?
+  private var hoverLineCount = 0
   private var selection = [Int](), wireframe = false, clear = MTLClearColorMake(1, 1, 1, 1)
   private var serial: Int64 = 0, lastSubmitted: Int64 = -1, lastPresented: Int64 = -1
   private var stopped = false, forceDraw = true, capturing = false
@@ -102,6 +105,21 @@ final class MetalViewportRenderer: NSObject, MTKViewDelegate {
     let nextSketches = try (packet["sketches"] as? [[String: Any]]).map {
       try $0.map { try MetalMesh($0, device: device) }
     }
+    var nextHoverLines: MTLBuffer?
+    var nextHoverCount: Int?
+    if let data = packet["hoverLines"] {
+      let values = try typedArray(data, Float.self)
+      guard values.count % 90 == 0, values.allSatisfy({ $0.isFinite }) else {
+        throw MetalFailure("Invalid hover boundary lines")
+      }
+      nextHoverCount = values.count / 15
+      if !values.isEmpty {
+        nextHoverLines = values.withUnsafeBytes {
+          device.makeBuffer(bytes: $0.baseAddress!, length: $0.count, options: .storageModeShared)
+        }
+        guard nextHoverLines != nil else { throw MetalFailure("Hover allocation failed") }
+      }
+    }
     var nextClear = clear
     if let colors = packet["clear"] {
       let c = try typedArray(colors, Double.self)
@@ -121,6 +139,12 @@ final class MetalViewportRenderer: NSObject, MTKViewDelegate {
     }
     if let mesh = nextBody { body = mesh }
     if let meshes = nextSketches { sketches = meshes }
+    if let count = nextHoverCount {
+      hoverLines = nextHoverLines
+      hoverLineCount = count
+    }
+    hoveredFaces = (packet["hoveredFaces"] as? [NSNumber])?.map { $0.intValue }
+      ?? [(packet["hoveredFace"] as? NSNumber)?.intValue ?? -1]
     camera = nextCamera
     selection = (packet["selection"] as? [NSNumber] ?? []).map { $0.intValue }
     wireframe = packet["wireframe"] as? Bool ?? false
@@ -253,14 +277,17 @@ final class MetalViewportRenderer: NSObject, MTKViewDelegate {
     memset(selected.contents(), 0, selected.length)
     let ids = selected.contents().bindMemory(to: UInt32.self, capacity: count)
     for id in selection where id >= 0 && id < count { ids[id] = 1 }
+    for id in hoveredFaces where id >= 0 && id < count { ids[id] |= 2 }
     encoder.setVertexBuffer(selected, offset: 0, index: 2)
     let meshes = [body].compactMap({ $0 }) + sketches
     // Scale reverse Z to the conservative nearest scene bound when the whole
     // scene is in front. This uses the full depth range without discarding any
     // geometry; crossing views retain the physical 1e-6 clipping plane.
     let minimumDepth = meshes.map { $0.minimumDepth(camera) }.min() ?? .infinity
-    let depthScale: Float =
-      minimumDepth.isFinite && minimumDepth > 0 ? Float(max(1e-6, minimumDepth * 0.5)) : 1e-6
+    let maximumDepth = meshes.map { $0.maximumDepth(camera) }.max() ?? 1
+    let depthScale: Float = camera.orthographicDistance > 0
+      ? Float(1 / max(1, maximumDepth * 1.01))
+      : (minimumDepth.isFinite && minimumDepth > 0 ? Float(max(1e-6, minimumDepth * 0.5)) : 1e-6)
     slot.clipped = slot.clipped.filter { $0.key < meshes.count }
     var clippedThisFrame = false
     for (index, mesh) in meshes.enumerated() {
@@ -307,6 +334,14 @@ final class MetalViewportRenderer: NSObject, MTKViewDelegate {
         encoder.setVertexBuffer(lines, offset: 0, index: 0)
         encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: mesh.lineCount)
       }
+    }
+    if let lines = hoverLines, hoverLineCount > 0 {
+      var uniforms = camera.uniforms(precise: false, wireframe: wireframe, depthScale: depthScale)
+      encoder.setVertexBytes(&uniforms, length: 80, index: 1)
+      encoder.setRenderPipelineState(linePipeline)
+      encoder.setDepthStencilState(wireframe ? noDepth : depthRead)
+      encoder.setVertexBuffer(lines, offset: 0, index: 0)
+      encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: hoverLineCount)
     }
     if clippedThisFrame { preciseFrames += 1 }
   }
@@ -386,7 +421,7 @@ final class MetalViewportRenderer: NSObject, MTKViewDelegate {
       "lastPresented": lastPresented, "lastRequested": serial, "coalesced": coalesced,
       "inFlight": slots.filter({ $0.busy }).count,
       "peakInFlight": peakInFlight, "frameSlots": 2, "maximumDrawables": 3, "geometryBytes": memory,
-      "transientBytes": slots.reduce(0) {
+      "transientBytes": (hoverLines?.length ?? 0) + slots.reduce(0) {
         $0 + ($1.selection?.length ?? 0) + $1.clipped.values.reduce(0) { $0 + $1.length }
       },
       "precisionClipFrames": preciseFrames, "targetGeneration": targetGeneration,
@@ -405,6 +440,8 @@ final class MetalViewportRenderer: NSObject, MTKViewDelegate {
     view = nil
     body = nil
     sketches = []
+    hoverLines = nil
+    hoverLineCount = 0
     for slot in slots {
       slot.clipped = [:]
       slot.selection = nil

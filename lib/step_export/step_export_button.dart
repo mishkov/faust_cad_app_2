@@ -8,9 +8,14 @@ import '../cad_scene/cad_primitivies/solid.dart';
 import 'step_exporter.dart';
 
 class StepExportButton extends StatefulWidget {
-  const StepExportButton({super.key, required this.solids});
+  const StepExportButton({
+    super.key,
+    required this.solids,
+    this.enabled = true,
+  });
 
   final List<Solid> solids;
+  final bool enabled;
 
   @override
   State<StepExportButton> createState() => _StepExportButtonState();
@@ -60,7 +65,9 @@ class _StepExportButtonState extends State<StepExportButton> {
         : 'Export document solids. One model unit = one millimeter.',
     child: OutlinedButton.icon(
       key: const Key('export-step'),
-      onPressed: _saving || widget.solids.isEmpty ? null : _export,
+      onPressed: !widget.enabled || _saving || widget.solids.isEmpty
+          ? null
+          : _export,
       icon: const Icon(Icons.file_download_outlined, size: 18),
       label: Text(_saving ? 'Exporting…' : 'Export STEP'),
     ),

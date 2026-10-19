@@ -102,7 +102,8 @@ class ProjectedFace {
   /// Whether this face carries sampled mesh geometry.
   bool get isMesh => vertices != null || meshPoints != null;
 
-  /// At screen (x, y), reciprocal camera depth is ax + by + c.
+  // At screen (x, y), the nearer-is-larger depth score is ax + by + c.
+  // Orthographic views use negative linear depth instead of reciprocal depth.
   final Vector3 inverseDepth;
   final Color color;
 }

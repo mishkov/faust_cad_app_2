@@ -4,6 +4,7 @@ import 'package:vector_math/vector_math_64.dart' show Vector3;
 import '../../document/evaluated_geometry.dart';
 import '../cad_primitivies/cad_primitive.dart';
 import '../cad_primitivies/face.dart';
+import '../cad_primitivies/edge.dart';
 import '../cad_primitivies/shell.dart';
 import '../cad_primitivies/solid.dart';
 import '../cad_surfaces/plane_surface.dart';
@@ -50,11 +51,21 @@ final class ViewportPicker {
     for (final primitive in geometry) {
       collect(primitive, primitive);
     }
+    for (final face in scene.faces) {
+      for (final wire in [face.source.outerWire, ...face.source.innerWires]) {
+        for (final edge in wire.edges) {
+          if (scene.edgeSamples.containsKey(edge)) {
+            _edgeFaces[edge] = face.source;
+          }
+        }
+      }
+    }
   }
 
   final EvaluatedGeometry evaluated;
   late final TessellatedScene scene;
   final _owners = <Face, CadPrimitive>{};
+  final _edgeFaces = <Edge, Face>{};
 
   ViewportHit? pick({
     required CameraConfig camera,
@@ -71,12 +82,24 @@ final class ViewportPicker {
         position.dy > viewport.height) {
       return null;
     }
+    if (mode == ViewportSelectionMode.inspect) {
+      final edge = _pickEdge(camera, viewport, position);
+      if (edge != null) return edge;
+    }
     final projection = CameraProjection(camera);
     final direction = Vector3(
       (position.dx - viewport.width / 2) / camera.focalLength,
       1,
       (viewport.height / 2 - position.dy) / camera.focalLength,
     );
+    final origin = camera.isOrthographic
+        ? Vector3(
+            direction.x * camera.focusDistance,
+            0,
+            direction.z * camera.focusDistance,
+          )
+        : Vector3.zero();
+    if (camera.isOrthographic) direction.setValues(0, 1, 0);
     double? nearest;
     Face? source;
     for (final face in scene.faces) {
@@ -89,7 +112,7 @@ final class ViewportPicker {
             1e-12 * e1.length * e2.length * direction.length) {
           continue;
         }
-        final fromA = -a;
+        final fromA = origin - a;
         final u = fromA.dot(cross) / determinant;
         final q = fromA.cross(e1);
         final v = direction.dot(q) / determinant;
@@ -116,9 +139,73 @@ final class ViewportPicker {
       depth: nearest,
       point:
           camera.position.vector +
-          projection.fromCameraDirection(direction * nearest),
+          projection.fromCameraDirection(origin + direction * nearest),
       bodyReference: evaluated.bodies[owner],
       faceReference: evaluated.faces[source],
     );
+  }
+
+  ViewportHit? _pickEdge(CameraConfig camera, Size viewport, Offset position) {
+    final projection = CameraProjection(camera);
+    ViewportHit? nearest;
+    var nearestDistance = 7.0 * 7.0;
+    for (final entry in scene.edgeSamples.entries) {
+      final points = entry.value;
+      for (var i = 1; i < points.length; i++) {
+        final clipped = projection.clipLine(
+          projection.toCameraSpace(points[i - 1]),
+          projection.toCameraSpace(points[i]),
+          screen: viewport,
+        );
+        if (clipped == null) continue;
+        final a = projection.project(clipped.begin, screen: viewport);
+        final b = projection.project(clipped.end, screen: viewport);
+        final start = Offset(a.x, a.y), delta = Offset(b.x - a.x, b.y - a.y);
+        if (delta.distanceSquared < 1e-12) continue;
+        final fromStart = position - start;
+        final t =
+            ((fromStart.dx * delta.dx + fromStart.dy * delta.dy) /
+                    delta.distanceSquared)
+                .clamp(0.0, 1.0);
+        final closest = start + delta * t;
+        final distance = (position - closest).distanceSquared;
+        if (distance > nearestDistance + 1e-9) continue;
+        final parameter = camera.isOrthographic
+            ? t
+            : (t / clipped.end.y) /
+                  ((1 - t) / clipped.begin.y + t / clipped.end.y);
+        final point = clipped.begin * (1 - parameter) + clipped.end * parameter;
+        if ((distance - nearestDistance).abs() <= 1e-9 &&
+            nearest != null &&
+            point.y >= nearest.depth) {
+          continue;
+        }
+        // Test at the edge itself, not at the pointer's offset within the hit
+        // tolerance. This keeps silhouette edges selectable from either side.
+        final front = pick(
+          camera: camera,
+          viewport: viewport,
+          position: closest,
+          mode: ViewportSelectionMode.face,
+        );
+        if (front != null && front.depth < point.y - point.y.abs() * 1e-6) {
+          continue;
+        }
+        final face = _edgeFaces[entry.key]!;
+        final owner = _owners[face]!;
+        nearestDistance = distance;
+        nearest = ViewportHit(
+          face: face,
+          edge: entry.key,
+          edges: scene.selectionEdges(entry.key),
+          owner: owner,
+          depth: point.y,
+          point: camera.position.vector + projection.fromCameraDirection(point),
+          bodyReference: evaluated.bodies[owner],
+          faceReference: evaluated.faces[face],
+        );
+      }
+    }
+    return nearest;
   }
 }

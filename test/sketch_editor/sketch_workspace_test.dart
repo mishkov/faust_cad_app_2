@@ -1,3 +1,5 @@
+import '../support/sketch_test_actions.dart';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -36,14 +38,65 @@ Future<void> dimension(WidgetTester tester, String value) async {
 }
 
 void main() {
+  for (final draw in [false, true]) {
+    testWidgets(
+      'Cancel sketch discards ${draw ? 'drawn' : 'empty'} sketch and restores camera',
+      (tester) async {
+        final document = DocumentController(
+          evaluators: {SketchFeature.type: SketchFeature.evaluate},
+        );
+        addTearDown(document.dispose);
+        await tester.pumpWidget(
+          MaterialApp(home: CadScreen(controller: document)),
+        );
+        final camera = tester
+            .widget<CadScene>(find.byType(CadScene))
+            .cameraConfig;
+        await startSketch(tester);
+        final editor = editorOf(tester);
+        if (draw) {
+          await tester.tap(find.byKey(const Key('tool-line')));
+          await tester.pump();
+          await point(tester, -20, 0);
+          await point(tester, 20, 0);
+          await point(tester, 0, 20);
+          await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+          await tester.pump();
+          expect(editor.definition!.segments, hasLength(1));
+          expect(editor.anchor, isNull);
+          expect(find.byType(SketchWorkspace), findsOneWidget);
+        }
+        await tester.tap(find.byKey(const Key('cancel-sketch')));
+        await tester.pumpAndSettle();
+        expect(find.byType(SketchWorkspace), findsNothing);
+        expect(find.byKey(const Key('start-sketch')), findsOneWidget);
+        expect(document.features, isEmpty);
+        expect(document.canUndo, isFalse);
+        expect(document.canRedo, isFalse);
+        expect(
+          tester.widget<CadScene>(find.byType(CadScene)).cameraConfig,
+          camera,
+        );
+
+        await startSketch(tester);
+        final savedId = editorOf(tester).activeId!;
+        await tester.tap(find.byKey(const Key('finish-sketch')));
+        await tester.pumpAndSettle();
+        expect(document.features.single.id, savedId);
+        expect(document.canUndo, isTrue);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox());
+      },
+    );
+  }
+
   testWidgets(
     'drawing stages keep the canvas fixed at a compact desktop size',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(800, 550));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(const MaterialApp(home: CadScreen()));
-      await tester.tap(find.byKey(const Key('new-sketch')));
-      await tester.pump();
+      await startSketch(tester);
       final canvas = find.byKey(const Key('sketch-canvas'));
       final original = tester.getRect(canvas);
       await tester.tap(find.byKey(const Key('tool-line')));
@@ -70,8 +123,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 800));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(const MaterialApp(home: CadScreen()));
-      await tester.tap(find.byKey(const Key('new-sketch')));
-      await tester.pump();
+      await startSketch(tester);
       final editor = editorOf(tester);
       await tester.tap(find.byKey(const Key('tool-line')));
       await tester.pump();
@@ -107,6 +159,8 @@ void main() {
       await tester.tap(find.byKey(const Key('tool-select')));
       await tester.pump();
       await point(tester, 0, -20);
+      await tester.ensureVisible(find.text('Horizontal'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Horizontal'));
       await tester.pump();
       await tester.ensureVisible(find.text('Length'));
@@ -188,16 +242,12 @@ void main() {
           .widget<CadScene>(find.byType(CadScene))
           .cameraConfig;
       expect(previous, isNot(initial));
-      await tester.tap(find.byType(DropdownButton<PrincipalPlane>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('YZ').last);
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('new-sketch')));
-      await tester.pump();
+      await startSketch(tester, plane: PrincipalPlane.yz);
       final editor = editorOf(tester);
       expect(editor.support!.frame.normal, Vector3(1, 0, 0));
       final id = editor.activeId!;
       final canvas = tester.getRect(find.byKey(const Key('sketch-canvas')));
+      final scale = editor.view.scale;
       await tester.sendEventToBinding(
         PointerScrollEvent(
           position: canvas.center,
@@ -205,7 +255,7 @@ void main() {
         ),
       );
       await tester.pump();
-      expect(editor.view.scale, greaterThan(5));
+      expect(editor.view.scale, greaterThan(scale));
       await tester.tap(find.byKey(const Key('finish-sketch')));
       await tester.pump();
       expect(
@@ -215,7 +265,7 @@ void main() {
       await tester.ensureVisible(find.byKey(Key('open-${id.value}')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(Key('open-${id.value}')));
-      await tester.pump();
+      await tester.pumpAndSettle();
       expect(editorOf(tester).activeId, id);
       await tester.tap(find.byKey(const Key('finish-sketch')));
       await tester.pump();
@@ -248,6 +298,8 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(home: CadScreen(controller: document)),
       );
+      await tester.tap(find.byKey(const Key('start-sketch')));
+      await tester.pump();
       final scene = tester.widget<CadScene>(find.byType(CadScene));
       final rect = tester.getRect(find.byType(CadScene));
       final projection = CameraProjection(scene.cameraConfig);
@@ -256,9 +308,7 @@ void main() {
         screen: rect.size,
       );
       await tester.tapAt(rect.topLeft + Offset(screen.x, screen.y));
-      await tester.pump();
-      await tester.tap(find.byKey(const Key('sketch-on-face')));
-      await tester.pump();
+      await tester.pumpAndSettle();
       final editor = editorOf(tester);
       expect(editor.definition!.support.reference!.featureId, cubeId);
       final origin = editor.support!.frame.origin;
@@ -276,8 +326,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1100, 700));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const MaterialApp(home: CadScreen()));
-    await tester.tap(find.byKey(const Key('new-sketch')));
-    await tester.pump();
+    await startSketch(tester);
     await tester.tap(find.byKey(const Key('tool-line')));
     await tester.pump();
     await point(tester, -20, 0);

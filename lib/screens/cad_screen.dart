@@ -2,9 +2,10 @@ import 'dart:math' as math;
 import 'dart:async';
 
 import '../automation/ai_control_bar.dart';
+import '../automation/ai_integration_controller.dart';
 import '../automation/automation_controller.dart';
 import '../automation/automation_renderer.dart';
-import '../automation/automation_server.dart';
+import '../settings/settings_dialog.dart';
 
 import 'package:faust_cad_app_2/cad_scene/cad_objects/ground_grid.dart';
 import 'package:faust_cad_app_2/cad_scene/cad_primitivies/cad_primitive.dart';
@@ -18,19 +19,26 @@ import 'package:faust_cad_app_2/document/features/cube_feature.dart';
 import 'package:faust_cad_app_2/document/features/sketch_feature.dart';
 import 'package:faust_cad_app_2/document/output_reference.dart';
 import 'package:faust_cad_app_2/document/planar_support.dart';
-import 'package:faust_cad_app_2/document/planar_support_resolution.dart';
 import 'package:faust_cad_app_2/sketch/sketch_geometry.dart';
 import 'package:faust_cad_app_2/sketch_editor/sketch_editor_controller.dart';
 import 'package:faust_cad_app_2/sketch_editor/sketch_workspace.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:vector_math/vector_math_64.dart' show Vector3;
+import 'package:vector_math/vector_math_64.dart' show Vector2, Vector3;
 
 import '../cad_scene/cad_primitivies/solid.dart';
+import '../cad_scene/navigation/camera_side.dart';
+import '../cad_scene/navigation/view_cube.dart';
+import '../cad_scene/rendering/camera_projection.dart';
+import '../cad_scene/rendering/tessellation/scene_tessellator.dart';
+import '../cad_scene/selection/selection_badge.dart';
+import '../cad_scene/selection/selection_measurement.dart';
+import '../document/feature_result.dart';
 import '../document/features/extrude_feature.dart';
 import '../extrusion_editor/extrusion_editor_controller.dart';
 import '../extrusion_editor/extrusion_workspace.dart';
 import '../feature_history/feature_history_panel.dart';
+import '../sketch_editor/sketch_view.dart';
 import '../step_export/step_export_button.dart';
 
 class CadScreen extends StatefulWidget {
@@ -66,34 +74,42 @@ class _CadScreenState extends State<CadScreen>
       AutomationController(
         _document,
         canBegin: () =>
+            !_settingsOpen &&
+            !_selectingSketchPlane &&
+            !_enteringSketch &&
             _editor.activeId == null &&
             _extrusionEditor.activeId == null &&
             (ModalRoute.of(context)?.isCurrent ?? true),
         render: AutomationRenderer(_document).render,
       );
-  late final _automationServer = AutomationServer(_automation);
-  bool _startingAutomation = false;
-  String? _automationError;
+  late final _integration = AiIntegrationController(
+    _automation,
+    port: const int.fromEnvironment('FAUST_MCP_PORT', defaultValue: 47831),
+  );
+  bool _settingsOpen = false;
   CameraConfig? _previousCamera;
-  var _plane = PrincipalPlane.xy;
+  bool _selectingSketchPlane = false;
+  bool _enteringSketch = false;
   OutputReference? _selectedReference;
   FeatureId? _selectedFeature;
-  PlanarSupport? _inspectedSupport;
-  var _selectionMode = ViewportSelectionMode.planarFace;
+  ViewportHit? _selectedHit;
 
-  final List<CadPrimitive> _geometry = [...GroundGrid(100, 100).build()];
+  final List<CadPrimitive> _geometry = [
+    ...GroundGrid.withoutAxes(100, 100).build(),
+  ];
 
   static final _initialCameraPosition = CameraConfig(
-    position: Vertex(Vector3(0, -50, 100)),
-    yaw: 0.0,
+    position: Vertex(Vector3(150, -100, 135)),
+    yaw: math.pi / 4,
     pitch: -0.5,
     focalLength: 500.0,
     focusDistance: _initialFocusDistance,
   );
 
   late CameraConfig _cameraPosition = _initialCameraPosition;
-  late CameraConfig _resetStart;
-  late final AnimationController _resetController;
+  late CameraConfig _cameraStart;
+  late CameraConfig _cameraTarget;
+  late final AnimationController _cameraAnimation;
 
   @override
   void initState() {
@@ -102,117 +118,171 @@ class _CadScreenState extends State<CadScreen>
     _editor.addListener(_editorChanged);
     _extrusionEditor.addListener(_extrusionChanged);
     _automation.addListener(_automationChanged);
-    _resetController = AnimationController(
+    FocusManager.instance.addEarlyKeyEventHandler(_settingsShortcut);
+    _cameraAnimation = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 350),
-    )..addListener(_animateCameraReset);
+    )..addListener(_animateCamera);
     const token = String.fromEnvironment('FAUST_MCP_TOKEN');
-    if (token.isNotEmpty) unawaited(_enableAutomation(token: token));
+    if (token.isNotEmpty) unawaited(_integration.enable(token: token));
   }
 
   void _automationChanged() {
     if (mounted) setState(() {});
   }
 
-  Future<void> _enableAutomation({String? token}) async {
-    if (_startingAutomation) return;
-    setState(() {
-      _startingAutomation = true;
-      _automationError = null;
-    });
+  KeyEventResult _settingsShortcut(KeyEvent event) {
+    if (event.logicalKey != LogicalKeyboardKey.comma ||
+        !HardwareKeyboard.instance.isMetaPressed) {
+      return KeyEventResult.ignored;
+    }
+    if (event is KeyDownEvent) unawaited(_openSettings());
+    return KeyEventResult.handled;
+  }
+
+  Future<void> _openSettings() async {
+    if (_settingsOpen || !mounted) return;
+    _settingsOpen = true;
     try {
-      await _automationServer.start(
-        token: token,
-        port: const int.fromEnvironment('FAUST_MCP_PORT', defaultValue: 47831),
+      await showDialog<void>(
+        context: context,
+        builder: (context) => SettingsDialog(integration: _integration),
       );
-      if (mounted) _automation.enable();
-    } catch (_) {
-      if (mounted) _automationError = 'MCP connection unavailable. Check whether another app instance is using its port.';
     } finally {
-      if (mounted) setState(() => _startingAutomation = false);
+      _settingsOpen = false;
     }
   }
 
   void _resetCamera() {
-    _resetStart = _cameraPosition;
-    _resetController.forward(from: 0);
+    if (_enteringSketch) return;
+    _animateTo(_initialCameraPosition);
   }
 
-  void _animateCameraReset() {
-    final t = Curves.easeInOut.transform(_resetController.value);
+  void _animateTo(CameraConfig target) {
+    _cameraStart = _cameraPosition;
+    _cameraTarget = target;
+    _cameraAnimation.forward(from: 0);
+  }
+
+  void _selectSide(CameraSide side) {
+    final scene = SceneTessellator().buildGeometry([
+      ..._geometry,
+      ..._evaluated.geometry,
+    ]);
+    final points = <Vector3>[
+      for (final edge in scene.edges) ...edge.points,
+      for (final face in scene.faces)
+        for (final triangle in face.triangles) ...triangle.points,
+    ];
+    for (final output in _document.evaluation.dataOutputs) {
+      final data = output.data;
+      if (data is! SketchGeometry) continue;
+      final frame = data.frame;
+      for (final point in data.solved.points.values) {
+        points.add(frame.localToWorld(point.position));
+      }
+      for (final circle in data.solved.circles.values) {
+        final center = frame.localToWorld(
+          data.solved.points[circle.centerPointId]!.position,
+        );
+        final extent = Vector3.zero();
+        for (var i = 0; i < 3; i++) {
+          extent[i] =
+              circle.radius *
+              math.sqrt(
+                frame.xAxis[i] * frame.xAxis[i] +
+                    frame.yAxis[i] * frame.yAxis[i],
+              );
+        }
+        points.addAll([center - extent, center + extent]);
+      }
+    }
+    final target = side.cameraFor(_cameraPosition, points);
+    // Take the shortest yaw path, including when the user has made full turns.
+    final turn =
+        (target.yaw - _cameraPosition.yaw + math.pi) % (2 * math.pi) - math.pi;
+    _animateTo(target.copyWith(yaw: _cameraPosition.yaw + turn));
+  }
+
+  void _animateCamera() {
+    final t = Curves.easeInOut.transform(_cameraAnimation.value);
     double interpolate(double start, double end) => start + (end - start) * t;
 
     setState(() {
-      _cameraPosition = _resetController.isCompleted
-          ? _initialCameraPosition
+      _cameraPosition = _cameraAnimation.isCompleted
+          ? _cameraTarget
           : CameraConfig(
+              isOrthographic: _cameraStart.isOrthographic,
               position: Vertex(
-                _resetStart.position.vector +
-                    (_initialCameraPosition.position.vector -
-                            _resetStart.position.vector) *
+                _cameraStart.position.vector +
+                    (_cameraTarget.position.vector -
+                            _cameraStart.position.vector) *
                         t,
               ),
-              yaw: interpolate(_resetStart.yaw, _initialCameraPosition.yaw),
-              pitch: interpolate(
-                _resetStart.pitch,
-                _initialCameraPosition.pitch,
-              ),
+              yaw: interpolate(_cameraStart.yaw, _cameraTarget.yaw),
+              pitch: interpolate(_cameraStart.pitch, _cameraTarget.pitch),
               focalLength: interpolate(
-                _resetStart.focalLength,
-                _initialCameraPosition.focalLength,
+                _cameraStart.focalLength,
+                _cameraTarget.focalLength,
               ),
               focusDistance: interpolate(
-                _resetStart.focusDistance,
-                _initialCameraPosition.focusDistance,
+                _cameraStart.focusDistance,
+                _cameraTarget.focusDistance,
               ),
             );
+      if (_cameraAnimation.isCompleted && _enteringSketch) {
+        _enteringSketch = false;
+      }
     });
   }
 
   @override
   void dispose() {
+    FocusManager.instance.removeEarlyKeyEventHandler(_settingsShortcut);
     _automation.removeListener(_automationChanged);
-    unawaited(_automationServer.close());
-    if (widget.automation == null) _automation.dispose();
     _document.removeListener(_documentChanged);
+    _integration.dispose();
+    if (widget.automation == null) _automation.dispose();
     _editor.removeListener(_editorChanged);
     _editor.dispose();
     _extrusionEditor.removeListener(_extrusionChanged);
     _extrusionEditor.dispose();
     if (widget.controller == null) _document.dispose();
-    _resetController.dispose();
+    _cameraAnimation.dispose();
     super.dispose();
   }
 
   void _select(ViewportHit? hit) {
     setState(() {
-      _selectedReference = _selectionMode == ViewportSelectionMode.body
-          ? hit?.bodyReference
-          : hit?.faceReference;
-      _selectedFeature = _selectedReference?.featureId;
-      _inspectedSupport = null;
-      if (_selectionMode == ViewportSelectionMode.planarFace &&
-          hit?.faceReference != null) {
-        final normal = (hit!.face.surface as PlaneSurface).normal;
-        _inspectedSupport = PlanarSupport.face(
+      _selectedHit = hit;
+      _selectedReference = hit?.edge == null ? hit?.faceReference : null;
+      _selectedFeature = (hit?.bodyReference ?? hit?.faceReference)?.featureId;
+    });
+    if (_selectingSketchPlane &&
+        hit?.faceReference != null &&
+        hit!.face.surface is PlaneSurface) {
+      final normal = (hit.face.surface as PlaneSurface).normal;
+      _enterSketch(
+        support: PlanarSupport.face(
           reference: hit.faceReference!,
           preferredDirection: normal.x.abs() < 0.9
               ? Vector3(1, 0, 0)
               : Vector3(0, 1, 0),
-        );
-      }
-    });
+        ),
+      );
+    }
   }
 
   void _documentChanged() {
     _evaluated = _document.evaluation.materializeGeometry();
+    if (_selectedHit != null) _selectedReference = null;
+    _selectedHit = null;
     if (_selectedReference != null &&
         !{
           ..._evaluated.faces.values,
           ..._evaluated.bodies.values,
         }.contains(_selectedReference)) {
       _selectedReference = null;
-      _inspectedSupport = null;
     }
     if (!_document.features.any((f) => f.id == _selectedFeature)) {
       _selectedFeature = null;
@@ -226,21 +296,56 @@ class _CadScreenState extends State<CadScreen>
       _selectedReference = _evaluated.bodies.values
           .where((reference) => reference.featureId == id)
           .firstOrNull;
-      _inspectedSupport = null;
+      _selectedHit = null;
     });
   }
 
   void _editorChanged() {
     if (_editor.activeId == null && _previousCamera != null) {
+      _cameraAnimation.stop();
+      _enteringSketch = false;
       _cameraPosition = _previousCamera!;
       _previousCamera = null;
+    }
+    final frame = _editor.support?.frame;
+    if (frame != null && !_enteringSketch) {
+      final x = CameraProjection(_sketchCamera(_editor.view))
+          .toCameraDirection(frame.xAxis);
+      _editor.view = SketchView(
+        scale: _editor.view.scale,
+        center: _editor.view.center,
+        rotation: math.atan2(x.z, x.x),
+      );
     }
     if (mounted) setState(() {});
   }
 
+  void _startSketchSelection() {
+    if (_document.isEditLocked || _selectingSketchPlane || _enteringSketch) {
+      return;
+    }
+    setState(() {
+      _selectingSketchPlane = true;
+      _selectedReference = null;
+      _selectedHit = null;
+    });
+  }
+
+  void _cancelSketchSelection() {
+    if (_selectingSketchPlane) {
+      setState(() => _selectingSketchPlane = false);
+    } else if (_selectedHit != null || _selectedReference != null) {
+      setState(() {
+        _selectedHit = null;
+        _selectedReference = null;
+        _selectedFeature = null;
+      });
+    }
+  }
+
   void _enterSketch({FeatureId? id, PlanarSupport? support}) {
     if (_document.isEditLocked) return;
-    _resetController.stop();
+    _cameraAnimation.stop();
     final previous = _previousCamera ?? _cameraPosition;
     if (id != null) {
       _editor.open(id);
@@ -248,19 +353,77 @@ class _CadScreenState extends State<CadScreen>
       _editor.create(support!);
     }
     _previousCamera = previous;
+    _selectingSketchPlane = false;
     final frame = _editor.support?.frame;
-    if (frame != null) {
-      final direction = -frame.normal;
-      _cameraPosition = CameraConfig(
-        position: Vertex(frame.origin - direction * 200),
-        yaw: math.atan2(-direction.x, direction.y),
-        pitch: math.asin(direction.z.clamp(-1.0, 1.0)),
-        focalLength: 500,
-        focusDistance: 200,
-      );
+    if (frame == null) {
+      setState(() {});
+      return;
     }
+    final direction = -frame.normal;
+    final yaw = _planeYaw(direction);
+    final turn =
+        (yaw - _cameraPosition.yaw + math.pi) % (2 * math.pi) - math.pi;
+    final target = CameraConfig(
+      position: Vertex(frame.origin - direction * 200),
+      yaw: _cameraPosition.yaw + turn,
+      pitch: math.asin(direction.z.clamp(-1.0, 1.0)),
+      focalLength: 500,
+      focusDistance: 200,
+      isOrthographic: true,
+    );
+    final projection = CameraProjection(target);
+    final x = projection.toCameraDirection(frame.xAxis);
+    _editor.view = SketchView(
+      scale: target.focalLength / target.focusDistance,
+      rotation: math.atan2(x.z, x.x),
+    );
+    _enteringSketch = true;
+    _animateTo(target);
     setState(() {});
   }
+
+  double _planeYaw(Vector3 direction) =>
+      direction.x.abs() + direction.y.abs() < 1e-12
+      ? 0
+      : math.atan2(-direction.x, direction.y);
+
+  CameraConfig _sketchCamera(SketchView view) {
+    final frame = _editor.support?.frame;
+    if (frame == null) return _cameraPosition;
+    final center = frame.localToWorld(Vector2(view.center.dx, view.center.dy));
+    final direction = -frame.normal;
+    return _cameraPosition.copyWith(
+      yaw: _planeYaw(direction),
+      pitch: math.asin(direction.z.clamp(-1.0, 1.0)),
+      position: Vertex(center + frame.normal * _cameraPosition.focusDistance),
+      focalLength: view.scale * _cameraPosition.focusDistance,
+      isOrthographic: true,
+    );
+  }
+
+  Widget _scene(CameraConfig camera, {bool editing = false}) => CadScene(
+    cameraConfig: camera,
+    sketches: [
+      for (final result in _document.evaluation.features.entries)
+        if (result.value.state == FeatureState.valid &&
+            (!editing || result.key != _editor.activeId))
+          for (final output in result.value.outputs)
+            if (output.kind == OutputKind.sketch) output.data as SketchGeometry,
+    ],
+    renderMode: CadRenderMode.shaded,
+    geometry: _geometry,
+    evaluatedGeometry: _evaluated,
+    selectionMode: _selectingSketchPlane
+        ? ViewportSelectionMode.planarFace
+        : ViewportSelectionMode.inspect,
+    onSelected: _enteringSketch || editing ? null : _select,
+    selectedReference: editing ? null : _selectedReference,
+    selectedHit: editing ? null : _selectedHit,
+    geometryRevision: _document.evaluation.revision,
+    showPrincipalPlanes: _selectingSketchPlane,
+    onPrincipalPlaneSelected: (plane) =>
+        _enterSketch(support: PlanarSupport.principal(plane)),
+  );
 
   void _extrusionChanged() {
     if (mounted) setState(() {});
@@ -285,110 +448,26 @@ class _CadScreenState extends State<CadScreen>
     _editor.close();
   }
 
-  Widget _inspectionPanel() {
-    final resolution = _inspectedSupport == null
-        ? null
-        : PlanarSupportResolution.resolve(
-            _inspectedSupport!,
-            _document.evaluation,
-          );
-    final frame = resolution?.support?.frame;
-    String vector(Vector3 v) =>
-        '(${v.x.toStringAsFixed(3)}, ${v.y.toStringAsFixed(3)}, ${v.z.toStringAsFixed(3)})';
-    return SizedBox(
-      width: 240,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Sketches'),
-            DropdownButton<PrincipalPlane>(
-              value: _plane,
-              items: [
-                for (final p in PrincipalPlane.values)
-                  DropdownMenuItem(value: p, child: Text(p.name.toUpperCase())),
-              ],
-              onChanged: _document.isEditLocked
-                  ? null
-                  : (p) => setState(() => _plane = p!),
-            ),
-            FilledButton(
-              key: const Key('new-sketch'),
-              onPressed: _document.isEditLocked
-                  ? null
-                  : () =>
-                        _enterSketch(support: PlanarSupport.principal(_plane)),
-              child: const Text('New sketch'),
-            ),
-            OutlinedButton(
-              key: const Key('sketch-on-face'),
-              onPressed: _inspectedSupport == null || _document.isEditLocked
-                  ? null
-                  : () => _enterSketch(support: _inspectedSupport),
-              child: const Text('Sketch on selected face'),
-            ),
-            const Divider(),
-            const Text('Viewport selection'),
-            DropdownButton<ViewportSelectionMode>(
-              value: _selectionMode,
-              items: const [
-                DropdownMenuItem(
-                  value: ViewportSelectionMode.planarFace,
-                  child: Text('Planar face'),
-                ),
-                DropdownMenuItem(
-                  value: ViewportSelectionMode.body,
-                  child: Text('Body'),
-                ),
-              ],
-              onChanged: (mode) => setState(() {
-                _selectionMode = mode!;
-                _selectedReference = null;
-                _inspectedSupport = null;
-              }),
-            ),
-            const Text('Click a visible body face to inspect it.'),
-            const SizedBox(height: 12),
-            if (_selectedReference != null)
-              Text(
-                '${_selectedReference!.featureId}/${_selectedReference!.key}',
-              ),
-            if (resolution?.diagnostic != null) Text(resolution!.diagnostic!),
-            if (frame != null) ...[
-              const Text('Resolved plane'),
-              Text('Origin: ${vector(frame.origin)}'),
-              Text('X: ${vector(frame.xAxis)}'),
-              Text('Y: ${vector(frame.yAxis)}'),
-              Text('Normal: ${vector(frame.normal)}'),
-              const SizedBox(height: 8),
-              const Text(
-                'Infinite support plane; the face boundary is only a trim.',
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_extrusionEditor.activeId != null) {
       return Scaffold(body: ExtrusionWorkspace(editor: _extrusionEditor));
     }
-    if (_editor.activeId != null) {
+    if (_editor.activeId != null && !_enteringSketch) {
       return Scaffold(
         body: SketchWorkspace(
           editor: _editor,
           onClose: _leaveSketch,
           onExtrude: _extrudeSketch,
+          sceneBuilder: (view) => _scene(_sketchCamera(view), editing: true),
         ),
       );
     }
     final evaluated = _evaluated;
     return CallbackShortcuts(
       bindings: {
+        const SingleActivator(LogicalKeyboardKey.escape):
+            _cancelSketchSelection,
         const SingleActivator(LogicalKeyboardKey.digit1, meta: true):
             _resetCamera,
         if (!_document.isEditLocked) ...{
@@ -413,22 +492,14 @@ class _CadScreenState extends State<CadScreen>
         child: Scaffold(
           body: Column(
             children: [
-              AiControlBar(
-                active: _automation.isActive,
-                paused: _automation.paused,
-                connected: _automationServer.endpoint != null,
-                operation: _automation.operation,
-                error: _automationError,
-                onEnable: _startingAutomation
-                    ? null
-                    : () => unawaited(_enableAutomation()),
-                onStop: _automation.stop,
-                onCopy: () => unawaited(
-                  Clipboard.setData(
-                    ClipboardData(text: _automationServer.endpoint!),
-                  ),
+              if (_automation.isActive || _automation.paused)
+                AiControlBar(
+                  active: _automation.isActive,
+                  paused: _automation.paused,
+                  operation: _automation.operation,
+                  onStop: _automation.stop,
+                  onOpenSettings: () => unawaited(_openSettings()),
                 ),
-              ),
               Expanded(
                 child: Center(
                   child: Row(
@@ -441,7 +512,13 @@ class _CadScreenState extends State<CadScreen>
                             Row(
                               children: [
                                 const SizedBox(width: 12),
-                                const Text('Model edits'),
+                                const Expanded(
+                                  child: Text(
+                                    'Model edits',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
                                 IconButton(
                                   tooltip: 'Undo',
                                   onPressed:
@@ -460,24 +537,24 @@ class _CadScreenState extends State<CadScreen>
                                       : null,
                                   icon: const Icon(Icons.redo),
                                 ),
+                                IconButton(
+                                  key: const Key('open-settings'),
+                                  tooltip: 'Settings (⌘,)',
+                                  onPressed: () => unawaited(_openSettings()),
+                                  icon: const Icon(Icons.settings_outlined),
+                                ),
                               ],
                             ),
                             Padding(
                               padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                              child: IgnorePointer(
-                                ignoring: _document.isEditLocked,
-                                child: ExcludeFocus(
-                                  excluding: _document.isEditLocked,
-                                  child: StepExportButton(
-                                    solids: evaluated.geometry
-                                        .whereType<Solid>()
-                                        .toList(),
-                                  ),
-                                ),
+                              child: StepExportButton(
+                                enabled: !_document.isEditLocked,
+                                solids: evaluated.geometry
+                                    .whereType<Solid>()
+                                    .toList(),
                               ),
                             ),
                             Expanded(
-                              flex: 3,
                               child: FeatureHistoryPanel(
                                 document: _document,
                                 selectedId: _selectedFeature,
@@ -487,21 +564,22 @@ class _CadScreenState extends State<CadScreen>
                                 onExtrudeSketch: _enterExtrusion,
                               ),
                             ),
-                            const Divider(height: 1),
-                            Expanded(flex: 2, child: _inspectionPanel()),
                           ],
                         ),
                       ),
+                      VerticalDivider(width: 1),
                       Expanded(
                         child: LayoutBuilder(
                           builder: (context, constraints) => Listener(
                             behavior: HitTestBehavior.opaque,
                             onPointerPanZoomStart: (_) {
-                              _resetController.stop();
+                              if (_enteringSketch) return;
+                              _cameraAnimation.stop();
                               _previousGestureScale = 1.0;
                             },
                             onPointerPanZoomUpdate: (event) {
-                              _resetController.stop();
+                              if (_enteringSketch) return;
+                              _cameraAnimation.stop();
                               final scaleFactor =
                                   event.scale / _previousGestureScale;
                               if (event.scale.isFinite && event.scale > 0) {
@@ -532,6 +610,9 @@ class _CadScreenState extends State<CadScreen>
                                 final rotatedCamera = _cameraPosition.copyWith(
                                   yaw: yaw,
                                   pitch: pitch,
+                                  isOrthographic: orientationChanged
+                                      ? false
+                                      : _cameraPosition.isOrthographic,
                                   // Rotation starts looking along a different ray, so
                                   // discard the depth accumulated by earlier zooms.
                                   focusDistance: orientationChanged
@@ -551,22 +632,99 @@ class _CadScreenState extends State<CadScreen>
                             child: Stack(
                               fit: StackFit.expand,
                               children: [
-                                CadScene(
-                                  cameraConfig: _cameraPosition,
-                                  sketches: [
-                                    for (final output
-                                        in _document.evaluation.dataOutputs)
-                                      if (output.data is SketchGeometry)
-                                        output.data as SketchGeometry,
-                                  ],
-                                  renderMode: CadRenderMode.shaded,
-                                  geometry: _geometry,
-                                  evaluatedGeometry: evaluated,
-                                  selectionMode: _selectionMode,
-                                  onSelected: _select,
-                                  selectedReference: _selectedReference,
-                                  geometryRevision:
-                                      _document.evaluation.revision,
+                                AbsorbPointer(
+                                  absorbing: _enteringSketch,
+                                  child: _scene(_cameraPosition),
+                                ),
+                                if (!_enteringSketch &&
+                                    !_selectingSketchPlane &&
+                                    _selectedHit != null)
+                                  Positioned(
+                                    left: 12,
+                                    right: 12,
+                                    bottom: 16,
+                                    child: Center(
+                                      child: SelectionBadge(
+                                        key: const Key('selection-badge'),
+                                        measurement:
+                                            SelectionMeasurement.fromHit(
+                                              _selectedHit!,
+                                            ),
+                                      ),
+                                    ),
+                                  ),
+                                if (!_enteringSketch)
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(left: 12),
+                                      child: Material(
+                                        elevation: 3,
+                                        color: _selectingSketchPlane
+                                            ? Theme.of(context)
+                                                  .colorScheme
+                                                  .primaryContainer
+                                            : Theme.of(context)
+                                                  .colorScheme
+                                                  .surfaceContainerHigh,
+                                        borderRadius: BorderRadius.circular(10),
+                                        child: IconButton(
+                                          key: const Key('start-sketch'),
+                                          tooltip: 'Sketch',
+                                          onPressed: _document.isEditLocked
+                                              ? null
+                                              : _startSketchSelection,
+                                          iconSize: 32,
+                                          padding: const EdgeInsets.all(10),
+                                          icon: Image.asset(
+                                            'assets/icons/sketch.png',
+                                            semanticLabel: 'Sketch',
+                                            width: 32,
+                                            height: 32,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                if (_selectingSketchPlane)
+                                  Positioned(
+                                    top: 16,
+                                    left: 96,
+                                    right: 96,
+                                    child: Center(
+                                      child: IgnorePointer(
+                                        child: Material(
+                                          key: const Key('sketch-plane-hint'),
+                                          elevation: 2,
+                                          borderRadius: BorderRadius.circular(
+                                            20,
+                                          ),
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .secondaryContainer,
+                                          child: const Padding(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 8,
+                                            ),
+                                            child: Text(
+                                              'Hint: select plane to start sketch on it',
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                Positioned(
+                                  top: 12,
+                                  right: 12,
+                                  child: ViewCube(
+                                    camera: _cameraPosition,
+                                    onSelected: (side) {
+                                      if (!_enteringSketch) _selectSide(side);
+                                    },
+                                  ),
                                 ),
                               ],
                             ),

@@ -63,6 +63,72 @@ void main() {
     document.dispose();
   });
 
+  test('cancel empty sketch removes it without an undo or redo entry', () {
+    final cancelledId = editor.activeId!;
+    editor.cancelSketch();
+    expect(editor.activeId, isNull);
+    expect(editor.definition, isNull);
+    expect(editor.support, isNull);
+    expect(document.features, isEmpty);
+    expect(document.evaluation.dataOutputs, isEmpty);
+    expect(document.undoCount, 0);
+    expect(document.redoCount, 0);
+    final nextId = editor.create(
+      const PlanarSupport.principal(PrincipalPlane.xz),
+    );
+    expect(nextId, isNot(cancelledId));
+    editor.close();
+    editor.cancelSketch();
+    expect(document.features.single.id, nextId);
+  });
+
+  test('cancel entire new sketch discards geometry and a pending drag', () {
+    rectangle(editor);
+    final point = editor.definition!.points.values.first;
+    editor.setTool(SketchTool.select);
+    editor.beginDrag(point.id, point.position);
+    editor.updateDrag(point.position + Vector2(5, 8));
+    expect(document.hasActiveTransaction, isTrue);
+    editor.cancelSketch();
+    expect(editor.activeId, isNull);
+    expect(editor.anchor, isNull);
+    expect(editor.preview, isNull);
+    expect(document.features, isEmpty);
+    expect(document.hasActiveTransaction, isFalse);
+    expect(document.canUndo, isFalse);
+    expect(document.canRedo, isFalse);
+  });
+
+  test(
+    'cancel reopened sketch restores original geometry and earlier history',
+    () {
+      rectangle(editor);
+      final id = editor.activeId!;
+      editor.close();
+      document.renameFeature(id, 'Saved sketch');
+      document.undo();
+      final before = document.features;
+      final history = document.undoCount;
+      editor.open(id);
+      select(editor, [editor.definition!.segments.keys.first]);
+      editor.addConstraint(SketchConstraintKind.lineLength, dimension: 50);
+      expect(editor.definition!.constraints, hasLength(1));
+      editor.undo();
+      editor.redo();
+      editor.cancelSketch();
+      expect(editor.activeId, isNull);
+      expect(document.features, before);
+      expect(document.undoCount, history);
+      expect(document.redoCount, 1);
+      document.redo();
+      expect(document.features.single.name, 'Saved sketch');
+      expect(
+        SketchFeature.readDefinition(document.features.single).constraints,
+        isEmpty,
+      );
+    },
+  );
+
   test('draw rectangle and dimensioned circle, cancel drawing, delete, undo and reopen', () {
     rectangle(editor);
     expect(editor.definition!.segments, hasLength(4));

@@ -10,10 +10,8 @@ Widget aiControlPreview() => MaterialApp(
     body: AiControlBar(
       active: true,
       paused: false,
-      connected: true,
-      onEnable: () {},
       onStop: () {},
-      onCopy: () {},
+      onOpenSettings: () {},
     ),
   ),
 );

@@ -3,13 +3,14 @@ import 'dart:typed_data';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 import '../../cad_primitivies/face.dart';
-import '../../cad_surfaces/plane_surface.dart';
+import '../../cad_primitivies/edge.dart';
 import '../tessellation/tessellated_scene.dart';
 
 /// Camera-independent native upload. Doubles also support precise near clipping.
 final class MetalSceneMesh {
   MetalSceneMesh(TessellatedScene scene)
-    : faces = [for (final face in scene.faces) face.source] {
+    : _scene = scene,
+      faces = [for (final face in scene.faces) face.source] {
     final body = <double>[], source = <double>[];
     final indices = <int>[];
     final vertices =
@@ -48,14 +49,38 @@ final class MetalSceneMesh {
   }
 
   final List<Face> faces;
+  final TessellatedScene _scene;
   late final Float32List bodyVertices, edgeVertices;
   late final Float64List bodySource;
   late final Uint32List bodyIndices;
 
   List<int> selection(Set<Face> selected) => [
     for (var i = 0; i < faces.length; i++)
-      if (faces[i].surface is PlaneSurface && selected.contains(faces[i])) i,
+      if (selected.contains(faces[i])) i,
   ];
+
+  List<int> hoverFaces(Face? face) => selection(_scene.hoverFaces(face));
+
+  Float32List hoverLines(
+    Face? hoveredFace, {
+    Edge? selectedEdge,
+    Edge? hoveredEdge,
+  }) {
+    final lines = <double>[];
+    for (final points in _scene.hoverSamples(hoveredFace)) {
+      for (var i = 1; i < points.length; i++) {
+        addLine(lines, points[i - 1], points[i], 3);
+      }
+    }
+    for (final edge in _scene.highlightedEdges(selectedEdge, hoveredEdge)) {
+      final points = _scene.edgeSamples[edge];
+      if (points == null) continue;
+      for (var i = 1; i < points.length; i++) {
+        addLine(lines, points[i - 1], points[i], 4);
+      }
+    }
+    return Float32List.fromList(lines);
+  }
 
   Map<String, Object> get message => {
     'vertices': bodyVertices,

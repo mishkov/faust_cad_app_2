@@ -1,36 +1,59 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector2;
 
 // Orthographic local-plane view. Pixel tolerances never enter the sketch model.
 final class SketchView {
-  const SketchView({this.scale = 5, this.center = Offset.zero});
+  const SketchView({
+    this.scale = 5,
+    this.center = Offset.zero,
+    this.rotation = 0,
+  });
   final double scale;
   final Offset center;
 
-  Offset project(Vector2 point, Size size) => Offset(
-    size.width / 2 + (point.x - center.dx) * scale,
-    size.height / 2 - (point.y - center.dy) * scale,
-  );
+  final double rotation;
 
-  Vector2 unproject(Offset point, Size size) => Vector2(
-    (point.dx - size.width / 2) / scale + center.dx,
-    (size.height / 2 - point.dy) / scale + center.dy,
-  );
+  Offset project(Vector2 point, Size size) {
+    final x = point.x - center.dx, y = point.y - center.dy;
+    return Offset(
+      size.width / 2 +
+          (x * math.cos(rotation) - y * math.sin(rotation)) * scale,
+      size.height / 2 -
+          (x * math.sin(rotation) + y * math.cos(rotation)) * scale,
+    );
+  }
 
-  SketchView pan(Offset pixels) => SketchView(
-    scale: scale,
-    center: center + Offset(-pixels.dx / scale, pixels.dy / scale),
-  );
+  Vector2 unproject(Offset point, Size size) {
+    final x = (point.dx - size.width / 2) / scale;
+    final y = (size.height / 2 - point.dy) / scale;
+    return Vector2(
+      x * math.cos(rotation) + y * math.sin(rotation) + center.dx,
+      -x * math.sin(rotation) + y * math.cos(rotation) + center.dy,
+    );
+  }
+
+  SketchView pan(Offset pixels) {
+    final shifted = unproject(-pixels, Size.zero);
+    return SketchView(
+      scale: scale,
+      rotation: rotation,
+      center: Offset(shifted.x, shifted.y),
+    );
+  }
 
   SketchView zoom(Offset cursor, Size size, double factor) {
     final anchor = unproject(cursor, size);
     final nextScale = (scale * factor).clamp(0.1, 500.0);
+    final atNewScale = SketchView(
+      scale: nextScale,
+      rotation: rotation,
+    ).unproject(cursor, size);
     return SketchView(
       scale: nextScale,
-      center: Offset(
-        anchor.x - (cursor.dx - size.width / 2) / nextScale,
-        anchor.y - (size.height / 2 - cursor.dy) / nextScale,
-      ),
+      rotation: rotation,
+      center: Offset(anchor.x - atNewScale.x, anchor.y - atNewScale.y),
     );
   }
 }

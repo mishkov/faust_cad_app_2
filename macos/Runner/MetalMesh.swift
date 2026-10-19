@@ -100,6 +100,7 @@ final class MetalMesh {
 
   func needsPreciseClip(_ camera: MetalCamera) -> Bool {
     if indexCount == 0 { return false }
+    if camera.orthographicDistance > 0 { return false }
     return minimumDepth(camera) < max(0.001, simd_length(maximum - minimum) * 1e-6)
   }
 
@@ -109,6 +110,18 @@ final class MetalMesh {
       for y in [minimum.y, maximum.y] {
         for z in [minimum.z, maximum.z] {
           depth = min(depth, camera.transform(SIMD3(x, y, z)).y)
+        }
+      }
+    }
+    return depth
+  }
+
+  func maximumDepth(_ camera: MetalCamera) -> Double {
+    var depth = -Double.infinity
+    for x in [minimum.x, maximum.x] {
+      for y in [minimum.y, maximum.y] {
+        for z in [minimum.z, maximum.z] {
+          depth = max(depth, camera.transform(SIMD3(x, y, z)).y)
         }
       }
     }
@@ -176,12 +189,14 @@ final class MetalMesh {
 
 struct MetalCamera {
   let eye: SIMD3<Double>, yaw: Double, pitch: Double, focal: Double, width: Double, height: Double,
-    dpr: Double
+    dpr: Double, orthographicDistance: Double
   init(_ data: Any?) throws {
     let p = try typedArray(data, Double.self)
-    guard p.count == 9, p.allSatisfy({ $0.isFinite }), p[5] > 0, p[6] > 0, p[7] > 0, p[8] > 0,
+    guard (p.count == 9 || p.count == 10), p.allSatisfy({ $0.isFinite }), p[5] > 0, p[6] > 0, p[7] > 0, p[8] > 0,
       p[6] * p[8] <= 16384, p[7] * p[8] <= 16384, p[6] * p[7] * p[8] * p[8] <= 32_000_000
     else { throw MetalFailure("Invalid Metal camera or drawable size") }
+    orthographicDistance = p.count == 10 ? p[9] : 0
+    guard orthographicDistance >= 0 else { throw MetalFailure("Invalid projection scale") }
     eye = SIMD3(p[0], p[1], p[2])
     yaw = p[3]
     pitch = p[4]
@@ -207,7 +222,7 @@ struct MetalCamera {
       SIMD4(high, 0), SIMD4(SIMD3<Float>(low), 0),
       SIMD4(Float(cos(-yaw)), Float(sin(-yaw)), Float(cos(-pitch)), Float(sin(-pitch))),
       SIMD4(Float(width), Float(height), Float(focal), Float(dpr)),
-      SIMD4(precise ? 1 : 0, depthScale, wireframe ? 1 : 0, 0),
+      SIMD4(precise ? 1 : 0, depthScale, wireframe ? 1 : 0, Float(orthographicDistance)),
     ]
   }
 }

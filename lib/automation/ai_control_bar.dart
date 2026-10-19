@@ -5,22 +5,16 @@ class AiControlBar extends StatelessWidget {
     super.key,
     required this.active,
     required this.paused,
-    required this.connected,
-    required this.onEnable,
     required this.onStop,
-    required this.onCopy,
+    required this.onOpenSettings,
     this.operation,
-    this.error,
   });
 
   final bool active;
   final bool paused;
-  final bool connected;
   final String? operation;
-  final String? error;
-  final VoidCallback? onEnable;
   final VoidCallback onStop;
-  final VoidCallback onCopy;
+  final VoidCallback onOpenSettings;
 
   @override
   Widget build(BuildContext context) => Material(
@@ -39,8 +33,6 @@ class AiControlBar extends StatelessWidget {
                 ? 'AI is editing • ${operation == null ? 'Inspecting model' : 'Building geometry'}'
                 : paused
                 ? 'AI stopped'
-                : connected
-                ? 'MCP ready'
                 : 'AI control off',
           ),
           if (active)
@@ -49,24 +41,11 @@ class AiControlBar extends StatelessWidget {
               onPressed: onStop,
               icon: const Icon(Icons.stop),
               label: const Text('Stop AI'),
-            )
-          else if (!connected || paused)
-            OutlinedButton(
-              key: const Key('enable-ai'),
-              onPressed: onEnable,
-              child: Text(paused ? 'Re-enable AI' : 'Enable MCP'),
             ),
-          if (connected)
-            TextButton(
-              key: const Key('copy-mcp-connection'),
-              onPressed: onCopy,
-              child: const Text('Copy MCP connection'),
-            ),
-          if (error != null)
-            Text(
-              error!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
+          TextButton(
+            onPressed: onOpenSettings,
+            child: const Text('AI Integration settings'),
+          ),
         ],
       ),
     ),

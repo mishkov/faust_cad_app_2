@@ -32,7 +32,7 @@ void main() {
       expect(find.textContaining('AI is editing'), findsOneWidget);
       expect(
         tester
-            .widget<FilledButton>(find.byKey(const Key('new-sketch')))
+            .widget<IconButton>(find.byKey(const Key('start-sketch')))
             .onPressed,
         isNull,
       );
@@ -72,7 +72,7 @@ void main() {
       expect(denied['isError'], isTrue);
       expect(
         tester
-            .widget<FilledButton>(find.byKey(const Key('new-sketch')))
+            .widget<IconButton>(find.byKey(const Key('start-sketch')))
             .onPressed,
         isNotNull,
       );
@@ -91,10 +91,8 @@ void main() {
             child: AiControlBar(
               active: true,
               paused: false,
-              connected: true,
-              onEnable: () {},
               onStop: () {},
-              onCopy: () {},
+              onOpenSettings: () {},
             ),
           ),
         ),

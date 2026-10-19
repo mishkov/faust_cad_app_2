@@ -24,6 +24,8 @@ import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 import '../../test/support/orbit_extrusion_fixture.dart';
 
+import 'package:faust_cad_app_2/cad_scene/navigation/camera_side.dart';
+
 Future<Map<String, dynamic>> validateMetalImages(
   MetalViewportController controller,
 ) async {
@@ -40,18 +42,29 @@ Future<Map<String, dynamic>> validateMetalImages(
     (1.8, -.7),
     (2.8, .5),
   ];
-  for (final scenario in [
-    'default',
-    'partial',
-    'inside',
-    'near',
-    'selection',
-    'holes',
-    'cavity',
-    'reverse',
-    'wireframe',
-  ]) {
-    final hasSketch = scenario == 'partial' || scenario == 'wireframe';
+  const selectedScenarios = String.fromEnvironment('METAL_SCENARIOS');
+  for (final scenario
+      in [
+        'default',
+        'partial',
+        'inside',
+        'near',
+        'selection',
+        'holes',
+        'cavity',
+        'reverse',
+        'wireframe',
+        'orthographic',
+        'orthographicSketch',
+      ].where(
+        (scenario) =>
+            selectedScenarios.isEmpty ||
+            selectedScenarios.split(',').contains(scenario),
+      )) {
+    final hasSketch =
+        scenario == 'partial' ||
+        scenario == 'wireframe' ||
+        scenario == 'orthographicSketch';
     final scene = SceneTessellator().buildGeometry(
       scenario == 'holes'
           ? Tube(
@@ -92,7 +105,21 @@ Future<Map<String, dynamic>> validateMetalImages(
     );
     final mesh = MetalSceneMesh(scene);
     final cameras = <CameraConfig>[
-      if (scenario == 'inside' || scenario == 'near' || scenario == 'cavity')
+      if (scenario.startsWith('orthographic'))
+        for (final side in CameraSide.values)
+          side.cameraFor(
+            CameraConfig(
+              position: Vertex(Vector3.zero()),
+              yaw: 0,
+              pitch: 0,
+              focalLength: 500,
+              focusDistance: 220,
+            ),
+            [for (final edge in scene.edges) ...edge.points],
+          )
+      else if (scenario == 'inside' ||
+          scenario == 'near' ||
+          scenario == 'cavity')
         CameraConfig(
           position: Vertex(Vector3(0, scenario == 'near' ? -10.000001 : 0, 0)),
           yaw: .2,
@@ -140,6 +167,7 @@ Future<Map<String, dynamic>> validateMetalImages(
             size.width,
             size.height,
             dpr,
+            camera.isOrthographic ? camera.focusDistance : 0,
           ]),
           'selection': mesh.selection(selected),
           'wireframe': scenario == 'wireframe',
