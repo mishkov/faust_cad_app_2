@@ -20,19 +20,19 @@ import 'package:flutter/services.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector2, Vector3;
 
 import '../cad_scene/cad_primitivies/solid.dart';
-import '../cad_scene/selection/selection_badge.dart';
-import '../cad_scene/selection/selection_measurement.dart';
 import '../cad_scene/navigation/camera_side.dart';
 import '../cad_scene/navigation/view_cube.dart';
+import '../cad_scene/rendering/camera_projection.dart';
 import '../cad_scene/rendering/tessellation/scene_tessellator.dart';
+import '../cad_scene/selection/selection_badge.dart';
+import '../cad_scene/selection/selection_measurement.dart';
+import '../document/feature_result.dart';
 import '../document/features/extrude_feature.dart';
 import '../extrusion_editor/extrusion_editor_controller.dart';
 import '../extrusion_editor/extrusion_workspace.dart';
 import '../feature_history/feature_history_panel.dart';
-import '../step_export/step_export_button.dart';
-import '../cad_scene/rendering/camera_projection.dart';
-import '../document/feature_result.dart';
 import '../sketch_editor/sketch_view.dart';
+import '../step_export/step_export_button.dart';
 
 class CadScreen extends StatefulWidget {
   const new({super.key, this.controller});
@@ -466,6 +466,7 @@ class _CadScreenState extends State<CadScreen>
                     ],
                   ),
                 ),
+                VerticalDivider(width: 1),
                 Expanded(
                   child: LayoutBuilder(
                     builder: (context, constraints) => Listener(
