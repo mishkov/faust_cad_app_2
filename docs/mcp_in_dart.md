@@ -27,7 +27,7 @@ Computer use can also occupy the user's input devices. In the example below, the
 
 These benefits can reduce interaction overhead. They do not establish that MCP is faster or cheaper for every task. Screenshots remain useful for checking the result.
 
-Even when an agent can operate the UI, MCP may be a useful optimization. Keeping document operations separate from widgets makes both automation and testing easier.
+Even when an agent can operate the UI, MCP may be a useful optimization. Keeping document operations separate from widgets makes it easier to add automation.
 
 # How can we implement MCP in Dart/Flutter?
 
@@ -121,7 +121,7 @@ While the agent owns editing control, human document mutations are blocked. Came
 
 After a lost response, the client retries with the same application `requestId` and arguments. Within the active session's receipt limit, this returns the stored result instead of repeating the edit. This identifier is separate from the JSON-RPC message ID. After losing the session, inspect the document before issuing new commands.
 
-For a washer, the workflow is: begin editing, create two concentric circles, read the current profiles, select the region containing the hole, extrude it, inspect the result, and finish editing. Profile IDs belong to a particular document revision and must be refreshed after relevant changes.
+To build the keyboard shown below, I will create sketches for the enclosure, keycaps, and label outlines, then extrude them. Before each extrusion, I will read the current profiles and use their IDs with the returned revision. After inspecting the model, I will finish the editing session.
 
 ## Configure the client
 
@@ -143,18 +143,14 @@ Open **Settings → AI Integration**, enable MCP, and use **Copy MCP connection*
 
 Replace the paths and endpoint. This is an example configuration shape; use the format required by the chosen MCP client. The endpoint contains a secret and should not appear in published logs.
 
-## Testing
+# Result
 
-I will test the protocol integration and CAD behavior separately:
+With MCP connected, I had the agent model a keyboard using sketches and extrusions. The result has 87 keys on a 19.05 mm pitch, a 360 × 140 mm sloped enclosure, and labels raised 0.35 mm above the keycaps. The saved document snapshot contains 40 features, all evaluated as valid.
 
-- **Protocol and transport:** initialization, tool discovery and calls, invalid arguments, clean shutdown, and rejected bridge connections.
-- **Document behavior:** dimensions and holes, undo/redo, failed edits preserving state, stale revisions, duplicate requests, and competing editors.
-- **User control:** visible editing state, Stop AI during an operation, disconnect recovery, and continued camera interaction.
+These are the top and angled views returned by `cad_render` from the running app:
 
-I will cover these areas in [automation tests](https://github.com/mishkov/faust_cad_app_2/tree/3b473595f128766e386ccfd543f73780542fccba/test/automation), including a real stdio subprocess and a washer extrusion. These tests provide regression coverage; a complete protocol conformance assessment requires broader checks.
+![Top view of the 87-key keyboard modeled through MCP.](images/mcp-keyboard-top.png)
 
-Use the [MCP Inspector](https://modelcontextprotocol.io/docs/2026-07-28/tools/inspector) to inspect schemas and call tools without involving a model. Then test with the intended agent client. A successful Inspector session alone does not establish agent reliability or performance.
+![Angled view of the keyboard, showing the sloped enclosure and raised labels.](images/mcp-keyboard-angled.png)
 
-For the later computer-use comparison, define identical modeling tasks and correctness criteria. Reset the document and start a fresh agent session for each run. Keep the model, settings, and starting instructions consistent; document the available tools. Alternate execution order and repeat each task. Record completion time, success, retries, human intervention, token counts, and any reported cache use. Alternating order alone does not control caching. Compare correct results and report failures as well as successful runs.
-
-# Measure profit
+The result also reflects the tools I exposed. It uses one gray material because there is no material or color tool. The keycap tops are horizontal at increasing row heights; there is no transform tool to tilt them individually. I saved a replayable MCP recipe and a feature snapshot because native document saving is not exposed through MCP.
