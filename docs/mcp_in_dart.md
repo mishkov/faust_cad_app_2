@@ -4,7 +4,7 @@
 
 MCP (Model Context Protocol) standardizes how AI applications connect to external tools and data. An agent can use an MCP server to fetch a weather forecast, read documentation, or edit a document. The host application manages the connection and tool execution; the model selects tools and supplies arguments. See the [MCP architecture overview](https://modelcontextprotocol.io/docs/2026-07-28/learn/architecture).
 
-In this article, we use MCP to let an agent edit 3D models in a Flutter CAD app.
+In this article, I will add MCP support to my Flutter CAD app so an agent can edit 3D models.
 
 ## When should we add MCP to a Flutter app?
 
@@ -33,7 +33,7 @@ Even when an agent can operate the UI, MCP may be a useful optimization. Keeping
 
 ## Available packages
 
-These are three relevant options, checked on 20 October 2026. Transport and compatibility information below comes from the package documentation; it is not an independent conformance assessment.
+These are three relevant options. Let's look at them.
 
 | Package | Version | Scope and transports | Main consideration | License |
 | --- | --- | --- | --- | --- |
@@ -41,39 +41,33 @@ These are three relevant options, checked on 20 October 2026. Transport and comp
 | [`mcp_dart`](https://pub.dev/packages/mcp_dart) | 2.4.3 | Client and server APIs; stdio, Streamable HTTP, and custom transports. | Documents support for both 2026-07-28 and earlier protocol revisions, with authentication hooks. | MIT |
 | [`mcp_server`](https://pub.dev/packages/mcp_server) | 3.0.0 | Server package; stdio, Streamable HTTP, and legacy SSE. | Server-focused alternative; documents support through 2026-07-28 and requires `dart:io`. | MIT |
 
-For a local stdio integration, `dart_mcp` is worth evaluating. For Streamable HTTP or support spanning the newer and older protocol revisions, `mcp_dart` offers more of that infrastructure directly. Check the specific release, supported clients, issue history, and examples before adopting either.
-
-The [Dart and Flutter MCP server](https://docs.flutter.dev/ai/get-started#how-flutter-ai-plugins-work) serves a different purpose: it exposes development tools such as analysis, tests, and runtime inspection. Our CAD server needs application-specific modeling tools.
+`dart_mcp` provides the local stdio transport I need. `mcp_dart` also includes Streamable HTTP and broader protocol-version support, but I will keep this integration local and target a single protocol revision.
 
 ## Writing from scratch
 
-An AI agent can generate an adapter, but generated code still needs review and tests. The protocol specification remains the contract.
+Of course, we don't need to write the entire MCP protocol implementation manually; we will ask AI to do that! The decision is similar to choosing whether to use a library or write the code ourselves. We ask questions such as:
 
-| Question | SDK | Custom adapter |
-| --- | --- | --- |
-| Who handles protocol messages and lifecycle? | The SDK, within its supported scope. | The app team. |
-| Who implements CAD operations? | The app team. | The app team. |
-| Who tracks protocol changes? | SDK maintainers provide updates; the app team evaluates and adopts them. | The app team implements and tests them. |
-| How much control do we have? | Public APIs, extensions, or a maintained fork. | Direct control over all adapter code. |
-| What must we test? | App behavior and integration, plus unsupported SDK behavior. | App behavior, integration, and the protocol implementation. |
+- Is the library well supported?
+- Does its license fit how we use our app?
+- Will migrating away from it be difficult?
+- How is it implemented under the hood?
+- Can we extend it later?
 
-An SDK is the better default for a new production integration. It reduces the protocol code we must maintain. A custom adapter can suit a limited experiment with a fixed transport, protocol revision, and tool set.
-
-For either approach, inspect maintenance activity, license terms, implementation quality, extension points, and migration cost. AI-generated code does not remove dependency or licensing review.
+An AI-written solution has its own advantages: we can inspect the entire implementation, extend it when needed, and choose code and dependencies that fit our licensing requirements. But maintaining its quality and fixing bugs, including security issues, becomes our responsibility. Choose carefully.
 
 ## Which approach will we use in the CAD app?
 
-For this article, we use the app's [existing custom adapter and bridge](https://github.com/mishkov/faust_cad_app_2/tree/3b473595f128766e386ccfd543f73780542fccba). It already connects to the running document, uses stdio, and adds no MCP package dependency. This keeps the example tied to code we can inspect.
+I will build [a custom stdio adapter and local bridge](https://github.com/mishkov/faust_cad_app_2/tree/3b473595f128766e386ccfd543f73780542fccba). I need local access to the running CAD document and a small set of modeling tools. I want to inspect and extend the adapter directly without adding an MCP package dependency, so I will ask AI to generate it and review the result against the specification.
 
-The choice is specific to this demonstration. For a new production version, I would start with an SDK for the protocol layer and retain the app-specific bridge and controllers. `dart_mcp` covers the local stdio shape; `mcp_dart` is the stronger candidate when newer protocol support or Streamable HTTP is required.
+An SDK would save me protocol implementation and maintenance work. I am choosing direct control over this small adapter and accepting responsibility for compatibility, tests, and security fixes. I will keep the CAD operations in separate controllers so I can replace the protocol layer later without rewriting the modeling logic.
 
-The current adapter targets the initialization-based **2025-11-25** protocol and exposes tools. The latest published revision checked for this article is **2026-07-28**, which replaces that handshake with per-request version and capability metadata. Extending compatibility requires additional implementation and testing. See [versioning and compatibility](https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning).
+I will target the initialization-based **2025-11-25** protocol and expose tools. The latest published revision checked for this article is **2026-07-28**, which replaces that handshake with per-request version and capability metadata. Supporting it would require additional implementation and testing. See [versioning and compatibility](https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning).
 
 # Implementing MCP in the CAD app
 
 ## Connect the agent to the running app
 
-The implementation has two connections:
+I will connect the agent to the running app through two connections:
 
 ```text
 Agent host -> stdio MCP adapter -> local WebSocket bridge -> CAD controllers
@@ -100,7 +94,7 @@ The tool definitions live in `lib/automation/automation_tools.dart`. Each includ
 
 Document lengths are millimeters; camera angles are degrees. Descriptions also explain profile selection, revision requirements, and retry behavior. The server validates arguments before applying operations.
 
-The current interface supplies numeric sketch geometry. Editing sketch constraints through MCP is outside its scope. Tool coverage must be explicit; adding a UI feature does not automatically expose it.
+I will start with numeric sketch geometry and leave constraint editing outside this version's scope. Tool coverage must be explicit; adding a UI feature does not automatically expose it.
 
 ## Handle MCP messages
 
@@ -151,13 +145,13 @@ Replace the paths and endpoint. This is an example configuration shape; use the 
 
 ## Testing
 
-Test the protocol integration and CAD behavior separately:
+I will test the protocol integration and CAD behavior separately:
 
 - **Protocol and transport:** initialization, tool discovery and calls, invalid arguments, clean shutdown, and rejected bridge connections.
 - **Document behavior:** dimensions and holes, undo/redo, failed edits preserving state, stale revisions, duplicate requests, and competing editors.
 - **User control:** visible editing state, Stop AI during an operation, disconnect recovery, and continued camera interaction.
 
-The [existing automation tests](https://github.com/mishkov/faust_cad_app_2/tree/3b473595f128766e386ccfd543f73780542fccba/test/automation) cover these areas, including a real stdio subprocess and a washer extrusion. They provide regression coverage, not a complete protocol conformance result.
+I will cover these areas in [automation tests](https://github.com/mishkov/faust_cad_app_2/tree/3b473595f128766e386ccfd543f73780542fccba/test/automation), including a real stdio subprocess and a washer extrusion. These tests provide regression coverage; a complete protocol conformance assessment requires broader checks.
 
 Use the [MCP Inspector](https://modelcontextprotocol.io/docs/2026-07-28/tools/inspector) to inspect schemas and call tools without involving a model. Then test with the intended agent client. A successful Inspector session alone does not establish agent reliability or performance.
 
