@@ -211,7 +211,7 @@ Measure performance:
 Work autonomously until the model is saved and verified.
 ```
 
-The result has 87 keys on a 19.05 mm pitch, a 360 × 140 mm sloped enclosure, and labels raised 0.35 mm above the keycaps. The saved document snapshot contains 40 features, all evaluated as valid.
+The result has 87 keys on a 19.05 mm pitch, a 360 × 140 mm sloped enclosure, and labels raised 0.35 mm above the keycaps. The model contains 40 features, all evaluated as valid.
 
 These are the top and angled views returned by `cad_render` from the running app:
 
@@ -219,7 +219,7 @@ These are the top and angled views returned by `cad_render` from the running app
 
 ![Angled view of the keyboard, showing the sloped enclosure and raised labels.](images/mcp-keyboard-angled.png)
 
-The result also reflects the tools I exposed. It uses one gray material because there is no material or color tool. The keycap tops are horizontal at increasing row heights; there is no transform tool to tilt them individually. Since my server has no native document-save tool, I saved the commands needed to rebuild the keyboard and a separate JSON record of its features.
+The result also reflects the tools I exposed. It uses one gray material because there is no material or color tool. The keycap tops are horizontal at increasing row heights; there is no transform tool to tilt them individually.
 
 ## Conclusion
 
